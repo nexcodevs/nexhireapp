@@ -73,7 +73,7 @@ export default async function EmpresaDashboard() {
             </p>
           </div>
           <Link
-            href="/empresa/vagas/nova"
+            href="/empresa/vagas/nova-vaga"
             className="inline-flex items-center gap-2 bg-[#052E16] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#064E1F] transition-colors flex-shrink-0"
           >
             Abrir vaga
@@ -97,7 +97,7 @@ export default async function EmpresaDashboard() {
           <div className="text-center py-8">
             <p className="text-[#9CA3AF] text-sm">Nenhuma vaga aberta ainda.</p>
             <Link
-              href="/empresa/vagas/nova"
+              href="/empresa/vagas/nova-vaga"
               className="inline-block mt-3 text-sm text-[#16A34A] font-medium hover:underline"
             >
               Abrir primeira vaga
