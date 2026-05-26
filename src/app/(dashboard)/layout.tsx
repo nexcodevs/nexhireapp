@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { User } from '@/types/database'
+import NotificationBell from '@/components/ui/NotificationBell'
 
 async function getUser(): Promise<User | null> {
   const supabase = await createClient()
@@ -60,26 +61,25 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const user = await getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const items = navItems[user.role as keyof typeof navItems] || navItems.candidate
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-[#052E16] flex flex-col fixed h-full">
         {/* Logo */}
         <div className="p-6 border-b border-[#064E1F]">
-          <span className="text-white font-bold text-lg tracking-tight">
-            nexhire
-          </span>
-          <div className="mt-1">
-            <span className="text-xs text-[#00E676] font-medium uppercase tracking-wider">
-              {roleLabels[user.role]}
-            </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-white font-bold text-lg tracking-tight">nexhire</span>
+              <div className="mt-1">
+                <span className="text-xs text-[#00E676] font-medium uppercase tracking-wider">
+                  {roleLabels[user.role]}
+                </span>
+              </div>
+            </div>
+            <NotificationBell userId={user.id} />
           </div>
         </div>
 
@@ -122,7 +122,6 @@ export default async function DashboardLayout({
         </div>
       </aside>
 
-      {/* Conteúdo */}
       <main className="flex-1 ml-64 p-8">
         {children}
       </main>
