@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import HRSubmissionActions from '@/components/submissions/HRSubmissionActions'
+import AIAnalyzeButton from '@/components/submissions/AIAnalyzeButton'
 import { formatDate } from '@/lib/utils'
 
 export default async function HRSubmissaoDetailPage({
@@ -47,12 +48,14 @@ export default async function HRSubmissaoDetailPage({
               <h1 className="text-2xl font-bold text-[#052E16]">{candidate?.full_name}</h1>
               <Badge variant={
                 sub.status === 'submitted' ? 'yellow' :
+                sub.status === 'ai_analyzed' ? 'blue' :
                 sub.status === 'hr_approved' ? 'green' :
                 sub.status === 'hr_rejected' ? 'red' :
                 sub.status === 'sent_to_client' ? 'blue' :
                 sub.status === 'hired' ? 'dark' : 'gray'
               }>
                 {sub.status === 'submitted' && 'Aguardando curadoria'}
+                {sub.status === 'ai_analyzed' && 'Analisado pela IA'}
                 {sub.status === 'hr_approved' && 'Aprovado'}
                 {sub.status === 'hr_rejected' && 'Reprovado'}
                 {sub.status === 'sent_to_client' && 'Enviado ao cliente'}
@@ -75,18 +78,64 @@ export default async function HRSubmissaoDetailPage({
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-4">
-          {sub.status === 'submitted' && (
-            <HRSubmissionActions submissionId={sub.id} jobId={job?.id} />
+
+          {/* Análise IA + Ações HR */}
+          {(sub.status === 'submitted' || sub.status === 'ai_analyzed') && (
+            <div className="flex flex-col gap-3">
+              {sub.status === 'submitted' && (
+                <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-bold text-[#052E16] mb-0.5">Analisar com IA</h2>
+                      <p className="text-xs text-[#6B7280]">Gera score, resumo e pontos de atenção automaticamente.</p>
+                    </div>
+                    <AIAnalyzeButton submissionId={sub.id} />
+                  </div>
+                </Card>
+              )}
+              <HRSubmissionActions submissionId={sub.id} jobId={job?.id} />
+            </div>
           )}
+
           {sub.status === 'hr_approved' && (
             <HRSubmissionActions submissionId={sub.id} jobId={job?.id} mode="send" />
           )}
+
+          {/* AI Summary */}
+          {sub.ai_summary && (
+            <Card padding="md">
+              <h2 className="text-base font-bold text-[#052E16] mb-3">Análise da IA</h2>
+              <p className="text-sm text-[#374151] leading-relaxed mb-3">{sub.ai_summary}</p>
+              {sub.ai_risks && (sub.ai_risks as string[]).length > 0 && (
+                <div className="mb-3">
+                  <div className="text-xs font-medium text-red-500 mb-1">Riscos</div>
+                  <div className="flex flex-wrap gap-1">
+                    {(sub.ai_risks as string[]).map((risk, i) => (
+                      <span key={i} className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full">{risk}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sub.ai_gaps && (sub.ai_gaps as string[]).length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-[#D97706] mb-1">Gaps</div>
+                  <div className="flex flex-wrap gap-1">
+                    {(sub.ai_gaps as string[]).map((gap, i) => (
+                      <span key={i} className="text-xs bg-[#FFFBEB] text-[#D97706] px-2 py-0.5 rounded-full">{gap}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
           <Card padding="md">
             <h2 className="text-base font-bold text-[#052E16] mb-3">Resumo da entrevista</h2>
             <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
               {sub.interview_summary || 'Sem resumo.'}
             </p>
           </Card>
+
           {sub.recruiter_notes && (
             <Card padding="md">
               <h2 className="text-base font-bold text-[#052E16] mb-3">Notas do hunter</h2>
