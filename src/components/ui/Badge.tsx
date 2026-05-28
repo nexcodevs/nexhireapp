@@ -1,21 +1,70 @@
 interface BadgeProps {
-  variant?: 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'dark'
+  variant?: 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'dark' | 'neon'
+  size?: 'sm' | 'md'
   children: React.ReactNode
   className?: string
 }
 
-const variants = {
-  green: 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]',
-  yellow: 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]',
-  red: 'bg-red-50 text-red-600 border border-red-200',
-  blue: 'bg-blue-50 text-blue-600 border border-blue-200',
-  gray: 'bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]',
-  dark: 'bg-[#052E16] text-[#00E676] border border-[#064E1F]',
-}
+export default function Badge({
+  variant = 'gray',
+  size = 'md',
+  children,
+  className = '',
+}: BadgeProps) {
+  const variants: Record<string, React.CSSProperties> = {
+    green: {
+      background: 'var(--color-m100)',
+      color: 'var(--color-f800)',
+      border: '1px solid var(--color-border-g)',
+    },
+    yellow: {
+      background: '#FFFBEB',
+      color: '#92400E',
+      border: '1px solid #FDE68A',
+    },
+    red: {
+      background: '#FEF2F2',
+      color: '#991B1B',
+      border: '1px solid #FECACA',
+    },
+    blue: {
+      background: '#EFF6FF',
+      color: '#1E40AF',
+      border: '1px solid #DBEAFE',
+    },
+    gray: {
+      background: '#F3F4F6',
+      color: 'var(--color-muted)',
+      border: '1px solid var(--color-border)',
+    },
+    dark: {
+      background: 'var(--color-f900)',
+      color: 'var(--color-neon)',
+      border: '1px solid var(--color-f800)',
+    },
+    neon: {
+      background: 'rgba(0,230,118,.12)',
+      color: 'var(--color-f900)',
+      border: '1px solid rgba(0,230,118,.35)',
+      fontWeight: 600,
+    },
+  }
 
-export default function Badge({ variant = 'gray', children, className = '' }: BadgeProps) {
+  const sizes = {
+    sm: { padding: '2px 8px', fontSize: '10.5px' },
+    md: { padding: '3px 10px', fontSize: '11px' },
+  }
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full whitespace-nowrap ${className}`}
+      style={{
+        ...variants[variant],
+        ...sizes[size],
+        fontWeight: variant === 'neon' ? 600 : 500,
+        letterSpacing: '-0.005em',
+      }}
+    >
       {children}
     </span>
   )

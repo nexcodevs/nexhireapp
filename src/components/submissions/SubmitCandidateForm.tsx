@@ -45,6 +45,19 @@ export default function SubmitCandidateForm({
     setSubmission(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  // Dispara email para HR. Falha de email NÃO bloqueia o fluxo.
+  async function notifyHR(submissionId: string) {
+    try {
+      await fetch('/api/notifications/new-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId }),
+      })
+    } catch (err) {
+      console.warn('Falha ao notificar HR (não bloqueante):', err)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -79,7 +92,7 @@ export default function SubmitCandidateForm({
         const ownership = new Date()
         ownership.setDate(ownership.getDate() + 60)
 
-        const { error: subError } = await supabase
+        const { data: newSub, error: subError } = await supabase
           .from('submissions')
           .insert({
             job_id: jobId,
@@ -89,12 +102,16 @@ export default function SubmitCandidateForm({
             recruiter_notes: submission.recruiter_notes,
             ownership_expires_at: ownership.toISOString(),
           })
+          .select()
+          .single()
 
         if (subError) {
           setError('Erro ao enviar candidato. Tente novamente.')
           setLoading(false)
           return
         }
+
+        if (newSub?.id) await notifyHR(newSub.id)
 
         setSuccess(true)
         router.refresh()
@@ -126,7 +143,7 @@ export default function SubmitCandidateForm({
     const ownership = new Date()
     ownership.setDate(ownership.getDate() + 60)
 
-    const { error: subError } = await supabase
+    const { data: newSub, error: subError } = await supabase
       .from('submissions')
       .insert({
         job_id: jobId,
@@ -136,12 +153,16 @@ export default function SubmitCandidateForm({
         recruiter_notes: submission.recruiter_notes,
         ownership_expires_at: ownership.toISOString(),
       })
+      .select()
+      .single()
 
     if (subError) {
       setError('Erro ao enviar candidato.')
       setLoading(false)
       return
     }
+
+    if (newSub?.id) await notifyHR(newSub.id)
 
     setSuccess(true)
     router.refresh()
@@ -178,14 +199,56 @@ export default function SubmitCandidateForm({
     )
   }
 
+  const isLastSlot = remainingSlots === 1
+
   return (
     <Card padding="md">
-      <h2 className="text-base font-bold text-[#052E16] mb-1">
-        Enviar candidato
-      </h2>
-      <p className="text-xs text-[#9CA3AF] mb-4">
-        Você pode enviar mais {remainingSlots} candidato{remainingSlots !== 1 ? 's' : ''} para esta vaga.
-      </p>
+      <div className="mb-5">
+        <h2 className="text-base font-bold mb-1" style={{ color: 'var(--color-text)' }}>
+          Enviar candidato
+        </h2>
+        <div
+          className="flex items-start gap-2.5 mt-3 p-3 rounded-lg"
+          style={{
+            background: isLastSlot ? '#FFFBEB' : 'var(--color-m100)',
+            border: `1px solid ${isLastSlot ? '#FDE68A' : 'var(--color-border-g)'}`,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke={isLastSlot ? '#D97706' : 'var(--color-g600)'}
+            strokeWidth={2}
+            style={{ flexShrink: 0, marginTop: '2px' }}
+          >
+            {isLastSlot ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            )}
+          </svg>
+          <div style={{ minWidth: 0 }}>
+            <div
+              className="text-sm font-medium"
+              style={{ color: isLastSlot ? '#92400E' : 'var(--color-f800)' }}
+            >
+              {isLastSlot
+                ? 'Atenção — este é seu último envio'
+                : `Você tem ${remainingSlots} envios restantes nesta vaga`}
+            </div>
+            <div
+              className="text-xs mt-0.5"
+              style={{ color: isLastSlot ? '#B45309' : 'var(--color-muted)', lineHeight: 1.5 }}
+            >
+              {isLastSlot
+                ? 'Cada hunter pode enviar no máximo 3 candidatos por vaga. Use este envio com cuidado: candidatos reprovados também contam para o limite.'
+                : 'Cada hunter pode enviar no máximo 3 candidatos por vaga. Priorize qualidade sobre quantidade — candidatos reprovados não dão direito a novo envio.'}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Dados do candidato */}

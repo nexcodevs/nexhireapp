@@ -34,15 +34,31 @@ export default function HRSubmissionActions({
       send: 'sent_to_client',
     }
 
+    const updatePayload: any = { status: statusMap[action] }
+    // Salva notas no banco quando há texto
+    if (notes && (action === 'approve' || action === 'reject')) {
+      updatePayload.hr_notes = notes
+      updatePayload.hr_reviewed_at = new Date().toISOString()
+    }
+
     const { error: updateError } = await supabase
       .from('submissions')
-      .update({ status: statusMap[action] })
+      .update(updatePayload)
       .eq('id', submissionId)
 
     if (updateError) {
       setError('Erro ao atualizar status.')
       setLoading(null)
       return
+    }
+
+    // Dispara email pro cliente quando HR envia pra ele
+    if (action === 'send') {
+      fetch('/api/notifications/candidato-enviado-cliente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId }),
+      }).catch(err => console.warn('Falha email cliente:', err))
     }
 
     router.refresh()

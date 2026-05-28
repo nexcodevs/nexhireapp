@@ -1,142 +1,147 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
-import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
-import { formatDate } from '@/lib/utils'
 
-export const metadata = {
-  title: 'Submissões — HR Manager — Nexhire',
-}
-
-export default async function HRSubmissoesPage() {
+export default async function FilaSubmissoesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, full_name')
     .eq('id', user.id)
     .single()
 
-  if (!['hr_manager', 'admin'].includes(userData?.role)) {
-    redirect('/login')
+  if (profile?.role !== 'hr_manager' && profile?.role !== 'admin') {
+    redirect('/dashboard')
   }
 
-  const { data: submissions } = await supabase
+  const { data: submissoes } = await supabase
     .from('submissions')
     .select(`
-      *,
-      candidates(full_name, current_title, location, email),
-      jobs(title, companies(name)),
-      recruiters(users(full_name))
+      id,
+      status,
+      submitted_at,
+      interview_summary,
+      recruiter_notes,
+      candidates ( id, full_name, current_title, location, email ),
+      jobs ( id, title, seniority, companies ( name ) ),
+      recruiters ( id, level, users ( full_name ) )
     `)
-    .order('submitted_at', { ascending: false })
+    .in('status', ['submitted', 'ai_analyzed'])
+    .order('submitted_at', { ascending: true })
 
-  const pending = submissions?.filter(s => s.status === 'submitted') || []
-  const reviewed = submissions?.filter(s => s.status !== 'submitted') || []
+  const { count: pendentes } = await supabase
+    .from('submissions')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['submitted', 'ai_analyzed'])
+
+  const { count: aprovados } = await supabase
+    .from('submissions')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'hr_approved')
+
+  const { count: enviados } = await supabase
+    .from('submissions')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'sent_to_client')
 
   return (
-    <div className="max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#052E16] mb-1">Submissões</h1>
-        <p className="text-[#6B7280] text-sm">
-          {pending.length} aguardando curadoria · {submissions?.length || 0} no total
-        </p>
+    <div className="p-8 max-w-7xl mx-auto">
+      <PageHeader
+        eyebrow="Curadoria"
+        title="Candidatos para"
+        titleAccent="revisar"
+        subtitle="Revise os candidatos enviados pelos hunters e aprove para envio ao cliente."
+      />
+
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="text-sm text-gray-600">Aguardando revisão</div>
+          <div className="text-3xl font-semibold mt-2 text-gray-900">{pendentes || 0}</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="text-sm text-gray-600">Na shortlist (aprovados)</div>
+          <div className="text-3xl font-semibold mt-2 text-gray-900">{aprovados || 0}</div>
+          {(aprovados || 0) > 0 && (
+            <Link href="/hr/shortlist" className="text-sm text-green-700 hover:underline mt-2 inline-block">
+              Enviar para cliente →
+            </Link>
+          )}
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="text-sm text-gray-600">Já enviados ao cliente</div>
+          <div className="text-3xl font-semibold mt-2 text-gray-900">{enviados || 0}</div>
+        </div>
       </div>
 
-      {/* Pendentes */}
-      {pending.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-sm font-bold text-[#D97706] uppercase tracking-wider mb-3">
-            Aguardando curadoria ({pending.length})
-          </h2>
-          <div className="flex flex-col gap-3">
-            {pending.map(sub => (
-              <Link key={sub.id} href={`/hr/submissoes/${sub.id}`}>
-                <Card padding="md" className="hover:border-[#FDE68A] transition-all cursor-pointer border-[#FEF3C7] bg-[#FFFBEB]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-base font-bold text-[#052E16]">
-                          {(sub.candidates as any)?.full_name}
-                        </h3>
-                        <Badge variant="yellow">Para curar</Badge>
-                      </div>
-                      <div className="text-xs text-[#9CA3AF]">
-                        {(sub.candidates as any)?.current_title}
-                        {(sub.candidates as any)?.location && ` · ${(sub.candidates as any)?.location}`}
-                      </div>
-                      <div className="text-xs text-[#6B7280] mt-1">
-                        Vaga: <span className="font-medium">{(sub.jobs as any)?.title}</span>
-                        {' · '}Hunter: {(sub.recruiters as any)?.users?.full_name}
-                      </div>
-                    </div>
-                    <div className="text-xs text-[#9CA3AF] flex-shrink-0">
-                      {formatDate(sub.submitted_at)}
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            ))}
-          </div>
+      {!submissoes || submissoes.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+          <div className="text-gray-400 text-sm mb-2">Sem candidatos para revisar</div>
+          <div className="text-gray-900 font-medium">Tudo em dia.</div>
+          <p className="text-gray-600 text-sm mt-2">
+            Quando hunters enviarem novos candidatos, eles aparecem aqui.
+          </p>
         </div>
-      )}
-
-      {/* Revisadas */}
-      {reviewed.length > 0 && (
-        <div>
-          <h2 className="text-sm font-bold text-[#6B7280] uppercase tracking-wider mb-3">
-            Revisadas ({reviewed.length})
-          </h2>
-          <div className="flex flex-col gap-3">
-            {reviewed.map(sub => (
-              <Link key={sub.id} href={`/hr/submissoes/${sub.id}`}>
-                <Card padding="md" className="hover:border-[#BBF7D0] transition-all cursor-pointer">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-base font-bold text-[#052E16]">
-                          {(sub.candidates as any)?.full_name}
-                        </h3>
-                        <Badge variant={
-                          sub.status === 'hr_approved' ? 'green' :
-                          sub.status === 'hr_rejected' ? 'red' :
-                          sub.status === 'sent_to_client' ? 'blue' :
-                          sub.status === 'hired' ? 'dark' : 'gray'
-                        }>
-                          {sub.status === 'hr_approved' && 'Aprovado'}
-                          {sub.status === 'hr_rejected' && 'Reprovado'}
-                          {sub.status === 'sent_to_client' && 'Enviado ao cliente'}
-                          {sub.status === 'client_approved' && 'Aprovado pelo cliente'}
-                          {sub.status === 'hired' && 'Contratado'}
-                          {!['hr_approved','hr_rejected','sent_to_client','client_approved','hired'].includes(sub.status) && sub.status}
-                        </Badge>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left text-xs font-medium text-gray-600 uppercase px-6 py-3">Candidato</th>
+                <th className="text-left text-xs font-medium text-gray-600 uppercase px-6 py-3">Vaga</th>
+                <th className="text-left text-xs font-medium text-gray-600 uppercase px-6 py-3">Hunter</th>
+                <th className="text-left text-xs font-medium text-gray-600 uppercase px-6 py-3">Enviado</th>
+                <th className="text-right text-xs font-medium text-gray-600 uppercase px-6 py-3">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {submissoes.map((s: any) => {
+                const diasEspera = Math.floor(
+                  (Date.now() - new Date(s.submitted_at).getTime()) / (1000 * 60 * 60 * 24)
+                )
+                return (
+                  <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{s.candidates?.full_name}</div>
+                      <div className="text-sm text-gray-600">{s.candidates?.current_title || '—'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{s.jobs?.title}</div>
+                      <div className="text-sm text-gray-600">{s.jobs?.companies?.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{s.recruiters?.users?.full_name}</div>
+                      <Badge variant={s.recruiters?.level === 'top_hunter' ? 'dark' : 'gray'} className="mt-1">
+                        {s.recruiters?.level === 'top_hunter' ? 'Top Hunter' : s.recruiters?.level === 'specialist' ? 'Especialista' : 'Iniciante'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {diasEspera === 0 ? 'hoje' : `há ${diasEspera}d`}
                       </div>
-                      <div className="text-xs text-[#9CA3AF]">
-                        {(sub.candidates as any)?.current_title}
-                      </div>
-                      <div className="text-xs text-[#6B7280] mt-1">
-                        Vaga: <span className="font-medium">{(sub.jobs as any)?.title}</span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-[#9CA3AF] flex-shrink-0">
-                      {formatDate(sub.submitted_at)}
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                      {diasEspera >= 2 && (
+                        <Badge variant="yellow" className="mt-1">SLA</Badge>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/hr/submissoes/${s.id}`}
+                        className="inline-flex items-center text-sm font-medium text-green-700 hover:text-green-800"
+                      >
+                        Revisar →
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      {!submissions || submissions.length === 0 && (
-        <Card padding="lg" className="text-center">
-          <p className="text-[#9CA3AF] text-sm py-6">Nenhuma submissão ainda.</p>
-        </Card>
       )}
     </div>
   )

@@ -32,15 +32,34 @@ export default function ClientCandidateActions({
       schedule: 'interview_scheduled',
     }
 
+    const updatePayload: any = { status: statusMap[action] }
+    if (reason && (action === 'approve' || action === 'reject')) {
+      updatePayload.client_feedback = reason
+      updatePayload.client_reviewed_at = new Date().toISOString()
+    }
+
     const { error: updateError } = await supabase
       .from('submissions')
-      .update({ status: statusMap[action] })
+      .update(updatePayload)
       .eq('id', submissionId)
 
     if (updateError) {
       setError('Erro ao atualizar. Tente novamente.')
       setLoading(null)
       return
+    }
+
+    // Notifica HR (não bloqueia)
+    if (action === 'approve' || action === 'reject') {
+      fetch('/api/notifications/decisao-cliente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId,
+          decision: action === 'approve' ? 'approved' : 'rejected',
+          reason: reason || undefined,
+        }),
+      }).catch(err => console.warn('Falha email decisão:', err))
     }
 
     router.refresh()

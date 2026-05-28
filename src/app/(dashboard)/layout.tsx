@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { User } from '@/types/database'
 import NotificationBell from '@/components/ui/NotificationBell'
 
@@ -64,32 +65,75 @@ export default async function DashboardLayout({
   if (!user) redirect('/login')
 
   const items = navItems[user.role as keyof typeof navItems] || navItems.candidate
+  const initials =
+    user.full_name
+      ?.split(' ')
+      .map(n => n.charAt(0))
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || user.email.charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex">
-      <aside className="w-64 bg-[#052E16] flex flex-col fixed h-full">
-        {/* Logo */}
-        <div className="p-6 border-b border-[#064E1F]">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-white font-bold text-lg tracking-tight">nexhire</span>
-              <div className="mt-1">
-                <span className="text-xs text-[#00E676] font-medium uppercase tracking-wider">
-                  {roleLabels[user.role]}
-                </span>
-              </div>
-            </div>
-            <NotificationBell userId={user.id} />
-          </div>
+    <div className="min-h-screen flex" style={{ background: 'var(--color-bg-app)' }}>
+      <aside
+        className="w-60 flex flex-col fixed h-full"
+        style={{
+          background: 'var(--color-f900)',
+          borderRight: '1px solid var(--color-f800)',
+        }}
+      >
+        {/* Brand */}
+        <div
+          className="px-5 pt-6 pb-5 flex items-start justify-between gap-3"
+          style={{ borderBottom: '1px solid rgba(255,255,255,.08)' }}
+        >
+          <Link href={items[0]?.href || '/'} className="block flex-1 min-w-0">
+            <Image
+              src="/brand/nexhire-logo.svg"
+              alt="Nexhire"
+              width={872}
+              height={180}
+              priority
+              style={{
+                width: '120px',
+                height: 'auto',
+                display: 'block',
+              }}
+            />
+            <span
+              className="mt-2 inline-block font-medium uppercase mono"
+              style={{
+                fontSize: '9.5px',
+                letterSpacing: '0.18em',
+                color: 'var(--color-neon)',
+              }}
+            >
+              {roleLabels[user.role]}
+            </span>
+          </Link>
+          <NotificationBell userId={user.id} />
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-4 flex flex-col gap-1">
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
           {items.map(item => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#A7F3D0] text-sm font-medium hover:bg-[#064E1F] hover:text-white transition-colors"
+              className="sb-link"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '9px 12px',
+                borderRadius: '10px',
+                color: 'rgba(255,255,255,.65)',
+                fontSize: '13.5px',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                textDecoration: 'none',
+                transition: 'all .15s',
+              }}
             >
               {item.label}
             </Link>
@@ -97,16 +141,38 @@ export default async function DashboardLayout({
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-[#064E1F]">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-[#16A34A] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+        <div
+          className="px-4 pt-4 pb-5"
+          style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}
+        >
+          <div className="flex items-center gap-2.5 mb-3">
+            <div
+              className="rounded-full grid place-items-center flex-shrink-0"
+              style={{
+                width: '32px',
+                height: '32px',
+                background: 'var(--color-neon)',
+                color: 'var(--color-f900)',
+                fontSize: '11px',
+                fontWeight: 700,
+              }}
+            >
+              {initials}
             </div>
             <div className="min-w-0">
-              <div className="text-white text-sm font-medium truncate">
+              <div
+                className="text-white truncate"
+                style={{ fontSize: '12.5px', fontWeight: 500 }}
+              >
                 {user.full_name || 'Usuário'}
               </div>
-              <div className="text-[#6B7280] text-xs truncate">
+              <div
+                className="truncate"
+                style={{
+                  fontSize: '10.5px',
+                  color: 'rgba(255,255,255,.5)',
+                }}
+              >
                 {user.email}
               </div>
             </div>
@@ -114,7 +180,12 @@ export default async function DashboardLayout({
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="w-full text-left text-xs text-[#6B7280] hover:text-white transition-colors py-1"
+              className="w-full text-left transition-colors"
+              style={{
+                fontSize: '11.5px',
+                color: 'rgba(255,255,255,.5)',
+                padding: '4px 0',
+              }}
             >
               Sair
             </button>
@@ -122,9 +193,16 @@ export default async function DashboardLayout({
         </div>
       </aside>
 
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 ml-60" style={{ padding: '40px 48px' }}>
         {children}
       </main>
+
+      <style>{`
+        .sb-link:hover {
+          background: rgba(255,255,255,.06);
+          color: #ffffff;
+        }
+      `}</style>
     </div>
   )
 }

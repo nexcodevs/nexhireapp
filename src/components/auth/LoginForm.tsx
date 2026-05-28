@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import FormError from '@/components/ui/FormError'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -86,19 +87,22 @@ export default function LoginForm() {
         </Link>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
-        </p>
-      )}
+      {error && <FormError>{error}</FormError>}
 
       <Button type="submit" loading={loading} size="lg" className="w-full mt-2">
         Entrar
       </Button>
 
-      <p className="text-sm text-center text-[#6B7280]">
+      <p
+        className="text-sm text-center"
+        style={{ color: 'var(--color-muted)' }}
+      >
         Não tem conta?{' '}
-        <Link href="/signup" className="text-[#16A34A] font-medium hover:underline">
+        <Link
+          href="/signup"
+          className="hover:underline"
+          style={{ color: 'var(--color-g600)', fontWeight: 500 }}
+        >
           Criar conta
         </Link>
       </p>

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
 
@@ -29,14 +30,12 @@ export default async function CandidatoDashboard() {
   return (
     <div className="max-w-4xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#052E16] mb-1">
-          Olá, {userData?.full_name?.split(' ')[0] || 'bem-vindo'}
-        </h1>
-        <p className="text-[#6B7280] text-sm">
-          Encontre vagas com fit real para o seu perfil
-        </p>
-      </div>
+     <PageHeader
+        eyebrow="Sua jornada"
+        title="Olá,"
+        titleAccent={userData?.full_name?.split(' ')[0] || 'bem-vindo'}
+        subtitle="Encontre vagas com fit real para o seu perfil."
+      />
 
       {/* CTA */}
       <Card padding="lg" className="mb-8 border-[#BBF7D0] bg-[#F0FDF4]">

@@ -10,11 +10,14 @@ interface HRJobActionsProps {
   jobId: string
 }
 
+type VisibilityOption = 'open' | 'specialist_plus' | 'top_hunters_only'
+
 export default function HRJobActions({ jobId }: HRJobActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<'approve' | 'reject' | null>(null)
   const [notes, setNotes] = useState('')
   const [maxSubmissions, setMaxSubmissions] = useState('3')
+  const [visibility, setVisibility] = useState<VisibilityOption>('open')
   const [error, setError] = useState('')
 
   async function handleApprove() {
@@ -28,6 +31,7 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
       .update({
         status: 'open_for_hunters',
         max_submissions_per_recruiter: parseInt(maxSubmissions),
+        visibility_type: visibility,
       })
       .eq('id', jobId)
 
@@ -36,6 +40,13 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
       setLoading(null)
       return
     }
+
+    // Notifica hunters elegíveis (não bloqueia o fluxo)
+    fetch('/api/notifications/vaga-liberada', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId }),
+    }).catch(err => console.warn('Falha email vaga liberada:', err))
 
     router.refresh()
     setLoading(null)
@@ -68,6 +79,64 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
       </h2>
 
       <div className="flex flex-col gap-4">
+        {/* Visibilidade */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-[#374151]">
+            Visibilidade da vaga
+          </label>
+          <div className="flex flex-col gap-2">
+            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              visibility === 'open' ? 'border-[#16A34A] bg-white' : 'border-[#E5E7EB] bg-white hover:border-[#BBF7D0]'
+            }`}>
+              <input
+                type="radio"
+                name="visibility"
+                value="open"
+                checked={visibility === 'open'}
+                onChange={() => setVisibility('open')}
+                className="mt-0.5 accent-[#16A34A]"
+              />
+              <div>
+                <div className="text-sm font-medium text-[#052E16]">Aberta para todos</div>
+                <div className="text-xs text-[#6B7280]">Todos os hunters aprovados podem enviar candidatos.</div>
+              </div>
+            </label>
+            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              visibility === 'specialist_plus' ? 'border-[#16A34A] bg-white' : 'border-[#E5E7EB] bg-white hover:border-[#BBF7D0]'
+            }`}>
+              <input
+                type="radio"
+                name="visibility"
+                value="specialist_plus"
+                checked={visibility === 'specialist_plus'}
+                onChange={() => setVisibility('specialist_plus')}
+                className="mt-0.5 accent-[#16A34A]"
+              />
+              <div>
+                <div className="text-sm font-medium text-[#052E16]">Especialistas e Top Hunters</div>
+                <div className="text-xs text-[#6B7280]">Esconde a vaga dos hunters Iniciantes.</div>
+              </div>
+            </label>
+            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              visibility === 'top_hunters_only' ? 'border-[#16A34A] bg-white' : 'border-[#E5E7EB] bg-white hover:border-[#BBF7D0]'
+            }`}>
+              <input
+                type="radio"
+                name="visibility"
+                value="top_hunters_only"
+                checked={visibility === 'top_hunters_only'}
+                onChange={() => setVisibility('top_hunters_only')}
+                className="mt-0.5 accent-[#16A34A]"
+              />
+              <div>
+                <div className="text-sm font-medium text-[#052E16]">Top Hunters apenas</div>
+                <div className="text-xs text-[#6B7280]">Vaga exclusiva — só Top Hunters veem.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Limite */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-[#374151]">
             Limite de candidatos por hunter
@@ -85,6 +154,7 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
           </select>
         </div>
 
+        {/* Notas */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-[#374151]">
             Notas internas (opcional)

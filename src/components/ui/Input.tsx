@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, forwardRef } from 'react'
+import { InputHTMLAttributes, forwardRef, useId } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -7,36 +7,65 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, className = '', ...props }, ref) => {
+  ({ label, error, hint, className = '', id: idProp, ...props }, ref) => {
+    const generatedId = useId()
+    const id = idProp ?? generatedId
+    const errorId = `${id}-error`
+    const hintId = `${id}-hint`
+    const describedBy = error ? errorId : hint ? hintId : undefined
+
+    const inputClasses = [
+      'nx-input',
+      error ? 'nx-input--error' : '',
+      className,
+    ]
+      .filter(Boolean)
+      .join(' ')
+
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label className="text-sm font-medium text-[#374151]">
+          <label
+            htmlFor={id}
+            style={{
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--color-text2)',
+            }}
+          >
             {label}
-            {props.required && <span className="text-[#16A34A] ml-1">*</span>}
+            {props.required && (
+              <span aria-hidden="true" style={{ color: '#991B1B', marginLeft: '4px' }}>
+                *
+              </span>
+            )}
           </label>
         )}
         <input
           ref={ref}
-          className={`
-            w-full h-10 px-3 rounded-lg border bg-white text-[#052E16] text-sm
-            placeholder:text-[#9CA3AF]
-            transition-all duration-150
-            focus:outline-none focus:ring-2 focus:ring-[#16A34A] focus:border-transparent
-            disabled:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-60
-            ${error
-              ? 'border-red-400 focus:ring-red-400'
-              : 'border-[#E5E7EB] hover:border-[#BBF7D0]'
-            }
-            ${className}
-          `}
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          aria-required={props.required || undefined}
+          className={inputClasses}
           {...props}
         />
         {error && (
-          <p className="text-xs text-red-500">{error}</p>
+          <p
+            id={errorId}
+            role="alert"
+            style={{ fontSize: '12px', color: '#991B1B', marginTop: '2px' }}
+          >
+            {error}
+          </p>
         )}
         {hint && !error && (
-          <p className="text-xs text-[#9CA3AF]">{hint}</p>
+          <p
+            id={hintId}
+            style={{ fontSize: '12px', color: 'var(--color-subtle)', marginTop: '2px' }}
+          >
+            {hint}
+          </p>
         )}
       </div>
     )

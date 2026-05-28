@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
 
@@ -50,14 +51,12 @@ export default async function HRDashboard() {
   return (
     <div className="max-w-6xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#052E16] mb-1">
-          Operações — HR Manager
-        </h1>
-        <p className="text-[#6B7280] text-sm">
-          Visão geral da plataforma
-        </p>
-      </div>
+     <PageHeader
+        eyebrow="HR Manager"
+        title="Operações"
+        titleAccent="da plataforma"
+        subtitle="Visão geral de vagas, submissões e operações em curso."
+      />
 
       {/* Alertas de ação */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
