@@ -76,6 +76,16 @@ export default function LoginForm() {
         autoComplete="current-password"
       />
 
+      <div className="flex justify-end -mt-2">
+        <Link
+          href="/forgot-password"
+          className="text-xs hover:underline"
+          style={{ color: 'var(--color-g600)', fontWeight: 500 }}
+        >
+          Esqueci minha senha
+        </Link>
+      </div>
+
       {error && (
         <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {error}

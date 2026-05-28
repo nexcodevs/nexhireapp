@@ -1,11 +1,11 @@
-import LoginForm from '@/components/auth/LoginForm'
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm'
 import Image from 'next/image'
 
 export const metadata = {
-  title: 'Entrar — Nexhire',
+  title: 'Recuperar senha — Nexhire',
 }
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex" style={{ background: '#FAFAFA' }}>
       {/* Lado esquerdo — branding */}
@@ -42,33 +42,6 @@ export default function LoginPage() {
         </div>
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '460px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '5px 13px',
-              borderRadius: '999px',
-              background: 'rgba(0,230,118,0.08)',
-              border: '1px solid rgba(0,230,118,0.25)',
-              fontSize: '11px',
-              fontWeight: 500,
-              color: '#A7F3D0',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '24px',
-            }}
-          >
-            <span
-              style={{
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                background: '#00E676',
-              }}
-            />
-            Bem-vindo de volta
-          </div>
           <h1
             style={{
               fontSize: '40px',
@@ -79,7 +52,7 @@ export default function LoginPage() {
               marginBottom: '20px',
             }}
           >
-            Uma rede inteira{' '}
+            Recupere o{' '}
             <span
               style={{
                 fontFamily: 'var(--font-serif)',
@@ -88,9 +61,9 @@ export default function LoginPage() {
                 color: '#00E676',
               }}
             >
-              trabalhando
+              acesso
             </span>{' '}
-            pela sua próxima contratação.
+            em segundos.
           </h1>
           <p
             style={{
@@ -100,36 +73,11 @@ export default function LoginPage() {
               lineHeight: 1.6,
             }}
           >
-            IA + hunters especialistas + curadoria humana.
+            Enviamos um link seguro para o seu email. Você define uma nova senha e volta ao trabalho.
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {[
-            'Candidatos curados por IA e HR Manager',
-            'Pagamento apenas quando contratar',
-            'Rede seletiva de hunters especialistas',
-          ].map(item => (
-            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#00E676',
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#052E16" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span style={{ fontSize: '14px', color: '#D1FAE5', fontWeight: 400 }}>{item}</span>
-            </div>
-          ))}
-        </div>
+        <div style={{ position: 'relative', zIndex: 1 }} />
       </div>
 
       {/* Lado direito — formulário */}
@@ -168,7 +116,7 @@ export default function LoginPage() {
                   background: '#00E676',
                 }}
               />
-              Acessar plataforma
+              Recuperação de senha
             </div>
             <h2
               style={{
@@ -180,7 +128,7 @@ export default function LoginPage() {
                 marginBottom: '6px',
               }}
             >
-              Bem-vindo de{' '}
+              Esqueceu a{' '}
               <span
                 style={{
                   fontFamily: 'var(--font-serif)',
@@ -189,14 +137,14 @@ export default function LoginPage() {
                   color: '#16A34A',
                 }}
               >
-                volta
+                senha?
               </span>
             </h2>
             <p style={{ fontSize: '14px', color: '#6B7280', fontWeight: 300 }}>
-              Entre na sua conta para continuar.
+              Informe seu email e enviaremos um link para criar uma nova.
             </p>
           </div>
-          <LoginForm />
+          <ForgotPasswordForm />
         </div>
       </div>
     </div>

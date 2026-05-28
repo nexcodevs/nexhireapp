@@ -1,11 +1,12 @@
-import LoginForm from '@/components/auth/LoginForm'
+import ResetPasswordForm from '@/components/auth/ResetPasswordForm'
 import Image from 'next/image'
+import { Suspense } from 'react'
 
 export const metadata = {
-  title: 'Entrar — Nexhire',
+  title: 'Criar nova senha — Nexhire',
 }
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex" style={{ background: '#FAFAFA' }}>
       {/* Lado esquerdo — branding */}
@@ -42,33 +43,6 @@ export default function LoginPage() {
         </div>
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '460px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '5px 13px',
-              borderRadius: '999px',
-              background: 'rgba(0,230,118,0.08)',
-              border: '1px solid rgba(0,230,118,0.25)',
-              fontSize: '11px',
-              fontWeight: 500,
-              color: '#A7F3D0',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '24px',
-            }}
-          >
-            <span
-              style={{
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                background: '#00E676',
-              }}
-            />
-            Bem-vindo de volta
-          </div>
           <h1
             style={{
               fontSize: '40px',
@@ -79,7 +53,7 @@ export default function LoginPage() {
               marginBottom: '20px',
             }}
           >
-            Uma rede inteira{' '}
+            Defina uma nova{' '}
             <span
               style={{
                 fontFamily: 'var(--font-serif)',
@@ -88,9 +62,9 @@ export default function LoginPage() {
                 color: '#00E676',
               }}
             >
-              trabalhando
-            </span>{' '}
-            pela sua próxima contratação.
+              senha
+            </span>
+            .
           </h1>
           <p
             style={{
@@ -100,36 +74,11 @@ export default function LoginPage() {
               lineHeight: 1.6,
             }}
           >
-            IA + hunters especialistas + curadoria humana.
+            Use uma senha forte com pelo menos 8 caracteres. Você será redirecionado para a plataforma logo em seguida.
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {[
-            'Candidatos curados por IA e HR Manager',
-            'Pagamento apenas quando contratar',
-            'Rede seletiva de hunters especialistas',
-          ].map(item => (
-            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#00E676',
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#052E16" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span style={{ fontSize: '14px', color: '#D1FAE5', fontWeight: 400 }}>{item}</span>
-            </div>
-          ))}
-        </div>
+        <div style={{ position: 'relative', zIndex: 1 }} />
       </div>
 
       {/* Lado direito — formulário */}
@@ -168,7 +117,7 @@ export default function LoginPage() {
                   background: '#00E676',
                 }}
               />
-              Acessar plataforma
+              Nova senha
             </div>
             <h2
               style={{
@@ -180,7 +129,7 @@ export default function LoginPage() {
                 marginBottom: '6px',
               }}
             >
-              Bem-vindo de{' '}
+              Quase{' '}
               <span
                 style={{
                   fontFamily: 'var(--font-serif)',
@@ -189,14 +138,16 @@ export default function LoginPage() {
                   color: '#16A34A',
                 }}
               >
-                volta
+                lá
               </span>
             </h2>
             <p style={{ fontSize: '14px', color: '#6B7280', fontWeight: 300 }}>
-              Entre na sua conta para continuar.
+              Crie uma nova senha para sua conta.
             </p>
           </div>
-          <LoginForm />
+          <Suspense fallback={<p style={{ fontSize: '14px', color: '#6B7280' }}>Carregando…</p>}>
+            <ResetPasswordForm />
+          </Suspense>
         </div>
       </div>
     </div>
