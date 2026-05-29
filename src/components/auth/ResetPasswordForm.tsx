@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import FormError from '@/components/ui/FormError'
 
 export default function ResetPasswordForm() {
   const router = useRouter()
@@ -100,24 +101,19 @@ export default function ResetPasswordForm() {
 
   if (exchanging) {
     return (
-      <p style={{ fontSize: '14px', color: 'var(--color-muted)' }}>Validando link…</p>
+      <p style={{ fontSize: '13.5px', color: 'var(--text-3)' }}>Validando link…</p>
     )
   }
 
   if (!sessionReady) {
     return (
       <div className="flex flex-col gap-4">
-        <div
-          className="rounded-lg px-4 py-3 text-sm"
-          style={{
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            color: '#991B1B',
-          }}
+        <FormError>{exchangeError}</FormError>
+        <Link
+          href="/forgot-password"
+          className="text-sm text-center hover:underline"
+          style={{ color: 'var(--accent-text)', fontWeight: 500 }}
         >
-          {exchangeError}
-        </div>
-        <Link href="/forgot-password" className="text-sm text-center" style={{ color: 'var(--color-g600)', fontWeight: 500 }}>
           Solicitar novo link
         </Link>
       </div>
@@ -145,11 +141,7 @@ export default function ResetPasswordForm() {
         autoComplete="new-password"
       />
 
-      {error && (
-        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
-        </p>
-      )}
+      {error && <FormError>{error}</FormError>}
 
       <Button type="submit" loading={loading} size="lg" className="w-full mt-2">
         Atualizar senha

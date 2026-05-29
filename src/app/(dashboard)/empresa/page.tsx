@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
+import KPICard from '@/components/ui/KPICard'
 import { formatDate } from '@/lib/utils'
 
 export const metadata = {
@@ -33,7 +34,12 @@ export default async function EmpresaDashboard() {
     .single()
 
   const companyId = companyUser?.company_id
-  const companyName = (companyUser?.companies as any)?.name
+  const companiesRel = companyUser?.companies as
+    | { name: string | null }
+    | { name: string | null }[]
+    | null
+    | undefined
+  const companyName = Array.isArray(companiesRel) ? companiesRel[0]?.name : companiesRel?.name
 
   if (!companyId) {
     return (
@@ -72,16 +78,14 @@ export default async function EmpresaDashboard() {
   const [
     { count: pendingForCompany },
     { count: approvedByCompany },
-    { count: rejectedByCompany },
     { count: hiredCount },
   ] = jobIds.length > 0
     ? await Promise.all([
         supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'sent_to_client'),
         supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'client_approved'),
-        supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'client_rejected'),
         supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'hired'),
       ])
-    : [{ count: 0 }, { count: 0 }, { count: 0 }, { count: 0 }]
+    : [{ count: 0 }, { count: 0 }, { count: 0 }]
 
   // Vagas recentes
   const { data: recentJobs } = await supabase
@@ -138,77 +142,23 @@ export default async function EmpresaDashboard() {
       />
 
       {/* Funil de candidatos */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 mb-8" style={{
-        background: 'var(--color-border)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-xl)',
-        overflow: 'hidden',
-        gap: '1px',
-      }}>
-        {[
-          { label: 'Pendentes de avaliação', value: pendingForCompany || 0, urgent: (pendingForCompany || 0) > 0 },
-          { label: 'Aprovados por você', value: approvedByCompany || 0 },
-          { label: 'Em entrevista', value: 0 },
-          { label: 'Contratados', value: hiredCount || 0, accent: true },
-        ].map(item => (
-          <div key={item.label} style={{ background: 'var(--color-surf)', padding: '18px 22px' }}>
-            <div
-              style={{
-                fontSize: '10.5px',
-                color: 'var(--color-subtle)',
-                fontWeight: 500,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              {item.label}
-            </div>
-            <div
-              className="it"
-              style={{
-                fontSize: '32px',
-                lineHeight: 1,
-                letterSpacing: '-0.02em',
-                color: item.urgent
-                  ? '#D97706'
-                  : item.accent
-                  ? 'var(--color-neon)'
-                  : item.value > 0
-                  ? 'var(--color-g600)'
-                  : 'var(--color-text)',
-              }}
-            >
-              {item.value}
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KPICard
+          label="Pendentes de avaliação"
+          value={pendingForCompany || 0}
+          footer={(pendingForCompany || 0) > 0 ? 'Aguardando sua ação' : 'Nenhuma pendência'}
+        />
+        <KPICard label="Aprovados por você" value={approvedByCompany || 0} />
+        <KPICard label="Em entrevista" value={0} />
+        <KPICard label="Contratados" value={hiredCount || 0} />
       </div>
 
       {/* KPIs secundários */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total de vagas', value: totalJobs || 0 },
-          { label: 'Vagas abertas', value: openJobs || 0 },
-          { label: 'Em curadoria', value: jobsInCuration || 0 },
-          { label: 'Aguardando você', value: jobsSentToClient || 0 },
-        ].map(stat => (
-          <Card key={stat.label} padding="md">
-            <div
-              className="it"
-              style={{
-                fontSize: '32px',
-                color: 'var(--color-text)',
-                lineHeight: 1,
-                marginBottom: '6px',
-                letterSpacing: '-0.025em',
-              }}
-            >
-              {stat.value}
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--color-muted)' }}>{stat.label}</div>
-          </Card>
-        ))}
+        <KPICard label="Total de vagas" value={totalJobs || 0} numSize="sm" />
+        <KPICard label="Vagas abertas" value={openJobs || 0} numSize="sm" />
+        <KPICard label="Em curadoria" value={jobsInCuration || 0} numSize="sm" />
+        <KPICard label="Aguardando você" value={jobsSentToClient || 0} numSize="sm" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -241,7 +191,7 @@ export default async function EmpresaDashboard() {
             recentJobs.map(job => {
               const status = statusLabel[job.status] || { label: job.status, variant: 'gray' as const }
               return (
-                <Link key={job.id} href={`/empresa/vagas/${job.id}`} className="block">
+                <Link key={job.id} href={`/empresa/vagas/${job.id}/candidatos`} className="block">
                   <div
                     className="job-row-empresa"
                     style={{
@@ -294,8 +244,12 @@ export default async function EmpresaDashboard() {
             </div>
           ) : (
             pendingCandidates.map(sub => {
-              const candidate = (sub.candidates as any)
-              const job = (sub.jobs as any)
+              type CandidateRel = { full_name: string | null; current_title: string | null }
+              type JobRel = { title: string | null }
+              const candidatesRel = sub.candidates as CandidateRel | CandidateRel[] | null | undefined
+              const jobsRel = sub.jobs as JobRel | JobRel[] | null | undefined
+              const candidate = Array.isArray(candidatesRel) ? candidatesRel[0] ?? null : candidatesRel ?? null
+              const job = Array.isArray(jobsRel) ? jobsRel[0] ?? null : jobsRel ?? null
               return (
                 <Link key={sub.id} href={`/empresa/candidatos/${sub.id}`} className="block">
                   <div
@@ -322,13 +276,11 @@ export default async function EmpresaDashboard() {
                         className="mono"
                         style={{
                           fontSize: '11px',
-                          fontWeight: 700,
-                          color: 'var(--color-f800)',
-                          background: 'var(--color-m200)',
-                          border: '1px solid var(--color-border-g)',
-                          padding: '3px 9px',
-                          borderRadius: '999px',
+                          fontWeight: 500,
+                          color: 'var(--text-4)',
+                          letterSpacing: '0.02em',
                         }}
+                        aria-label={`AI score ${sub.ai_score}`}
                       >
                         AI {sub.ai_score}
                       </span>
@@ -343,7 +295,7 @@ export default async function EmpresaDashboard() {
 
       <style>{`
         .job-row-empresa:hover, a.block > div:hover {
-          background: var(--color-m100);
+          background: var(--accent-bg);
         }
       `}</style>
     </div>

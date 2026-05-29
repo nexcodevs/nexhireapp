@@ -81,7 +81,7 @@ export default function LoginForm() {
         <Link
           href="/forgot-password"
           className="text-xs hover:underline"
-          style={{ color: 'var(--color-g600)', fontWeight: 500 }}
+          style={{ color: 'var(--accent-text)', fontWeight: 500 }}
         >
           Esqueci minha senha
         </Link>
@@ -95,13 +95,13 @@ export default function LoginForm() {
 
       <p
         className="text-sm text-center"
-        style={{ color: 'var(--color-muted)' }}
+        style={{ color: 'var(--text-3)' }}
       >
         Não tem conta?{' '}
         <Link
           href="/signup"
           className="hover:underline"
-          style={{ color: 'var(--color-g600)', fontWeight: 500 }}
+          style={{ color: 'var(--accent-text)', fontWeight: 500 }}
         >
           Criar conta
         </Link>

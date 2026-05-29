@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
 
 interface JobFormProps {
   companyId: string
@@ -74,8 +75,8 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* Informações básicas */}
-      <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-        <h2 className="text-base font-bold text-[#052E16] mb-4">Informações básicas</h2>
+      <div className="bg-surf rounded-xl border border-(--border-2) p-6">
+        <h2 className="text-base font-bold text-text mb-4">Informações básicas</h2>
         <div className="grid gap-4">
           <Input
             label="Título da vaga"
@@ -86,44 +87,34 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
             required
           />
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[#374151]">
-                Senioridade <span className="text-[#16A34A]">*</span>
-              </label>
-              <select
-                name="seniority"
-                value={form.seniority}
-                onChange={handleChange}
-                required
-                className="h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] focus:outline-none focus:ring-2 focus:ring-[#16A34A]"
-              >
-                <option value="">Selecione</option>
-                <option value="Estágio">Estágio</option>
-                <option value="Júnior">Júnior</option>
-                <option value="Pleno">Pleno</option>
-                <option value="Sênior">Sênior</option>
-                <option value="Especialista">Especialista</option>
-                <option value="Gerente">Gerente</option>
-                <option value="Diretor">Diretor</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[#374151]">
-                Modelo de trabalho <span className="text-[#16A34A]">*</span>
-              </label>
-              <select
-                name="work_model"
-                value={form.work_model}
-                onChange={handleChange}
-                required
-                className="h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] focus:outline-none focus:ring-2 focus:ring-[#16A34A]"
-              >
-                <option value="">Selecione</option>
-                <option value="Presencial">Presencial</option>
-                <option value="Híbrido">Híbrido</option>
-                <option value="Remoto">Remoto</option>
-              </select>
-            </div>
+            <Select
+              label="Senioridade"
+              name="seniority"
+              value={form.seniority}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Selecione</option>
+              <option value="Estágio">Estágio</option>
+              <option value="Júnior">Júnior</option>
+              <option value="Pleno">Pleno</option>
+              <option value="Sênior">Sênior</option>
+              <option value="Especialista">Especialista</option>
+              <option value="Gerente">Gerente</option>
+              <option value="Diretor">Diretor</option>
+            </Select>
+            <Select
+              label="Modelo de trabalho"
+              name="work_model"
+              value={form.work_model}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Selecione</option>
+              <option value="Presencial">Presencial</option>
+              <option value="Híbrido">Híbrido</option>
+              <option value="Remoto">Remoto</option>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -134,31 +125,26 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
               onChange={handleChange}
               required
             />
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[#374151]">
-                Tipo de contrato <span className="text-[#16A34A]">*</span>
-              </label>
-              <select
-                name="employment_type"
-                value={form.employment_type}
-                onChange={handleChange}
-                required
-                className="h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] focus:outline-none focus:ring-2 focus:ring-[#16A34A]"
-              >
-                <option value="">Selecione</option>
-                <option value="CLT">CLT</option>
-                <option value="PJ">PJ</option>
-                <option value="Estágio">Estágio</option>
-                <option value="Freelance">Freelance</option>
-              </select>
-            </div>
+            <Select
+              label="Tipo de contrato"
+              name="employment_type"
+              value={form.employment_type}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Selecione</option>
+              <option value="CLT">CLT</option>
+              <option value="PJ">PJ</option>
+              <option value="Estágio">Estágio</option>
+              <option value="Freelance">Freelance</option>
+            </Select>
           </div>
         </div>
       </div>
 
       {/* Remuneração */}
-      <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-        <h2 className="text-base font-bold text-[#052E16] mb-4">Remuneração</h2>
+      <div className="bg-surf rounded-xl border border-(--border-2) p-6">
+        <h2 className="text-base font-bold text-text mb-4">Remuneração</h2>
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Salário mínimo (R$)"
@@ -182,12 +168,12 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
       </div>
 
       {/* Descrição */}
-      <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-        <h2 className="text-base font-bold text-[#052E16] mb-4">Descrição e requisitos</h2>
+      <div className="bg-surf rounded-xl border border-(--border-2) p-6">
+        <h2 className="text-base font-bold text-text mb-4">Descrição e requisitos</h2>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#374151]">
-              Descrição da vaga <span className="text-[#16A34A]">*</span>
+            <label className="text-sm font-medium text-text2">
+              Descrição da vaga <span className="text-g600">*</span>
             </label>
             <textarea
               name="description"
@@ -196,12 +182,12 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
               required
               rows={5}
               placeholder="Descreva as responsabilidades, o contexto da vaga e o que o candidato vai fazer..."
-              className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
+              className="px-3 py-2.5 rounded-lg border border-(--border-2) bg-surf text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-(--accent-text) resize-none"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#374151]">
-              Requisitos <span className="text-[#16A34A]">*</span>
+            <label className="text-sm font-medium text-text2">
+              Requisitos <span className="text-g600">*</span>
             </label>
             <textarea
               name="requirements"
@@ -210,36 +196,41 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
               required
               rows={4}
               placeholder="Liste os requisitos obrigatórios e desejáveis..."
-              className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
+              className="px-3 py-2.5 rounded-lg border border-(--border-2) bg-surf text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-(--accent-text) resize-none"
             />
           </div>
         </div>
       </div>
 
       {/* Configurações */}
-      <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-        <h2 className="text-base font-bold text-[#052E16] mb-4">Configurações</h2>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
-            Prazo para envio de candidatos
-          </label>
-          <select
+      <div className="bg-surf rounded-xl border border-(--border-2) p-6">
+        <h2 className="text-base font-bold text-text mb-4">Configurações</h2>
+        <div className="max-w-xs">
+          <Select
+            label="Prazo para envio de candidatos"
             name="deadline_days"
             value={form.deadline_days}
             onChange={handleChange}
-            className="h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] focus:outline-none focus:ring-2 focus:ring-[#16A34A] max-w-xs"
           >
             <option value="3">3 dias</option>
             <option value="5">5 dias</option>
             <option value="7">7 dias (padrão)</option>
             <option value="10">10 dias</option>
             <option value="14">14 dias</option>
-          </select>
+          </Select>
         </div>
       </div>
 
       {error && (
-        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <p
+          role="alert"
+          className="text-sm rounded-lg px-4 py-3"
+          style={{
+            color: 'var(--danger-text)',
+            background: 'var(--danger-bg)',
+            border: '1px solid var(--danger-border)',
+          }}
+        >
           {error}
         </p>
       )}

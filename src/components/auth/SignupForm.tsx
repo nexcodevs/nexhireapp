@@ -119,20 +119,19 @@ export default function SignupForm() {
       />
 
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-[#374151]">
-          Quero usar a Nexhire como <span className="text-[#16A34A]">*</span>
+        <label className="text-sm font-medium text-text2">
+          Quero usar a Nexhire como <span className="text-g600">*</span>
         </label>
         <div className="flex flex-col gap-2">
           {roleOptions.map(option => (
             <label
               key={option.value}
-              className={`
-                flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all
-                ${role === option.value
-                  ? 'border-[#16A34A] bg-[#F0FDF4]'
-                  : 'border-[#E5E7EB] hover:border-[#BBF7D0]'
-                }
-              `}
+              className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all"
+              style={
+                role === option.value
+                  ? { borderColor: 'var(--accent-text)', background: 'var(--accent-bg)' }
+                  : { borderColor: 'var(--border-2)' }
+              }
             >
               <input
                 type="radio"
@@ -140,13 +139,13 @@ export default function SignupForm() {
                 value={option.value}
                 checked={role === option.value}
                 onChange={() => setRole(option.value)}
-                className="mt-0.5 accent-[#16A34A]"
+                className="mt-0.5 accent-(--accent-text)"
               />
               <div>
-                <div className="text-sm font-medium text-[#052E16]">
+                <div className="text-sm font-medium text-text">
                   {option.label}
                 </div>
-                <div className="text-xs text-[#6B7280]">
+                <div className="text-xs text-muted">
                   {option.description}
                 </div>
               </div>
@@ -165,9 +164,9 @@ export default function SignupForm() {
         Criar conta
       </Button>
 
-      <p className="text-sm text-center text-[#6B7280]">
+      <p className="text-sm text-center text-muted">
         Já tem conta?{' '}
-        <Link href="/login" className="text-[#16A34A] font-medium hover:underline">
+        <Link href="/login" className="text-g600 font-medium hover:underline">
           Entrar
         </Link>
       </p>

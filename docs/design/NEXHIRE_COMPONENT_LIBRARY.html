@@ -1,0 +1,2751 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexhire OS — Component Library 2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   TOKENS — Nexhire OS Design System
+   Same tokens used in production. Copy to globals.css when migrating.
+   ========================================================================== */
+:root {
+  --green-950: #001A09; --green-900: #041B0B; --green-850: #052E16;
+  --green-800: #064E1F; --green-700: #0F6B35; --green-600: #16A34A;
+  --green-500: #22C55E; --green-400: #4ADE80; --green-300: #86EFAC;
+  --green-200: #BBF7D0; --green-100: #D1FAE5; --green-50: #ECFDF5;
+  --neon: #00E676; --neon-soft: #00FF85;
+  --plum-900: #1A0F2E; --plum-600: #6D28D9; --plum-500: #8B5CF6; --plum-400: #A78BFA;
+  --cyan-400: #22D3EE; --cyan-300: #67E8F9;
+  --amber-400: #FBBF24; --amber-500: #F59E0B;
+  --rose-400: #FB7185; --rose-500: #F43F5E;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px;
+  --r-xl: 28px; --r-2xl: 36px; --r-full: 9999px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --t-fast: 150ms; --t-med: 280ms; --t-slow: 450ms;
+}
+
+[data-theme="light"] {
+  --bg-base: #FAFAF7; --bg-elev-1: #FFFFFF; --bg-elev-2: #F4F4EE;
+  --bg-glass: rgba(255, 255, 255, 0.72); --bg-glass-strong: rgba(255, 255, 255, 0.88);
+  --text-1: #052E16; --text-2: #1F2937; --text-3: #4B5563;
+  --text-4: #6B7280; --text-5: #9CA3AF; --text-on-dark: #FAFAF7;
+  --border-1: rgba(5, 46, 22, 0.08); --border-2: rgba(5, 46, 22, 0.14);
+  --border-3: rgba(5, 46, 22, 0.22); --border-glow: rgba(0, 230, 118, 0.4);
+  --accent-bg: var(--green-50); --accent-text: var(--green-700); --accent-border: var(--green-200);
+  --shadow-1: 0 1px 2px rgba(5, 46, 22, 0.04);
+  --shadow-2: 0 4px 12px rgba(5, 46, 22, 0.06), 0 2px 4px rgba(5, 46, 22, 0.04);
+  --shadow-3: 0 12px 32px rgba(5, 46, 22, 0.08), 0 4px 8px rgba(5, 46, 22, 0.04);
+  --shadow-4: 0 24px 56px rgba(5, 46, 22, 0.12), 0 8px 16px rgba(5, 46, 22, 0.06);
+  --shadow-glow: 0 0 0 1px rgba(0, 230, 118, 0.2), 0 8px 32px rgba(0, 230, 118, 0.15);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --mesh-1: radial-gradient(at 12% 8%, rgba(0,230,118,.08) 0px, transparent 50%),
+            radial-gradient(at 88% 12%, rgba(74,222,128,.06) 0px, transparent 50%),
+            radial-gradient(at 50% 92%, rgba(187,247,208,.4) 0px, transparent 50%);
+  --grain-opacity: 0.04;
+  --danger-bg: #FEF2F2; --danger-text: #991B1B; --danger-border: #FECACA;
+  --warning-bg: #FFFBEB; --warning-text: #92400E; --warning-border: #FDE68A;
+  --info-bg: #EFF6FF; --info-text: #1E40AF; --info-border: #DBEAFE;
+}
+
+[data-theme="dark"] {
+  --bg-base: #050B07; --bg-elev-1: #0A1410; --bg-elev-2: #0F1C16;
+  --bg-glass: rgba(15, 28, 22, 0.55); --bg-glass-strong: rgba(15, 28, 22, 0.85);
+  --text-1: #F5FAF7; --text-2: #D4E4DC; --text-3: #95A99E;
+  --text-4: #6B7E73; --text-5: #4A5C53; --text-on-dark: #F5FAF7;
+  --border-1: rgba(255, 255, 255, 0.06); --border-2: rgba(255, 255, 255, 0.10);
+  --border-3: rgba(255, 255, 255, 0.18); --border-glow: rgba(0, 230, 118, 0.45);
+  --accent-bg: rgba(0, 230, 118, 0.08); --accent-text: var(--neon); --accent-border: rgba(0, 230, 118, 0.24);
+  --shadow-1: 0 1px 0 rgba(255,255,255,.04), 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 4px 16px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.3);
+  --shadow-3: 0 16px 40px rgba(0,0,0,.55), 0 4px 8px rgba(0,0,0,.3);
+  --shadow-4: 0 32px 64px rgba(0,0,0,.7), 0 8px 16px rgba(0,0,0,.4);
+  --shadow-glow: 0 0 0 1px rgba(0,230,118,.35), 0 8px 40px rgba(0,230,118,.18);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,.05);
+  --mesh-1: radial-gradient(at 8% 4%, rgba(0,230,118,.12) 0px, transparent 50%),
+            radial-gradient(at 92% 8%, rgba(139,92,246,.10) 0px, transparent 50%),
+            radial-gradient(at 50% 50%, rgba(34,211,238,.04) 0px, transparent 50%),
+            radial-gradient(at 12% 96%, rgba(0,230,118,.06) 0px, transparent 50%);
+  --grain-opacity: 0.12;
+  --danger-bg: rgba(239,68,68,.1); --danger-text: #FCA5A5; --danger-border: rgba(239,68,68,.3);
+  --warning-bg: rgba(251,191,36,.1); --warning-text: #FCD34D; --warning-border: rgba(251,191,36,.3);
+  --info-bg: rgba(59,130,246,.1); --info-text: #93C5FD; --info-border: rgba(59,130,246,.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+  background: var(--bg-base); color: var(--text-1);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease);
+  position: relative; min-height: 100vh;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.95' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  opacity: var(--grain-opacity); pointer-events: none; z-index: 1; mix-blend-mode: overlay;
+}
+body::after {
+  content: ''; position: fixed; inset: 0;
+  background: var(--mesh-1); pointer-events: none; z-index: 0;
+  animation: mesh-drift 24s ease-in-out infinite alternate;
+}
+@keyframes mesh-drift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-2%,1%) scale(1.05); } }
+:focus-visible { outline: 2px solid var(--neon); outline-offset: 3px; border-radius: var(--r-xs); }
+::selection { background: var(--neon); color: var(--green-950); }
+
+/* ============================================================================
+   LIBRARY SHELL (the showcase chrome)
+   ========================================================================== */
+.lib-shell { position: relative; z-index: 2; min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
+.lib-side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: var(--bg-glass); backdrop-filter: blur(24px);
+  border-right: 1px solid var(--border-1); padding: 24px 16px;
+}
+.lib-brand {
+  display: flex; align-items: center; gap: 10px; padding: 0 12px 24px;
+  border-bottom: 1px solid var(--border-1); margin-bottom: 16px;
+}
+.brand-mark {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--neon) 0%, var(--green-600) 60%, var(--green-800) 100%);
+  position: relative; box-shadow: 0 0 0 1px rgba(0,230,118,.25), inset 0 1px 0 rgba(255,255,255,.3); flex-shrink: 0;
+}
+.brand-mark::before {
+  content: ''; position: absolute; inset: 7px; border-radius: 4px; background: var(--bg-elev-1);
+}
+.brand-mark::after {
+  content: 'N'; position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--font-serif); font-style: italic; font-size: 18px; color: var(--neon); z-index: 1;
+}
+.lib-brand-text { display: flex; flex-direction: column; }
+.lib-brand-name { font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: -.02em; color: var(--text-1); }
+.lib-brand-ver { font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; color: var(--text-4); margin-top: 2px; }
+
+.lib-section { margin-bottom: 20px; }
+.lib-section-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-4); padding: 0 12px 8px;
+}
+.lib-side a {
+  display: block; padding: 7px 12px; border-radius: var(--r-sm); font-size: 12.5px;
+  color: var(--text-3); text-decoration: none; font-weight: 500; transition: all var(--t-fast) var(--ease);
+}
+.lib-side a:hover { background: var(--bg-elev-2); color: var(--text-1); }
+.lib-side a.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 600; }
+
+.lib-main { padding: 48px 64px; min-width: 0; }
+.lib-section-h { margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border-1); }
+.lib-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent-text); margin-bottom: 12px;
+}
+.lib-eyebrow::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 6px var(--neon);
+}
+.lib-h1 {
+  font-size: 42px; font-weight: 500; line-height: 1.05; letter-spacing: -.035em;
+  color: var(--text-1); margin-bottom: 12px;
+}
+.lib-h1 .serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent-text); }
+.lib-sub { font-size: 15px; color: var(--text-3); max-width: 580px; line-height: 1.55; }
+
+.lib-block { margin-bottom: 64px; }
+.lib-block-h {
+  display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px;
+  padding-bottom: 12px; border-bottom: 1px dashed var(--border-1);
+}
+.lib-block-title { font-size: 22px; font-weight: 500; letter-spacing: -.02em; color: var(--text-1); }
+.lib-block-tag {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; color: var(--text-4);
+  padding: 4px 10px; background: var(--bg-elev-2); border-radius: var(--r-full);
+}
+.lib-desc { font-size: 13px; color: var(--text-3); margin-bottom: 24px; max-width: 640px; }
+
+.lib-canvas {
+  padding: 48px; background: var(--bg-elev-1); border: 1px solid var(--border-1); border-radius: var(--r-xl);
+  position: relative; overflow: hidden;
+}
+.lib-canvas.tight { padding: 24px; }
+.lib-canvas.dark-bg { background: var(--bg-elev-2); }
+
+.lib-row {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+}
+.lib-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lib-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.lib-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* Theme toggle */
+.lib-tools {
+  position: fixed; top: 24px; right: 24px; z-index: 1000;
+  display: flex; gap: 8px; align-items: center;
+  background: var(--bg-glass-strong); backdrop-filter: blur(20px);
+  border: 1px solid var(--border-2); border-radius: var(--r-full); padding: 6px;
+  box-shadow: var(--shadow-3);
+}
+.theme-toggle-btn {
+  width: 32px; height: 32px; border: none; background: transparent; border-radius: var(--r-full);
+  display: grid; place-items: center; cursor: pointer; color: var(--text-4);
+  transition: all var(--t-fast) var(--ease);
+}
+.theme-toggle-btn.active { background: var(--bg-elev-1); color: var(--text-1); box-shadow: var(--shadow-1); }
+.theme-toggle-btn svg { width: 15px; height: 15px; }
+
+/* ============================================================================
+   ATOM: BUTTON
+   ========================================================================== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 18px; border-radius: var(--r-full);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: all var(--t-fast) var(--ease); letter-spacing: -.005em; white-space: nowrap;
+  position: relative;
+}
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-lg { padding: 14px 26px; font-size: 14px; }
+.btn-xs { padding: 5px 10px; font-size: 11px; }
+
+.btn-primary { background: var(--text-1); color: var(--bg-base); box-shadow: var(--shadow-2), var(--shadow-inset); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-3), var(--shadow-inset); }
+
+.btn-neon {
+  background: var(--neon); color: var(--green-950);
+  box-shadow: 0 0 0 1px rgba(0,230,118,.4), 0 6px 20px rgba(0,230,118,.25), inset 0 1px 0 rgba(255,255,255,.3);
+}
+.btn-neon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(0,230,118,.5), 0 12px 32px rgba(0,230,118,.4), inset 0 1px 0 rgba(255,255,255,.4);
+}
+
+.btn-glass {
+  background: var(--bg-glass); color: var(--text-1);
+  border: 1px solid var(--border-2); backdrop-filter: blur(12px);
+}
+.btn-glass:hover { border-color: var(--border-3); background: var(--bg-glass-strong); }
+
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--bg-elev-2); color: var(--text-1); }
+
+.btn-danger { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+.btn-danger:hover { background: var(--danger-border); }
+
+.btn-outline { background: transparent; color: var(--text-1); border: 1px solid var(--border-2); }
+.btn-outline:hover { border-color: var(--border-3); background: var(--bg-elev-2); }
+
+.btn-icon-end::after {
+  content: '→'; font-family: var(--font-serif); font-style: italic;
+  transition: transform var(--t-fast) var(--ease);
+}
+.btn-icon-end:hover::after { transform: translateX(2px); }
+
+.btn[disabled], .btn-disabled {
+  opacity: .5; cursor: not-allowed; transform: none !important;
+}
+
+.btn-loading {
+  pointer-events: none;
+}
+.btn-loading::before {
+  content: ''; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Icon-only button */
+.btn-icon {
+  width: 36px; height: 36px; padding: 0; border-radius: var(--r-full);
+}
+.btn-icon svg { width: 16px; height: 16px; }
+
+/* ============================================================================
+   ATOM: BADGE
+   ========================================================================== */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em;
+  text-transform: uppercase; padding: 4px 9px; border-radius: var(--r-full);
+  font-weight: 500; white-space: nowrap; border: 1px solid transparent;
+}
+.badge-sm { font-size: 9px; padding: 3px 7px; }
+.badge-md { font-size: 11px; padding: 5px 11px; }
+
+.badge-green { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
+.badge-yellow { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.badge-red { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+.badge-blue { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
+.badge-purple { background: rgba(139,92,246,.12); color: var(--plum-500); border-color: rgba(139,92,246,.3); }
+.badge-cyan { background: rgba(34,211,238,.12); color: var(--cyan-400); border-color: rgba(34,211,238,.3); }
+.badge-gray { background: var(--bg-elev-2); color: var(--text-3); border-color: var(--border-1); }
+.badge-dark { background: var(--text-1); color: var(--bg-base); }
+.badge-neon { background: var(--neon); color: var(--green-950); border-color: var(--neon); }
+
+[data-theme="dark"] .badge-purple { color: var(--plum-400); }
+[data-theme="dark"] .badge-cyan { color: var(--cyan-300); }
+
+.badge-live {
+  background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border);
+}
+.badge-live::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--neon); box-shadow: 0 0 6px var(--neon);
+  animation: live-pulse 1.5s infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(1.3); }
+}
+
+/* ============================================================================
+   ATOM: AVATAR
+   ========================================================================== */
+.avatar {
+  display: grid; place-items: center; border-radius: 50%;
+  color: white; font-family: var(--font-mono); font-weight: 600;
+  flex-shrink: 0; position: relative;
+}
+.avatar-xs { width: 20px; height: 20px; font-size: 8px; }
+.avatar-sm { width: 28px; height: 28px; font-size: 10px; }
+.avatar-md { width: 36px; height: 36px; font-size: 12px; }
+.avatar-lg { width: 48px; height: 48px; font-size: 14px; }
+.avatar-xl { width: 72px; height: 72px; font-size: 22px; }
+
+.av-1 { background: linear-gradient(135deg, #00E676, #16A34A); color: var(--green-950); }
+.av-2 { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
+.av-3 { background: linear-gradient(135deg, #22D3EE, #0891B2); }
+.av-4 { background: linear-gradient(135deg, #FBBF24, #D97706); }
+.av-5 { background: linear-gradient(135deg, #F472B6, #BE185D); }
+.av-6 { background: linear-gradient(135deg, #34D399, #059669); color: white; }
+.av-7 { background: linear-gradient(135deg, #FB923C, #C2410C); }
+
+.avatar-stack { display: flex; }
+.avatar-stack > .avatar { border: 2px solid var(--bg-elev-1); margin-left: -8px; }
+.avatar-stack > .avatar:first-child { margin-left: 0; }
+.avatar-more { background: var(--bg-elev-2); color: var(--text-3); font-weight: 600; }
+
+/* Avatar with status dot */
+.avatar-status::after {
+  content: ''; position: absolute; bottom: 0; right: 0; width: 10px; height: 10px;
+  border-radius: 50%; background: var(--neon); border: 2px solid var(--bg-elev-1);
+  box-shadow: 0 0 4px var(--neon);
+}
+
+/* ============================================================================
+   ATOM: INPUT
+   ========================================================================== */
+.input-group { display: flex; flex-direction: column; gap: 6px; }
+.input-label {
+  font-size: 12px; font-weight: 500; color: var(--text-2); letter-spacing: -.005em;
+}
+.input-label .req { color: var(--rose-500); margin-left: 2px; }
+.input {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg-elev-1); border: 1px solid var(--border-2); border-radius: var(--r-md);
+  font-family: var(--font-sans); font-size: 13px; color: var(--text-1);
+  transition: all var(--t-fast) var(--ease);
+}
+.input::placeholder { color: var(--text-4); }
+.input:focus {
+  outline: none; border-color: var(--neon);
+  box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.12);
+}
+.input.input-error { border-color: var(--danger-text); }
+.input.input-error:focus { box-shadow: 0 0 0 3px var(--danger-bg); }
+.input-hint { font-size: 11px; color: var(--text-4); }
+.input-error-msg { font-size: 11px; color: var(--danger-text); display: flex; align-items: center; gap: 4px; }
+
+textarea.input { resize: vertical; min-height: 80px; }
+
+/* Input with icon */
+.input-wrap { position: relative; }
+.input-icon {
+  position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--text-4); pointer-events: none;
+}
+.input-wrap .input.has-icon { padding-left: 38px; }
+
+/* Search input variant */
+.input-search {
+  background: var(--bg-elev-2); border-color: var(--border-1);
+}
+
+/* Select */
+.select-wrap { position: relative; }
+.select {
+  width: 100%; padding: 11px 38px 11px 14px;
+  background: var(--bg-elev-1); border: 1px solid var(--border-2); border-radius: var(--r-md);
+  font-family: var(--font-sans); font-size: 13px; color: var(--text-1);
+  cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+}
+
+/* Checkbox */
+.check-wrap { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.check {
+  appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border-3);
+  border-radius: 4px; background: var(--bg-elev-1); cursor: pointer; transition: all var(--t-fast) var(--ease);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.check:checked {
+  background: var(--neon); border-color: var(--neon);
+}
+.check:checked::after {
+  content: ''; width: 9px; height: 6px;
+  border: 2px solid var(--green-950); border-top: none; border-right: none;
+  transform: rotate(-45deg) translateY(-1px);
+}
+.check-label { font-size: 13px; color: var(--text-2); }
+
+/* Switch */
+.switch {
+  appearance: none; width: 36px; height: 20px; border-radius: var(--r-full);
+  background: var(--border-2); cursor: pointer; position: relative;
+  transition: all var(--t-fast) var(--ease);
+}
+.switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: white; box-shadow: var(--shadow-1);
+  transition: transform var(--t-fast) var(--ease);
+}
+.switch:checked { background: var(--neon); }
+.switch:checked::after { transform: translateX(16px); }
+
+/* Radio */
+.radio {
+  appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border-3);
+  border-radius: 50%; background: var(--bg-elev-1); cursor: pointer;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.radio:checked { border-color: var(--neon); border-width: 5px; }
+
+/* ============================================================================
+   MOLECULE: CARD
+   ========================================================================== */
+.card {
+  padding: 24px; background: var(--bg-elev-1); border: 1px solid var(--border-1);
+  border-radius: var(--r-xl); transition: all var(--t-med) var(--ease);
+}
+.card-sm { padding: 16px; border-radius: var(--r-md); }
+.card-lg { padding: 36px; border-radius: var(--r-2xl); }
+.card-flat { background: var(--bg-elev-2); }
+.card-dark {
+  background: linear-gradient(135deg, var(--green-850) 0%, var(--green-950) 100%);
+  color: var(--text-on-dark); border-color: rgba(0,230,118,.2);
+}
+.card-mint {
+  background: linear-gradient(135deg, var(--accent-bg) 0%, transparent 100%);
+  border-color: var(--accent-border);
+}
+.card-glass {
+  background: var(--bg-glass); backdrop-filter: blur(20px); border-color: var(--border-2);
+}
+.card-hover {
+  cursor: pointer;
+}
+.card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-3); border-color: var(--border-2); }
+
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--text-1); letter-spacing: -.01em; }
+.card-sub { font-size: 12px; color: var(--text-4); margin-top: 4px; }
+.card-eyebrow {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-4); margin-bottom: 12px;
+}
+
+/* ============================================================================
+   MOLECULE: KPI CARD
+   ========================================================================== */
+.kpi {
+  padding: 22px; background: var(--bg-elev-1); border: 1px solid var(--border-1);
+  border-radius: var(--r-lg); position: relative; overflow: hidden;
+  transition: all var(--t-med) var(--ease);
+}
+.kpi::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(0,230,118,.06) 0%, transparent 50%);
+  opacity: 0; transition: opacity var(--t-med) var(--ease); pointer-events: none;
+}
+.kpi:hover { border-color: var(--border-2); transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.kpi:hover::after { opacity: 1; }
+
+.kpi-label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-4); margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kpi-trend {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: var(--r-full); font-size: 10px; font-weight: 600;
+  background: var(--accent-bg); color: var(--accent-text); border: 1px solid var(--accent-border);
+}
+.kpi-trend.down {
+  background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border);
+}
+.kpi-num {
+  font-family: var(--font-serif); font-style: italic; font-size: 52px;
+  line-height: 1; color: var(--text-1); letter-spacing: -.025em; margin-bottom: 12px;
+}
+.kpi-num-sm { font-size: 38px; }
+.kpi-num-lg { font-size: 72px; }
+.kpi-num .unit { font-family: var(--font-sans); font-style: normal; font-size: 0.55em; color: var(--text-3); margin-left: 4px; font-weight: 500; }
+.kpi-spark { display: flex; align-items: flex-end; gap: 2px; height: 24px; }
+.kpi-spark span { flex: 1; border-radius: 1px; opacity: .7; }
+
+.spk-green span { background: linear-gradient(to top, var(--neon), var(--green-400)); }
+.spk-purple span { background: linear-gradient(to top, var(--plum-500), var(--cyan-400)); }
+.spk-cyan span { background: linear-gradient(to top, var(--cyan-400), var(--neon)); }
+.spk-amber span { background: linear-gradient(to top, var(--amber-400), var(--neon)); }
+.spk-rose span { background: linear-gradient(to top, var(--rose-400), var(--amber-400)); }
+
+.spk-1 span:nth-child(1) { height: 30%; } .spk-1 span:nth-child(2) { height: 45%; }
+.spk-1 span:nth-child(3) { height: 38%; } .spk-1 span:nth-child(4) { height: 60%; }
+.spk-1 span:nth-child(5) { height: 75%; } .spk-1 span:nth-child(6) { height: 65%; }
+.spk-1 span:nth-child(7) { height: 85%; } .spk-1 span:nth-child(8) { height: 100%; opacity: 1; }
+
+.spk-2 span:nth-child(1) { height: 60%; } .spk-2 span:nth-child(2) { height: 50%; }
+.spk-2 span:nth-child(3) { height: 70%; } .spk-2 span:nth-child(4) { height: 45%; }
+.spk-2 span:nth-child(5) { height: 80%; } .spk-2 span:nth-child(6) { height: 65%; }
+.spk-2 span:nth-child(7) { height: 90%; } .spk-2 span:nth-child(8) { height: 100%; opacity: 1; }
+
+.spk-3 span:nth-child(1) { height: 40%; } .spk-3 span:nth-child(2) { height: 65%; }
+.spk-3 span:nth-child(3) { height: 55%; } .spk-3 span:nth-child(4) { height: 80%; }
+.spk-3 span:nth-child(5) { height: 70%; } .spk-3 span:nth-child(6) { height: 90%; }
+.spk-3 span:nth-child(7) { height: 85%; } .spk-3 span:nth-child(8) { height: 100%; opacity: 1; }
+
+.spk-4 span:nth-child(1) { height: 70%; } .spk-4 span:nth-child(2) { height: 60%; }
+.spk-4 span:nth-child(3) { height: 85%; } .spk-4 span:nth-child(4) { height: 75%; }
+.spk-4 span:nth-child(5) { height: 95%; } .spk-4 span:nth-child(6) { height: 80%; }
+.spk-4 span:nth-child(7) { height: 92%; } .spk-4 span:nth-child(8) { height: 100%; opacity: 1; }
+
+/* ============================================================================
+   MOLECULE: PAGE HEADER
+   ========================================================================== */
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+.page-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent-text); margin-bottom: 12px;
+}
+.page-eyebrow::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 6px var(--neon);
+}
+.page-title {
+  font-size: 32px; font-weight: 500; line-height: 1; letter-spacing: -.03em; color: var(--text-1);
+}
+.page-title .serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent-text); }
+.page-sub { font-size: 13.5px; color: var(--text-3); margin-top: 10px; }
+.page-actions { display: flex; gap: 8px; }
+
+/* ============================================================================
+   MOLECULE: ALERT / TOAST / BANNER
+   ========================================================================== */
+.alert {
+  padding: 14px 16px; border-radius: var(--r-md); border: 1px solid;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.alert-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.alert-body { flex: 1; min-width: 0; }
+.alert-title { font-size: 13px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+.alert-msg { font-size: 12.5px; line-height: 1.5; opacity: .9; }
+.alert-close { width: 20px; height: 20px; background: transparent; border: none; cursor: pointer; color: currentColor; opacity: .6; padding: 0; }
+.alert-close:hover { opacity: 1; }
+
+.alert-success { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
+.alert-warning { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.alert-danger { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+.alert-info { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
+.alert-mint { background: var(--bg-elev-2); color: var(--text-1); border-color: var(--border-1); }
+
+/* Toast */
+.toast {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: var(--bg-glass-strong); backdrop-filter: blur(20px);
+  border: 1px solid var(--border-2); border-radius: var(--r-md);
+  padding: 12px 16px; box-shadow: var(--shadow-3);
+  font-size: 13px; color: var(--text-1);
+  min-width: 280px;
+}
+.toast-icon {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--accent-bg); color: var(--accent-text);
+}
+.toast-icon.danger { background: var(--danger-bg); color: var(--danger-text); }
+.toast-icon.warning { background: var(--warning-bg); color: var(--warning-text); }
+.toast-icon svg { width: 14px; height: 14px; }
+.toast-body { flex: 1; }
+.toast-title { font-weight: 600; font-size: 13px; }
+.toast-msg { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+/* ============================================================================
+   MOLECULE: TABS
+   ========================================================================== */
+.tabs {
+  display: inline-flex; background: var(--bg-elev-2); padding: 4px;
+  border-radius: var(--r-full); border: 1px solid var(--border-1); gap: 2px;
+}
+.tab {
+  padding: 7px 14px; border-radius: var(--r-full); font-size: 12px; font-weight: 500;
+  color: var(--text-3); cursor: pointer; transition: all var(--t-fast) var(--ease);
+  border: none; background: transparent;
+}
+.tab:hover { color: var(--text-1); }
+.tab.active { background: var(--bg-elev-1); color: var(--text-1); box-shadow: var(--shadow-1); }
+
+.tabs-line { display: flex; border-bottom: 1px solid var(--border-1); gap: 0; }
+.tab-line {
+  padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--text-3); cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all var(--t-fast) var(--ease);
+}
+.tab-line:hover { color: var(--text-1); }
+.tab-line.active { color: var(--text-1); border-bottom-color: var(--neon); font-weight: 600; }
+.tab-line .badge { margin-left: 6px; font-size: 9px; padding: 2px 6px; }
+
+/* ============================================================================
+   MOLECULE: PROGRESS BAR
+   ========================================================================== */
+.progress {
+  height: 6px; background: var(--bg-elev-2); border-radius: var(--r-full); overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--neon), var(--green-400));
+  border-radius: var(--r-full); transition: width 1s var(--ease);
+}
+.progress-thick { height: 10px; }
+.progress-thin { height: 3px; }
+.progress-fill.purple { background: linear-gradient(90deg, var(--plum-500), var(--cyan-400)); }
+.progress-fill.amber { background: linear-gradient(90deg, var(--amber-400), var(--neon)); }
+
+/* ============================================================================
+   MOLECULE: MODAL
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px); z-index: 999;
+  display: grid; place-items: center;
+  padding: 24px;
+}
+.modal {
+  background: var(--bg-elev-1); border: 1px solid var(--border-2);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-4);
+  max-width: 520px; width: 100%; padding: 32px;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.modal-title { font-size: 20px; font-weight: 500; letter-spacing: -.02em; color: var(--text-1); }
+.modal-body { font-size: 13.5px; color: var(--text-3); line-height: 1.6; margin-bottom: 28px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ============================================================================
+   MOLECULE: DROPDOWN MENU
+   ========================================================================== */
+.dropdown {
+  background: var(--bg-elev-1); border: 1px solid var(--border-2);
+  border-radius: var(--r-md); box-shadow: var(--shadow-3);
+  padding: 6px; min-width: 200px;
+}
+.dropdown-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-4); padding: 6px 10px 4px;
+}
+.dropdown-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: var(--r-sm); font-size: 13px; color: var(--text-2);
+  cursor: pointer; transition: all var(--t-fast) var(--ease);
+}
+.dropdown-item:hover { background: var(--bg-elev-2); color: var(--text-1); }
+.dropdown-item.danger { color: var(--danger-text); }
+.dropdown-item.danger:hover { background: var(--danger-bg); }
+.dropdown-item svg { width: 14px; height: 14px; opacity: .7; }
+.dropdown-divider { height: 1px; background: var(--border-1); margin: 6px 0; }
+
+/* ============================================================================
+   MOLECULE: TOOLTIP
+   ========================================================================== */
+.tip-wrap { position: relative; display: inline-block; }
+.tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--text-1); color: var(--bg-base);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em;
+  padding: 5px 10px; border-radius: var(--r-sm); white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity var(--t-fast) var(--ease);
+  box-shadow: var(--shadow-2);
+}
+.tip::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 4px solid transparent; border-top-color: var(--text-1);
+}
+.tip-wrap:hover .tip { opacity: 1; }
+
+/* ============================================================================
+   MOLECULE: SKELETON LOADER
+   ========================================================================== */
+.skel {
+  background: linear-gradient(90deg, var(--bg-elev-2) 0%, var(--bg-elev-1) 50%, var(--bg-elev-2) 100%);
+  background-size: 200% 100%;
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes skel-pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skel-line { height: 12px; }
+.skel-line.lg { height: 18px; }
+.skel-text { height: 12px; margin-bottom: 8px; }
+.skel-text:last-child { margin-bottom: 0; }
+.skel-circle { border-radius: 50%; }
+
+/* ============================================================================
+   MOLECULE: EMPTY STATE
+   ========================================================================== */
+.empty {
+  text-align: center; padding: 64px 32px;
+  background: var(--bg-elev-2); border-radius: var(--r-xl); border: 1px dashed var(--border-2);
+}
+.empty-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent-bg); border: 1px solid var(--accent-border);
+  display: grid; place-items: center; margin: 0 auto 20px;
+  color: var(--accent-text);
+}
+.empty-icon svg { width: 24px; height: 24px; }
+.empty-title { font-size: 15px; font-weight: 600; color: var(--text-1); margin-bottom: 6px; letter-spacing: -.01em; }
+.empty-msg { font-size: 13px; color: var(--text-3); max-width: 360px; margin: 0 auto 24px; line-height: 1.6; }
+
+/* ============================================================================
+   MOLECULE: STATUS PILL (specific to pipeline)
+   ========================================================================== */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em;
+  text-transform: uppercase; padding: 4px 10px; border-radius: var(--r-full);
+  font-weight: 500; white-space: nowrap; border: 1px solid;
+}
+.status-pill.s-recommended { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
+.status-pill.s-review { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.status-pill.s-interview { background: rgba(34,211,238,.12); color: #0E7490; border-color: rgba(34,211,238,.3); }
+.status-pill.s-client { background: rgba(139,92,246,.12); color: #6D28D9; border-color: rgba(139,92,246,.3); }
+.status-pill.s-hired { background: var(--text-1); color: var(--bg-base); border-color: var(--text-1); }
+.status-pill.s-rejected { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+
+[data-theme="dark"] .status-pill.s-interview { color: var(--cyan-300); }
+[data-theme="dark"] .status-pill.s-client { color: var(--plum-400); }
+
+/* ============================================================================
+   ORGANISM: DASHBOARD APP SHELL
+   ========================================================================== */
+.app {
+  display: grid; grid-template-columns: 240px 1fr; min-height: 720px;
+  background: var(--bg-elev-1); border: 1px solid var(--border-2); border-radius: var(--r-2xl);
+  overflow: hidden; box-shadow: var(--shadow-4); position: relative;
+}
+.app::before {
+  content: ''; position: absolute; inset: 0; border-radius: var(--r-2xl); padding: 1px;
+  background: linear-gradient(135deg, var(--border-glow), transparent 30%, transparent 70%, var(--border-glow));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none; z-index: 1;
+}
+
+.sidebar {
+  background: var(--bg-elev-2); border-right: 1px solid var(--border-1);
+  padding: 20px 16px; display: flex; flex-direction: column;
+}
+.sidebar-brand {
+  display: flex; align-items: center; gap: 10px; padding: 0 8px 20px;
+  border-bottom: 1px solid var(--border-1); margin-bottom: 16px;
+}
+.sidebar-brand-text { font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: -.02em; color: var(--text-1); }
+.sidebar-role { font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; color: var(--text-4); margin-top: 2px; }
+
+.nav-group { margin-bottom: 20px; }
+.nav-group-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-4); padding: 0 12px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: var(--r-sm); font-size: 13px; color: var(--text-3);
+  cursor: pointer; transition: all var(--t-fast) var(--ease); font-weight: 500;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--bg-elev-1); color: var(--text-1); }
+.nav-item.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 600; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-family: var(--font-mono); font-size: 10px;
+  padding: 2px 6px; border-radius: var(--r-full);
+  background: var(--bg-elev-1); color: var(--text-3);
+}
+.nav-item.active .nav-badge { background: var(--neon); color: var(--green-950); }
+
+.sidebar-footer {
+  margin-top: auto; padding: 12px; background: var(--bg-elev-1);
+  border-radius: var(--r-md); display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border-1);
+}
+.sidebar-user-info { flex: 1; min-width: 0; }
+.sidebar-user-name { font-size: 12px; font-weight: 500; color: var(--text-1); line-height: 1.2; }
+.sidebar-user-role { font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-4); margin-top: 2px; }
+
+.app-main { padding: 32px; overflow: auto; min-width: 0; }
+
+/* ============================================================================
+   ORGANISM: KANBAN (with mock drag and drop)
+   ========================================================================== */
+.kanban {
+  display: grid; grid-template-columns: repeat(5, minmax(280px, 1fr));
+  gap: 16px; overflow-x: auto; padding-bottom: 8px;
+}
+.kan-col {
+  background: var(--bg-elev-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-lg); padding: 16px; min-height: 500px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.kan-col.is-drag-over {
+  background: var(--accent-bg); border-color: var(--accent-border);
+  border-style: dashed; box-shadow: var(--shadow-glow);
+}
+.kan-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 0 4px 4px;
+}
+.kan-title {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-2); font-weight: 600;
+}
+.kan-dot { width: 8px; height: 8px; border-radius: 50%; }
+.kan-count {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-4);
+  background: var(--bg-elev-1); padding: 2px 7px; border-radius: var(--r-full);
+}
+.kan-add {
+  width: 24px; height: 24px; background: transparent; border: 1px dashed var(--border-2);
+  border-radius: var(--r-sm); color: var(--text-4); cursor: pointer;
+  display: grid; place-items: center; font-size: 14px; line-height: 1;
+  transition: all var(--t-fast) var(--ease);
+}
+.kan-add:hover { color: var(--accent-text); border-color: var(--accent-border); }
+
+.kan-card {
+  background: var(--bg-elev-1); border: 1px solid var(--border-1); border-radius: var(--r-md);
+  padding: 14px; cursor: grab; transition: all var(--t-fast) var(--ease);
+  position: relative;
+}
+.kan-card:hover { border-color: var(--border-2); box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.kan-card.is-dragging { opacity: 0.4; cursor: grabbing; transform: scale(0.98) rotate(2deg); }
+.kan-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.kan-card-name { font-size: 13px; font-weight: 500; color: var(--text-1); letter-spacing: -.005em; }
+.kan-card-role { font-size: 11px; color: var(--text-4); margin-top: 2px; }
+.kan-card-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-1); margin-top: 10px; }
+.kan-card-score {
+  font-family: var(--font-serif); font-style: italic; font-size: 20px;
+  color: var(--accent-text); line-height: 1; letter-spacing: -.02em;
+}
+.kan-card-info { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-4); }
+.kan-card-hunter {
+  display: flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 11px; color: var(--text-3);
+}
+
+/* ============================================================================
+   ORGANISM: CHART BLOCKS
+   ========================================================================== */
+.chart-card {
+  padding: 24px; background: var(--bg-elev-1); border: 1px solid var(--border-1);
+  border-radius: var(--r-lg);
+}
+.chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.chart-title { font-size: 14px; font-weight: 600; color: var(--text-1); letter-spacing: -.01em; }
+.chart-sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-4); margin-top: 4px; }
+.chart-area { position: relative; height: 200px; margin: 0 -8px; }
+.chart-svg { width: 100%; height: 100%; overflow: visible; }
+.chart-line { fill: none; stroke: var(--neon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chart-line.purple { stroke: var(--plum-500); }
+.chart-fill { fill: url(#chart-gradient); }
+.chart-dot { fill: var(--neon); stroke: var(--bg-elev-1); stroke-width: 2; }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 200px; padding: 16px 0; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bar { width: 100%; max-width: 36px; background: linear-gradient(to top, var(--neon), var(--green-400)); border-radius: 4px 4px 0 0; opacity: .85; transition: opacity var(--t-fast) var(--ease); position: relative; }
+.bar:hover { opacity: 1; }
+.bar.purple { background: linear-gradient(to top, var(--plum-500), var(--cyan-400)); }
+.bar.amber { background: linear-gradient(to top, var(--amber-400), var(--neon)); }
+.bar-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; color: var(--text-4); text-transform: uppercase; }
+.bar-value { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); font-weight: 600; }
+
+/* Donut */
+.donut-wrap { display: flex; align-items: center; justify-content: center; height: 180px; position: relative; }
+.donut-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.donut-num { font-family: var(--font-serif); font-style: italic; font-size: 32px; line-height: 1; color: var(--text-1); letter-spacing: -.02em; }
+.donut-lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-4); margin-top: 4px; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.donut-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+.donut-legend-item .dot { width: 8px; height: 8px; border-radius: 50%; }
+.donut-legend-item .num { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+
+/* ============================================================================
+   ORGANISM: PIPELINE TABLE
+   ========================================================================== */
+.pipeline {
+  background: var(--bg-elev-1); border: 1px solid var(--border-1);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.pipeline-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 20px; border-bottom: 1px solid var(--border-1);
+}
+.pipeline-rows { padding: 6px; }
+.pipeline-row {
+  display: grid; grid-template-columns: 1.4fr 1fr 70px 100px 100px 40px;
+  align-items: center; gap: 16px; padding: 12px 14px; border-radius: var(--r-sm);
+  transition: background var(--t-fast) var(--ease); cursor: pointer;
+}
+.pipeline-row:hover { background: var(--bg-elev-2); }
+.pipeline-cand { display: flex; align-items: center; gap: 10px; }
+.pipeline-cand-info { display: flex; flex-direction: column; }
+.pipeline-cand-name { font-size: 13px; font-weight: 500; color: var(--text-1); }
+.pipeline-cand-meta { font-size: 11px; color: var(--text-4); margin-top: 2px; }
+.pipeline-vaga { font-size: 12px; color: var(--text-2); font-weight: 500; }
+.pipeline-score { font-family: var(--font-serif); font-style: italic; font-size: 22px; color: var(--accent-text); line-height: 1; letter-spacing: -.02em; }
+.pipeline-time { font-family: var(--font-mono); font-size: 11px; color: var(--text-4); }
+.pipeline-action { text-align: right; color: var(--text-4); }
+
+/* ============================================================================
+   ORGANISM: AI ANALYSIS CARD
+   ========================================================================== */
+.ai-card {
+  padding: 28px;
+  background: linear-gradient(135deg, var(--bg-elev-1) 0%, var(--bg-elev-2) 100%);
+  border: 1px solid var(--border-1); border-radius: var(--r-xl);
+  position: relative; overflow: hidden;
+}
+.ai-card::before {
+  content: ''; position: absolute; top: -50%; right: -20%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(0,230,118,.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+.ai-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; position: relative; }
+.ai-icon {
+  width: 40px; height: 40px; border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--neon) 0%, var(--green-700) 100%);
+  display: grid; place-items: center;
+  box-shadow: 0 8px 20px rgba(0,230,118,.3), inset 0 1px 0 rgba(255,255,255,.3);
+}
+.ai-icon svg { width: 20px; height: 20px; color: var(--green-950); }
+.ai-title { font-size: 15px; font-weight: 600; color: var(--text-1); letter-spacing: -.01em; }
+.ai-sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-4); margin-top: 2px; }
+.ai-score-block {
+  display: flex; align-items: baseline; gap: 16px;
+  padding-bottom: 24px; border-bottom: 1px solid var(--border-1); margin-bottom: 20px; position: relative;
+}
+.ai-score { font-family: var(--font-serif); font-style: italic; font-size: 96px; line-height: .9; color: var(--accent-text); letter-spacing: -.04em; }
+.ai-score-recommend { font-size: 13px; font-weight: 500; color: var(--text-1); margin-top: 4px; }
+.ai-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; position: relative; }
+.ai-bar { display: flex; flex-direction: column; gap: 6px; }
+.ai-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); }
+.ai-bar-label .v { font-family: var(--font-mono); font-weight: 600; color: var(--text-1); }
+
+/* ============================================================================
+   ORGANISM: AUTH FORM (login style)
+   ========================================================================== */
+.auth-shell {
+  display: grid; grid-template-columns: 1fr 1fr; min-height: 600px;
+  background: var(--bg-elev-1); border: 1px solid var(--border-2); border-radius: var(--r-2xl); overflow: hidden;
+  box-shadow: var(--shadow-4);
+}
+.auth-form-side { padding: 56px; display: flex; flex-direction: column; }
+.auth-form-side h2 { font-size: 32px; font-weight: 500; letter-spacing: -.03em; color: var(--text-1); margin-bottom: 8px; line-height: 1.1; }
+.auth-form-side h2 .serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent-text); }
+.auth-form-side p { font-size: 13.5px; color: var(--text-3); margin-bottom: 32px; }
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-form .btn { width: 100%; margin-top: 4px; }
+.auth-link { font-size: 12.5px; color: var(--text-3); text-align: center; margin-top: 16px; }
+.auth-link a { color: var(--accent-text); text-decoration: none; font-weight: 600; }
+
+.auth-side-visual {
+  background: linear-gradient(135deg, var(--green-850) 0%, var(--green-950) 100%);
+  color: var(--text-on-dark); padding: 56px; position: relative; overflow: hidden;
+}
+.auth-side-visual::before {
+  content: ''; position: absolute; top: -30%; right: -30%; width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,230,118,.18) 0%, transparent 60%);
+  pointer-events: none;
+}
+.auth-side-visual::after {
+  content: ''; position: absolute; bottom: -20%; left: -20%; width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(139,92,246,.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+.auth-quote {
+  font-family: var(--font-serif); font-style: italic; font-size: 42px; line-height: 1.15;
+  letter-spacing: -.02em; color: var(--text-on-dark); position: relative; margin-bottom: 32px;
+}
+.auth-quote .green { color: var(--neon); }
+.auth-credit {
+  display: flex; align-items: center; gap: 12px; position: relative;
+  padding-top: 32px; border-top: 1px solid rgba(255,255,255,.1);
+}
+
+/* Social auth */
+.auth-social {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+}
+.auth-social-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px; background: var(--bg-elev-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-md); font-size: 12.5px; color: var(--text-1); cursor: pointer;
+  font-weight: 500; transition: all var(--t-fast) var(--ease);
+}
+.auth-social-btn:hover { border-color: var(--border-2); background: var(--bg-elev-1); }
+.auth-social-btn svg { width: 16px; height: 16px; }
+
+.auth-divider {
+  display: flex; align-items: center; gap: 14px; margin: 8px 0;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-4);
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border-1);
+}
+
+/* ============================================================================
+   APP TOP BAR (with search)
+   ========================================================================== */
+.app-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; background: var(--bg-elev-2); border-bottom: 1px solid var(--border-1);
+}
+.app-topbar-search {
+  flex: 1; max-width: 480px; position: relative; margin: 0 24px;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ========================================================================== */
+.reveal { opacity: 0; transform: translateY(20px); animation: reveal 1s var(--ease-out) forwards; }
+.reveal-1 { animation-delay: .08s; } .reveal-2 { animation-delay: .18s; }
+.reveal-3 { animation-delay: .28s; } .reveal-4 { animation-delay: .38s; }
+@keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+
+/* Code preview */
+.code-block {
+  background: var(--bg-elev-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-md); padding: 14px 16px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-2);
+  overflow-x: auto; line-height: 1.6;
+  margin-top: 16px;
+}
+.code-block .tag { color: var(--plum-500); }
+.code-block .attr { color: var(--accent-text); }
+.code-block .str { color: var(--amber-400); }
+
+[data-theme="dark"] .code-block .tag { color: var(--plum-400); }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .lib-shell { grid-template-columns: 1fr; }
+  .lib-side { display: none; }
+  .lib-main { padding: 32px 24px; }
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-side-visual { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Theme toggle (fixed) -->
+<div class="lib-tools">
+  <button class="theme-toggle-btn" data-theme-set="light" aria-label="Light">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  </button>
+  <button class="theme-toggle-btn active" data-theme-set="dark" aria-label="Dark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</div>
+
+<div class="lib-shell">
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="lib-side">
+    <div class="lib-brand">
+      <div class="brand-mark"></div>
+      <div class="lib-brand-text">
+        <span class="lib-brand-name">NEXHIRE OS</span>
+        <span class="lib-brand-ver">v2.0 · LIBRARY</span>
+      </div>
+    </div>
+
+    <div class="lib-section">
+      <div class="lib-section-label">FUNDAMENTOS</div>
+      <a href="#colors" class="active">Cores</a>
+      <a href="#type">Tipografia</a>
+      <a href="#spacing">Espaçamento</a>
+      <a href="#shadows">Sombras</a>
+    </div>
+
+    <div class="lib-section">
+      <div class="lib-section-label">ÁTOMOS</div>
+      <a href="#buttons">Botões</a>
+      <a href="#badges">Badges</a>
+      <a href="#inputs">Inputs</a>
+      <a href="#avatars">Avatares</a>
+    </div>
+
+    <div class="lib-section">
+      <div class="lib-section-label">MOLÉCULAS</div>
+      <a href="#cards">Cards</a>
+      <a href="#kpis">KPIs</a>
+      <a href="#alerts">Alerts & Toasts</a>
+      <a href="#tabs">Tabs</a>
+      <a href="#modals">Modais</a>
+      <a href="#dropdowns">Dropdowns</a>
+      <a href="#progress">Progress</a>
+      <a href="#empty">Empty States</a>
+      <a href="#skeleton">Skeletons</a>
+    </div>
+
+    <div class="lib-section">
+      <div class="lib-section-label">CHARTS</div>
+      <a href="#chart-line">Line Chart</a>
+      <a href="#chart-bar">Bar Chart</a>
+      <a href="#chart-donut">Donut Chart</a>
+      <a href="#chart-spark">Sparklines</a>
+    </div>
+
+    <div class="lib-section">
+      <div class="lib-section-label">TELAS</div>
+      <a href="#screen-login">Login</a>
+      <a href="#screen-empresa">Dashboard Empresa</a>
+      <a href="#screen-hunter">Dashboard Hunter</a>
+      <a href="#screen-hr">Dashboard HR</a>
+      <a href="#screen-kanban">Kanban</a>
+      <a href="#screen-vaga">Detalhe Vaga</a>
+      <a href="#screen-candidato">Detalhe Candidato</a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="lib-main">
+
+    <!-- HEADER -->
+    <header class="lib-section-h">
+      <div class="lib-eyebrow">COMPONENT LIBRARY · v2.0</div>
+      <h1 class="lib-h1">A linguagem visual da <span class="serif">Nexhire</span>.</h1>
+      <p class="lib-sub">
+        Biblioteca completa de tokens, componentes, charts e telas. Toda peça aqui está pronta pra ser migrada
+        pro Next.js. Light + Dark com toggle no canto superior direito.
+      </p>
+    </header>
+
+    <!-- ============================================================== -->
+    <!-- COLORS -->
+    <!-- ============================================================== -->
+    <section id="colors" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Cores</h2>
+        <span class="lib-block-tag">TOKENS · CSS VARIABLES</span>
+      </div>
+      <p class="lib-desc">Spine cromática Nexhire (verdes) + acentos dramáticos pro dark mode + neutros adaptativos por tema.</p>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 32px;">
+          <div class="card-eyebrow">BRAND GREENS</div>
+          <div class="lib-grid-4" style="grid-template-columns: repeat(7, 1fr); gap: 8px;">
+            <div>
+              <div style="aspect-ratio:1; background:#001A09; border-radius:var(--r-md); border:1px solid var(--border-1);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">green-950</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#001A09</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#052E16; border-radius:var(--r-md); border:1px solid var(--border-1);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">green-850</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#052E16</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#0F6B35; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">green-700</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#0F6B35</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#16A34A; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">green-600</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#16A34A</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#4ADE80; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">green-400</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#4ADE80</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#BBF7D0; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">green-200</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#BBF7D0</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#00E676; border-radius:var(--r-md); box-shadow: 0 0 24px rgba(0,230,118,.4);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--accent-text); font-weight: 600;">NEON</div>
+              <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-5);">#00E676</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+          <div class="card-eyebrow">DRAMA ACCENTS</div>
+          <div class="lib-grid-4" style="grid-template-columns: repeat(6, 1fr); gap: 8px;">
+            <div>
+              <div style="aspect-ratio:1; background:#6D28D9; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">plum-600</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#8B5CF6; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">plum-500</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#22D3EE; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">cyan-400</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#FBBF24; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">amber-400</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background:#FB7185; border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">rose-400</div>
+            </div>
+            <div>
+              <div style="aspect-ratio:1; background: linear-gradient(135deg, #00E676, #8B5CF6, #22D3EE); border-radius:var(--r-md);"></div>
+              <div style="font-family:var(--font-mono); font-size:10px; margin-top:6px; color:var(--text-3);">gradient</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">SEMANTIC (states)</div>
+          <div class="lib-grid-4">
+            <div class="alert alert-success">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div class="alert-body"><div class="alert-title">Success</div></div>
+            </div>
+            <div class="alert alert-warning">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div class="alert-body"><div class="alert-title">Warning</div></div>
+            </div>
+            <div class="alert alert-danger">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <div class="alert-body"><div class="alert-title">Danger</div></div>
+            </div>
+            <div class="alert alert-info">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div class="alert-body"><div class="alert-title">Info</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TYPOGRAPHY -->
+    <!-- ============================================================== -->
+    <section id="type" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Tipografia</h2>
+        <span class="lib-block-tag">GEIST · GEIST MONO · INSTRUMENT SERIF</span>
+      </div>
+      <p class="lib-desc">Três famílias com função distinta. Geist é a base. Instrument Serif italic dá personalidade editorial. Geist Mono carrega dados e meta-informação.</p>
+
+      <div class="lib-canvas">
+        <div style="border-bottom: 1px solid var(--border-1); padding: 0 0 24px; margin-bottom: 24px;">
+          <div class="card-eyebrow">DISPLAY · Geist 500 · 56px · -0.035em</div>
+          <div style="font-size: 56px; line-height: 1; letter-spacing: -.035em; font-weight: 500; color: var(--text-1);">
+            O futuro é <span style="font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent-text);">agora</span>.
+          </div>
+        </div>
+
+        <div style="border-bottom: 1px solid var(--border-1); padding: 0 0 24px; margin-bottom: 24px;">
+          <div class="card-eyebrow">PAGE TITLE · Geist 500 · 32px · -0.03em</div>
+          <div style="font-size: 32px; line-height: 1; letter-spacing: -.03em; font-weight: 500; color: var(--text-1);">
+            Candidatos <span style="font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent-text);">curados</span>
+          </div>
+        </div>
+
+        <div style="border-bottom: 1px solid var(--border-1); padding: 0 0 24px; margin-bottom: 24px;">
+          <div class="card-eyebrow">CARD TITLE · Geist 600 · 15px</div>
+          <div style="font-size: 15px; font-weight: 600; color: var(--text-1); letter-spacing: -.01em;">
+            Pipeline de hoje
+          </div>
+        </div>
+
+        <div style="border-bottom: 1px solid var(--border-1); padding: 0 0 24px; margin-bottom: 24px;">
+          <div class="card-eyebrow">BODY · Geist 400 · 14px · 1.55 LINE</div>
+          <div style="font-size: 14px; line-height: 1.55; color: var(--text-2); max-width: 540px;">
+            Tecnologia para escalar. Humanos para decidir melhor. A Nexhire conecta empresas a uma rede de
+            recrutadores especialistas e usa IA pra acelerar triagem.
+          </div>
+        </div>
+
+        <div style="border-bottom: 1px solid var(--border-1); padding: 0 0 24px; margin-bottom: 24px;">
+          <div class="card-eyebrow">EYEBROW · Geist Mono 500 · 11px · 0.12em</div>
+          <div style="font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-text);">
+            OPERANDO EM TEMPO REAL · 14 PAÍSES
+          </div>
+        </div>
+
+        <div style="border-bottom: 1px solid var(--border-1); padding: 0 0 24px; margin-bottom: 24px;">
+          <div class="card-eyebrow">SERIF NUM · Instrument Serif italic · 72px · -0.03em</div>
+          <div style="font-family: var(--font-serif); font-style: italic; font-size: 72px; line-height: 1; color: var(--accent-text); letter-spacing: -.03em;">
+            87
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">META · Geist Mono 500 · 10px</div>
+          <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; color: var(--text-4);">
+            UPDATED 2 MIN AGO · v2.1.0 · BUILD 4271
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- BUTTONS -->
+    <!-- ============================================================== -->
+    <section id="buttons" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Botões</h2>
+        <span class="lib-block-tag">6 VARIANTS · 4 SIZES · STATES</span>
+      </div>
+      <p class="lib-desc">Hierarquia clara: neon = ação principal, primary = secundária, glass = neutra, ghost = terciária. Danger pra ações destrutivas.</p>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 28px;">
+          <div class="card-eyebrow">VARIANTS — SIZE MD</div>
+          <div class="lib-row">
+            <button class="btn btn-neon">Aprovar candidato</button>
+            <button class="btn btn-primary">Salvar</button>
+            <button class="btn btn-glass">Cancelar</button>
+            <button class="btn btn-outline">Outline</button>
+            <button class="btn btn-ghost">Pular</button>
+            <button class="btn btn-danger">Excluir vaga</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 28px;">
+          <div class="card-eyebrow">SIZES</div>
+          <div class="lib-row">
+            <button class="btn btn-neon btn-xs">XS</button>
+            <button class="btn btn-neon btn-sm">Small</button>
+            <button class="btn btn-neon">Medium</button>
+            <button class="btn btn-neon btn-lg">Large</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 28px;">
+          <div class="card-eyebrow">COM ÍCONE / SETA</div>
+          <div class="lib-row">
+            <button class="btn btn-neon btn-icon-end">Continuar</button>
+            <button class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova vaga
+            </button>
+            <button class="btn btn-glass">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Baixar CV
+            </button>
+            <button class="btn btn-icon btn-glass" aria-label="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">ESTADOS</div>
+          <div class="lib-row">
+            <button class="btn btn-neon btn-loading">Salvando</button>
+            <button class="btn btn-primary" disabled>Disabled</button>
+            <button class="btn btn-neon" style="box-shadow: 0 0 0 3px var(--accent-bg), 0 0 0 1px rgba(0,230,118,.4), 0 6px 20px rgba(0,230,118,.25);">Focused</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- BADGES -->
+    <!-- ============================================================== -->
+    <section id="badges" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Badges & Status</h2>
+        <span class="lib-block-tag">10+ VARIANTS</span>
+      </div>
+      <p class="lib-desc">Indicadores de estado, contagem e categoria. Sempre em Mono pra legibilidade técnica.</p>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">SEMANTIC BADGES</div>
+          <div class="lib-row">
+            <span class="badge badge-green">Aprovado</span>
+            <span class="badge badge-yellow">Revisar</span>
+            <span class="badge badge-red">Rejeitado</span>
+            <span class="badge badge-blue">Em análise</span>
+            <span class="badge badge-purple">Com cliente</span>
+            <span class="badge badge-cyan">Entrevista</span>
+            <span class="badge badge-gray">Pendente</span>
+            <span class="badge badge-dark">Contratado</span>
+            <span class="badge badge-neon">Top Hunter</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">SUBMISSION STATUS PILLS</div>
+          <div class="lib-row">
+            <span class="status-pill s-recommended">Recomendado</span>
+            <span class="status-pill s-review">Revisar</span>
+            <span class="status-pill s-interview">Entrevista</span>
+            <span class="status-pill s-client">Com cliente</span>
+            <span class="status-pill s-hired">Contratado</span>
+            <span class="status-pill s-rejected">Rejeitado</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">LIVE / ACTIVE</div>
+          <div class="lib-row">
+            <span class="badge badge-live">LIVE</span>
+            <span class="badge badge-live">ANALYZING</span>
+            <span class="badge badge-live">2 ONLINE</span>
+            <span class="badge badge-live">CONNECTED</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">SIZES</div>
+          <div class="lib-row">
+            <span class="badge badge-green badge-sm">SM</span>
+            <span class="badge badge-green">MD (default)</span>
+            <span class="badge badge-green badge-md">LG</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- INPUTS -->
+    <!-- ============================================================== -->
+    <section id="inputs" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Inputs & Forms</h2>
+        <span class="lib-block-tag">TEXT · SELECT · CHECK · RADIO · SWITCH</span>
+      </div>
+      <p class="lib-desc">Campos de formulário consistentes. Estados: default, focus, error. Sempre com label + hint opcional.</p>
+
+      <div class="lib-canvas">
+        <div class="lib-grid-2">
+          <div class="input-group">
+            <label class="input-label">Nome completo<span class="req">*</span></label>
+            <input class="input" placeholder="Ex: Mariana Pianta" type="text">
+            <span class="input-hint">Aparece em propostas comerciais</span>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Email<span class="req">*</span></label>
+            <div class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <input class="input has-icon" placeholder="voce@empresa.com" type="email">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Telefone</label>
+            <input class="input input-error" value="11 9999" type="tel">
+            <span class="input-error-msg">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Use o formato (11) 99999-9999
+            </span>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Senioridade</label>
+            <div class="select-wrap">
+              <select class="select">
+                <option>Selecione...</option>
+                <option>Júnior</option>
+                <option selected>Pleno</option>
+                <option>Sênior</option>
+                <option>Especialista</option>
+                <option>Gerente</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group" style="grid-column: span 2;">
+            <label class="input-label">Resumo da entrevista<span class="req">*</span></label>
+            <textarea class="input" placeholder="Descreva como foi a conversa com o candidato — pontos fortes, experiências relevantes e por que ele é adequado para esta vaga.">Pedro tem 8 anos em ML, liderou time de 6 engenheiros em scale-up brasileira. Comunicação clara, conhecimento sólido de PyTorch e MLOps. Encaixe cultural alinhado com a vaga.</textarea>
+          </div>
+        </div>
+
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-1);">
+          <div class="card-eyebrow">CHECK · RADIO · SWITCH</div>
+          <div style="display: flex; gap: 32px; flex-wrap: wrap; align-items: center;">
+            <label class="check-wrap">
+              <input type="checkbox" class="check" checked>
+              <span class="check-label">Aceito os termos de uso</span>
+            </label>
+            <label class="check-wrap">
+              <input type="radio" class="radio" name="r" checked>
+              <span class="check-label">Remoto</span>
+            </label>
+            <label class="check-wrap">
+              <input type="radio" class="radio" name="r">
+              <span class="check-label">Híbrido</span>
+            </label>
+            <label class="check-wrap">
+              <input type="checkbox" class="switch" checked>
+              <span class="check-label">Receber emails de novas vagas</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- AVATARS -->
+    <!-- ============================================================== -->
+    <section id="avatars" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Avatares</h2>
+        <span class="lib-block-tag">7 GRADIENTS · 5 SIZES</span>
+      </div>
+      <p class="lib-desc">Iniciais coloridas por hash. 7 gradientes evitam monotonia. Status dot quando aplicável.</p>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">SIZES</div>
+          <div class="lib-row" style="gap: 16px;">
+            <div class="avatar avatar-xs av-1">MP</div>
+            <div class="avatar avatar-sm av-2">JS</div>
+            <div class="avatar avatar-md av-3">RK</div>
+            <div class="avatar avatar-lg av-4">MN</div>
+            <div class="avatar avatar-xl av-5">LT</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">7 GRADIENT VARIANTS</div>
+          <div class="lib-row" style="gap: 10px;">
+            <div class="avatar avatar-md av-1">A1</div>
+            <div class="avatar avatar-md av-2">A2</div>
+            <div class="avatar avatar-md av-3">A3</div>
+            <div class="avatar avatar-md av-4">A4</div>
+            <div class="avatar avatar-md av-5">A5</div>
+            <div class="avatar avatar-md av-6">A6</div>
+            <div class="avatar avatar-md av-7">A7</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">AVATAR STACK</div>
+          <div class="avatar-stack">
+            <div class="avatar avatar-md av-1">MP</div>
+            <div class="avatar avatar-md av-2">JS</div>
+            <div class="avatar avatar-md av-3">RK</div>
+            <div class="avatar avatar-md av-4">MN</div>
+            <div class="avatar avatar-md avatar-more">+138</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">COM STATUS DOT (online)</div>
+          <div class="lib-row" style="gap: 16px;">
+            <div class="avatar avatar-md av-1 avatar-status">MP</div>
+            <div class="avatar avatar-lg av-3 avatar-status">RK</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- CARDS -->
+    <!-- ============================================================== -->
+    <section id="cards" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Cards</h2>
+        <span class="lib-block-tag">5 VARIANTS</span>
+      </div>
+      <p class="lib-desc">Default, mint (positivo), dark (CTA), glass (sobreposição), flat (secundário).</p>
+
+      <div class="lib-canvas">
+        <div class="lib-grid-3">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-eyebrow">DEFAULT</div>
+                <div class="card-title">Card padrão</div>
+              </div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-3);">O componente base do produto. Use pra agrupar informação relacionada.</p>
+          </div>
+
+          <div class="card card-mint">
+            <div class="card-header">
+              <div>
+                <div class="card-eyebrow">MINT</div>
+                <div class="card-title">Destaque positivo</div>
+              </div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-3);">Reservado pra estados positivos, sucessos, conquistas. Não abuse.</p>
+          </div>
+
+          <div class="card card-dark">
+            <div class="card-header">
+              <div>
+                <div class="card-eyebrow" style="color: var(--neon);">DARK</div>
+                <div class="card-title" style="color: var(--text-on-dark);">CTA premium</div>
+              </div>
+            </div>
+            <p style="font-size: 13px; color: rgba(255,255,255,.7);">Pra ações de alto impacto. Sempre com botão neon.</p>
+            <button class="btn btn-neon btn-sm" style="margin-top: 16px;">Entrar agora</button>
+          </div>
+
+          <div class="card card-glass">
+            <div class="card-header">
+              <div>
+                <div class="card-eyebrow">GLASS</div>
+                <div class="card-title">Sobreposição</div>
+              </div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-3);">Vidro fosco pra sobreposição em hero, modal, drawer.</p>
+          </div>
+
+          <div class="card card-flat">
+            <div class="card-header">
+              <div>
+                <div class="card-eyebrow">FLAT</div>
+                <div class="card-title">Secundário</div>
+              </div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-3);">Sem borda, fundo elevado. Pra conteúdo de baixa hierarquia.</p>
+          </div>
+
+          <div class="card card-hover" style="display:flex; align-items: center; justify-content: center; min-height: 130px;">
+            <div style="text-align: center; color: var(--text-4); font-size: 12px;">
+              ↑ HOVER pra ver efeito
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- KPI CARDS -->
+    <!-- ============================================================== -->
+    <section id="kpis" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">KPI Cards</h2>
+        <span class="lib-block-tag">SERIF ITALIC NUM + SPARKLINE</span>
+      </div>
+      <p class="lib-desc">Métrica grande em Instrument Serif italic. Trend pill verde/vermelho. Sparkline embaixo.</p>
+
+      <div class="lib-canvas">
+        <div class="lib-grid-4">
+          <div class="kpi">
+            <div class="kpi-label">CANDIDATOS HOJE <span class="kpi-trend">↑ 24%</span></div>
+            <div class="kpi-num">47</div>
+            <div class="kpi-spark spk-green spk-1"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">VAGAS ABERTAS <span class="kpi-trend">↑ 8%</span></div>
+            <div class="kpi-num">18</div>
+            <div class="kpi-spark spk-purple spk-2"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">TAXA DE HIRE <span class="kpi-trend">↑ 12%</span></div>
+            <div class="kpi-num">38<span class="unit">%</span></div>
+            <div class="kpi-spark spk-cyan spk-3"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">TIME-TO-HIRE <span class="kpi-trend down">↓ 2d</span></div>
+            <div class="kpi-num">14<span class="unit">d</span></div>
+            <div class="kpi-spark spk-amber spk-4"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <div class="card-eyebrow">VARIAÇÕES DE TAMANHO</div>
+          <div class="lib-grid-3">
+            <div class="kpi">
+              <div class="kpi-label">SCORE AI</div>
+              <div class="kpi-num kpi-num-lg">92</div>
+              <div style="font-size: 11px; color: var(--text-3); margin-top: 8px;">Forte recomendação</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">RECEITA</div>
+              <div class="kpi-num">R$ 1<span class="unit">.2M</span></div>
+              <div class="kpi-spark spk-green spk-1"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">CICLO MÉDIO</div>
+              <div class="kpi-num kpi-num-sm">17 <span class="unit">dias</span></div>
+              <div class="kpi-spark spk-purple spk-2"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- ALERTS & TOASTS -->
+    <!-- ============================================================== -->
+    <section id="alerts" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Alerts & Toasts</h2>
+        <span class="lib-block-tag">INLINE + FLOATING</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">ALERTS (INLINE)</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="alert alert-success">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div class="alert-body">
+                <div class="alert-title">Candidato enviado</div>
+                <div class="alert-msg">Pedro foi enviado para revisão. Você receberá email quando for analisado.</div>
+              </div>
+            </div>
+            <div class="alert alert-warning">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div class="alert-body">
+                <div class="alert-title">Atenção — este é seu último envio</div>
+                <div class="alert-msg">Cada hunter pode enviar no máximo 3 candidatos por vaga. Use este envio com cuidado.</div>
+              </div>
+            </div>
+            <div class="alert alert-danger">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <div class="alert-body">
+                <div class="alert-title">Email já cadastrado</div>
+                <div class="alert-msg">Já existe uma conta com esse email. Faça login ou recupere sua senha.</div>
+              </div>
+            </div>
+            <div class="alert alert-info">
+              <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div class="alert-body">
+                <div class="alert-title">Vaga em revisão</div>
+                <div class="alert-msg">O HR Manager está revisando sua vaga. Tempo médio: 24h.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">TOASTS (FLOATING)</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+            <div class="toast">
+              <div class="toast-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="toast-body">
+                <div class="toast-title">Vaga publicada</div>
+                <div class="toast-msg">Visível para 142 hunters ativos</div>
+              </div>
+            </div>
+            <div class="toast">
+              <div class="toast-icon warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+              </div>
+              <div class="toast-body">
+                <div class="toast-title">Conexão instável</div>
+                <div class="toast-msg">Reconectando...</div>
+              </div>
+            </div>
+            <div class="toast">
+              <div class="toast-icon danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </div>
+              <div class="toast-body">
+                <div class="toast-title">Erro ao enviar candidato</div>
+                <div class="toast-msg">Tente novamente em alguns segundos</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TABS -->
+    <!-- ============================================================== -->
+    <section id="tabs" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Tabs</h2>
+        <span class="lib-block-tag">PILL + UNDERLINE</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 32px;">
+          <div class="card-eyebrow">PILL TABS</div>
+          <div class="tabs">
+            <button class="tab active">Todos</button>
+            <button class="tab">Aprovados</button>
+            <button class="tab">Em curadoria</button>
+            <button class="tab">Rejeitados</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">UNDERLINE TABS (com badges)</div>
+          <div class="tabs-line">
+            <div class="tab-line active">
+              Dashboard
+            </div>
+            <div class="tab-line">
+              Candidatos <span class="badge badge-green badge-sm">12</span>
+            </div>
+            <div class="tab-line">
+              Vagas <span class="badge badge-gray badge-sm">8</span>
+            </div>
+            <div class="tab-line">
+              Hunters
+            </div>
+            <div class="tab-line">
+              Analytics
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- MODALS -->
+    <!-- ============================================================== -->
+    <section id="modals" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Modais</h2>
+        <span class="lib-block-tag">CONFIRMAÇÃO · DETALHE</span>
+      </div>
+      <p class="lib-desc">Use apenas pra ações destrutivas/irreversíveis ou pra exibir conteúdo focado. Sem fricção desnecessária.</p>
+
+      <div class="lib-canvas dark-bg">
+        <div style="position: relative; padding: 60px 0; display: grid; place-items: center;">
+          <div class="modal" style="position: relative; box-shadow: var(--shadow-4);">
+            <div class="modal-header">
+              <div>
+                <div class="card-eyebrow">CONFIRMAÇÃO</div>
+                <div class="modal-title">Cancelar vaga?</div>
+              </div>
+              <button class="btn-icon btn-ghost" style="width: 28px; height: 28px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              Não será possível reativá-la. Candidatos já enviados serão notificados sobre o cancelamento.
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost">Voltar</button>
+              <button class="btn btn-danger">Sim, cancelar vaga</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- DROPDOWNS -->
+    <!-- ============================================================== -->
+    <section id="dropdowns" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Dropdowns</h2>
+        <span class="lib-block-tag">MENU CONTEXTUAL</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="lib-grid-3">
+          <div class="dropdown">
+            <div class="dropdown-label">VAGA</div>
+            <div class="dropdown-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar vaga
+            </div>
+            <div class="dropdown-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              Duplicar
+            </div>
+            <div class="dropdown-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20l16-16M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+              Compartilhar
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item danger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Cancelar vaga
+            </div>
+          </div>
+
+          <div>
+            <div class="card-eyebrow">TOOLTIPS</div>
+            <div class="lib-row" style="gap: 24px; padding: 32px 0;">
+              <div class="tip-wrap">
+                <button class="btn btn-glass btn-sm">Hover me</button>
+                <span class="tip">Tooltip simples</span>
+              </div>
+              <div class="tip-wrap">
+                <span class="badge badge-live">LIVE</span>
+                <span class="tip">142 hunters online</span>
+              </div>
+              <div class="tip-wrap">
+                <div class="avatar avatar-md av-1">MP</div>
+                <span class="tip">Mariana Pianta · Hunter Beginner</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- PROGRESS -->
+    <!-- ============================================================== -->
+    <section id="progress" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Progress & Bars</h2>
+        <span class="lib-block-tag">LINEAR + AI BAR</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div style="margin-bottom: 24px;">
+          <div class="card-eyebrow">PROGRESS BARS</div>
+          <div style="display: flex; flex-direction: column; gap: 14px; max-width: 460px;">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); margin-bottom: 6px;">
+                <span>Upload do CV</span>
+                <span style="font-family: var(--font-mono);">68%</span>
+              </div>
+              <div class="progress"><div class="progress-fill" style="width: 68%;"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); margin-bottom: 6px;">
+                <span>Análise de IA</span>
+                <span style="font-family: var(--font-mono);">92%</span>
+              </div>
+              <div class="progress progress-thick"><div class="progress-fill purple" style="width: 92%;"></div></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); margin-bottom: 6px;">
+                <span>Meta mensal</span>
+                <span style="font-family: var(--font-mono);">45%</span>
+              </div>
+              <div class="progress progress-thin"><div class="progress-fill amber" style="width: 45%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-eyebrow">AI SCORE BARS (Técnico · Sênior · Cultural)</div>
+          <div class="ai-breakdown" style="max-width: 540px;">
+            <div class="ai-bar">
+              <div class="ai-bar-label">Técnico <span class="v">96</span></div>
+              <div class="progress"><div class="progress-fill" style="width: 96%;"></div></div>
+            </div>
+            <div class="ai-bar">
+              <div class="ai-bar-label">Senioridade <span class="v">88</span></div>
+              <div class="progress"><div class="progress-fill" style="width: 88%;"></div></div>
+            </div>
+            <div class="ai-bar">
+              <div class="ai-bar-label">Cultural <span class="v">91</span></div>
+              <div class="progress"><div class="progress-fill" style="width: 91%;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- EMPTY -->
+    <!-- ============================================================== -->
+    <section id="empty" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Empty States</h2>
+        <span class="lib-block-tag">SEMPRE COM CTA</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="lib-grid-2">
+          <div class="empty">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+            </div>
+            <div class="empty-title">Sem candidatos ainda</div>
+            <div class="empty-msg">Quando hunters enviarem candidatos pra essa vaga, eles aparecem aqui ordenados por AI Score.</div>
+            <button class="btn btn-glass btn-sm">Ver outras vagas</button>
+          </div>
+
+          <div class="empty">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+            </div>
+            <div class="empty-title">Nenhuma vaga aberta</div>
+            <div class="empty-msg">Comece publicando sua primeira vaga. A IA gera descrição inicial em segundos.</div>
+            <button class="btn btn-neon btn-sm">Criar primeira vaga</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SKELETON -->
+    <!-- ============================================================== -->
+    <section id="skeleton" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Skeleton Loaders</h2>
+        <span class="lib-block-tag">SHIMMER ANIMATION</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="lib-grid-2">
+          <!-- Card skel -->
+          <div class="card">
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+              <div class="skel skel-circle" style="width: 36px; height: 36px;"></div>
+              <div style="flex: 1;">
+                <div class="skel skel-line" style="width: 60%; margin-bottom: 6px;"></div>
+                <div class="skel skel-line" style="width: 40%; height: 9px;"></div>
+              </div>
+            </div>
+            <div class="skel skel-text" style="width: 100%;"></div>
+            <div class="skel skel-text" style="width: 85%;"></div>
+            <div class="skel skel-text" style="width: 60%;"></div>
+          </div>
+
+          <!-- KPI skel -->
+          <div class="kpi">
+            <div class="skel" style="width: 50%; height: 9px; margin-bottom: 16px;"></div>
+            <div class="skel skel-line lg" style="width: 70%; height: 40px; margin-bottom: 14px;"></div>
+            <div class="skel" style="width: 100%; height: 20px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- CHART LINE -->
+    <!-- ============================================================== -->
+    <section id="chart-line" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Line / Area Chart</h2>
+        <span class="lib-block-tag">SVG · GRADIENT FILL</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Submissões nos últimos 30 dias</div>
+              <div class="chart-sub">+24% VS PERÍODO ANTERIOR</div>
+            </div>
+            <span class="badge badge-live">LIVE</span>
+          </div>
+          <div class="chart-area">
+            <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chart-gradient" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#00E676" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="#00E676" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,140 L50,120 L100,135 L150,90 L200,100 L250,70 L300,85 L350,50 L400,65 L450,40 L500,55 L550,25 L600,45 L600,200 L0,200 Z" class="chart-fill"/>
+              <path d="M0,140 L50,120 L100,135 L150,90 L200,100 L250,70 L300,85 L350,50 L400,65 L450,40 L500,55 L550,25 L600,45" class="chart-line"/>
+              <circle cx="600" cy="45" r="4" class="chart-dot"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- CHART BAR -->
+    <!-- ============================================================== -->
+    <section id="chart-bar" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Bar Chart</h2>
+        <span class="lib-block-tag">DIVISION POR CATEGORIA</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Hires por mês — últimos 8 meses</div>
+              <div class="chart-sub">2026 · CRESCIMENTO COMPOSTO 14% MES/MES</div>
+            </div>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-col"><div class="bar-value">12</div><div class="bar" style="height: 22%;"></div><div class="bar-label">OUT</div></div>
+            <div class="bar-col"><div class="bar-value">18</div><div class="bar" style="height: 32%;"></div><div class="bar-label">NOV</div></div>
+            <div class="bar-col"><div class="bar-value">15</div><div class="bar" style="height: 27%;"></div><div class="bar-label">DEZ</div></div>
+            <div class="bar-col"><div class="bar-value">24</div><div class="bar" style="height: 43%;"></div><div class="bar-label">JAN</div></div>
+            <div class="bar-col"><div class="bar-value">31</div><div class="bar" style="height: 55%;"></div><div class="bar-label">FEV</div></div>
+            <div class="bar-col"><div class="bar-value">28</div><div class="bar" style="height: 50%;"></div><div class="bar-label">MAR</div></div>
+            <div class="bar-col"><div class="bar-value">42</div><div class="bar" style="height: 75%;"></div><div class="bar-label">ABR</div></div>
+            <div class="bar-col"><div class="bar-value">56</div><div class="bar" style="height: 100%;"></div><div class="bar-label">MAI</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- CHART DONUT -->
+    <!-- ============================================================== -->
+    <section id="chart-donut" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Donut Chart</h2>
+        <span class="lib-block-tag">DISTRIBUIÇÃO + LEGEND</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="chart-card" style="max-width: 380px;">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Status do pipeline</div>
+              <div class="chart-sub">DISTRIBUIÇÃO ATUAL</div>
+            </div>
+          </div>
+          <div class="donut-wrap">
+            <svg viewBox="0 0 120 120" style="width: 160px; height: 160px;">
+              <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg-elev-2)" stroke-width="14"/>
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#00E676" stroke-width="14" stroke-dasharray="135 301" stroke-dashoffset="0" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#8B5CF6" stroke-width="14" stroke-dasharray="75 301" stroke-dashoffset="-135" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#22D3EE" stroke-width="14" stroke-dasharray="60 301" stroke-dashoffset="-215" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+            </svg>
+            <div class="donut-center"><div><div class="donut-num">68</div><div class="donut-lbl">TOTAL</div></div></div>
+          </div>
+          <div class="donut-legend">
+            <div class="donut-legend-item"><span class="dot" style="background: var(--neon)"></span>Em curadoria<span class="num">31</span></div>
+            <div class="donut-legend-item"><span class="dot" style="background: var(--plum-500)"></span>Com cliente<span class="num">17</span></div>
+            <div class="donut-legend-item"><span class="dot" style="background: var(--cyan-400)"></span>Entrevista<span class="num">20</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- LOGIN SCREEN -->
+    <!-- ============================================================== -->
+    <section id="screen-login" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Tela · Login</h2>
+        <span class="lib-block-tag">SPLIT 50/50 · COM SOCIAL AUTH</span>
+      </div>
+
+      <div class="lib-canvas tight">
+        <div class="auth-shell">
+          <div class="auth-form-side">
+            <div class="lib-eyebrow">BEM-VINDO DE VOLTA</div>
+            <h2>Acesse sua <span class="serif">conta</span></h2>
+            <p>Entre na plataforma com seu email corporativo ou via Google.</p>
+
+            <div class="auth-social">
+              <button class="auth-social-btn">
+                <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Google
+              </button>
+              <button class="auth-social-btn">
+                <svg viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
+                LinkedIn
+              </button>
+            </div>
+
+            <div class="auth-divider">OU CONTINUE COM EMAIL</div>
+
+            <form class="auth-form">
+              <div class="input-group">
+                <label class="input-label">Email</label>
+                <input class="input" type="email" placeholder="voce@empresa.com">
+              </div>
+              <div class="input-group">
+                <label class="input-label">
+                  Senha
+                  <a href="#" style="float: right; font-size: 11px; font-weight: 500; color: var(--accent-text); text-decoration: none;">Esqueci minha senha</a>
+                </label>
+                <input class="input" type="password" placeholder="••••••••">
+              </div>
+              <button class="btn btn-neon btn-lg" style="margin-top: 8px;">Entrar</button>
+            </form>
+
+            <div class="auth-link">
+              Ainda não tem conta? <a href="#">Criar conta gratuita</a>
+            </div>
+          </div>
+
+          <div class="auth-side-visual">
+            <div class="lib-eyebrow" style="position: relative; color: var(--neon);">
+              <span style="background: var(--neon); width: 5px; height: 5px; border-radius: 50%; box-shadow: 0 0 6px var(--neon);"></span>
+              SISTEMA OPERACIONAL · NEXHIRE
+            </div>
+            <div class="auth-quote">
+              "A Nexhire reduziu nosso<br>
+              ciclo de contratação em <span class="green">42 dias</span>,<br>
+              sem perder qualidade."
+            </div>
+            <div class="auth-credit">
+              <div class="avatar avatar-lg av-1">FS</div>
+              <div>
+                <div style="font-size: 13px; font-weight: 600;">Fernanda Souza</div>
+                <div style="font-size: 11px; opacity: .7; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase;">HEAD OF TALENT · ACME CORP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- DASHBOARD EMPRESA -->
+    <!-- ============================================================== -->
+    <section id="screen-empresa" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Tela · Dashboard Empresa</h2>
+        <span class="lib-block-tag">COMPANY_USER</span>
+      </div>
+
+      <div class="lib-canvas tight">
+        <div class="app">
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="sidebar-brand">
+              <div class="brand-mark" style="width: 28px; height: 28px;"></div>
+              <div>
+                <div class="sidebar-brand-text">NEXHIRE</div>
+                <div class="sidebar-role">EMPRESA</div>
+              </div>
+            </div>
+
+            <div class="nav-group">
+              <div class="nav-group-label">PRINCIPAL</div>
+              <a class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                Dashboard
+              </a>
+              <a class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2"/></svg>
+                Minhas vagas <span class="nav-badge">3</span>
+              </a>
+              <a class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+                Candidatos <span class="nav-badge">12</span>
+              </a>
+              <a class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Entrevistas
+              </a>
+            </div>
+
+            <div class="nav-group">
+              <div class="nav-group-label">INSIGHTS</div>
+              <a class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Analytics
+              </a>
+            </div>
+
+            <div class="sidebar-footer">
+              <div class="avatar avatar-sm av-3 avatar-status">DM</div>
+              <div class="sidebar-user-info">
+                <div class="sidebar-user-name">Daniel</div>
+                <div class="sidebar-user-role">NEXCO</div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main -->
+          <main class="app-main">
+            <div class="page-header">
+              <div>
+                <div class="page-eyebrow">QUARTA, 28 MAI · 14:32</div>
+                <h2 class="page-title">Olá, <span class="serif">Daniel</span></h2>
+                <div class="page-sub">3 vagas abertas · 12 candidatos aguardando sua avaliação · 2 entrevistas hoje.</div>
+              </div>
+              <div class="page-actions">
+                <button class="btn btn-glass btn-sm">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Exportar
+                </button>
+                <button class="btn btn-neon btn-sm">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Nova vaga
+                </button>
+              </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="lib-grid-4" style="margin-bottom: 24px;">
+              <div class="kpi">
+                <div class="kpi-label">VAGAS ABERTAS</div>
+                <div class="kpi-num">3</div>
+                <div style="font-size: 11px; color: var(--text-3); margin-top: 8px;">1 aguardando revisão</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">CANDIDATOS ATIVOS <span class="kpi-trend">↑ 24%</span></div>
+                <div class="kpi-num">12</div>
+                <div class="kpi-spark spk-green spk-1"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">EM ENTREVISTA</div>
+                <div class="kpi-num">3</div>
+                <div style="font-size: 11px; color: var(--text-3); margin-top: 8px;">2 esta semana</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">CICLO MÉDIO</div>
+                <div class="kpi-num">14<span class="unit">d</span></div>
+                <div class="kpi-spark spk-cyan spk-3"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              </div>
+            </div>
+
+            <!-- Chart + Donut -->
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 24px;">
+              <div class="chart-card">
+                <div class="chart-header">
+                  <div>
+                    <div class="chart-title">Funil de contratação</div>
+                    <div class="chart-sub">ÚLTIMOS 30 DIAS</div>
+                  </div>
+                  <span class="badge badge-live">LIVE</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px; padding: 8px 0;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 4px;"><span>Enviados</span><span style="font-family: var(--font-mono); font-weight: 600;">47</span></div>
+                    <div class="progress progress-thick"><div class="progress-fill" style="width: 100%;"></div></div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 4px;"><span>Aprovados HR</span><span style="font-family: var(--font-mono); font-weight: 600;">28</span></div>
+                    <div class="progress progress-thick"><div class="progress-fill" style="width: 60%;"></div></div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 4px;"><span>Em entrevista</span><span style="font-family: var(--font-mono); font-weight: 600;">11</span></div>
+                    <div class="progress progress-thick"><div class="progress-fill purple" style="width: 23%;"></div></div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 4px;"><span>Contratados</span><span style="font-family: var(--font-mono); font-weight: 600;">4</span></div>
+                    <div class="progress progress-thick"><div class="progress-fill amber" style="width: 8%;"></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chart-card">
+                <div class="chart-header">
+                  <div>
+                    <div class="chart-title">Por senioridade</div>
+                    <div class="chart-sub">CANDIDATOS ATIVOS</div>
+                  </div>
+                </div>
+                <div class="donut-wrap" style="height: 140px;">
+                  <svg viewBox="0 0 120 120" style="width: 120px; height: 120px;">
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg-elev-2)" stroke-width="14"/>
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="#00E676" stroke-width="14" stroke-dasharray="120 301" stroke-dashoffset="0" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="#8B5CF6" stroke-width="14" stroke-dasharray="80 301" stroke-dashoffset="-120" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="#22D3EE" stroke-width="14" stroke-dasharray="40 301" stroke-dashoffset="-200" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+                  </svg>
+                  <div class="donut-center"><div><div class="donut-num" style="font-size: 26px;">12</div><div class="donut-lbl">TOTAL</div></div></div>
+                </div>
+                <div class="donut-legend">
+                  <div class="donut-legend-item"><span class="dot" style="background: var(--neon)"></span>Sênior<span class="num">6</span></div>
+                  <div class="donut-legend-item"><span class="dot" style="background: var(--plum-500)"></span>Pleno<span class="num">4</span></div>
+                  <div class="donut-legend-item"><span class="dot" style="background: var(--cyan-400)"></span>Júnior<span class="num">2</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pipeline -->
+            <div class="pipeline">
+              <div class="pipeline-header">
+                <div>
+                  <div class="card-title">Aguardando sua avaliação</div>
+                  <div class="chart-sub" style="margin-top: 4px;">12 CANDIDATOS · PRIORIZADOS POR AI SCORE</div>
+                </div>
+                <button class="btn btn-ghost btn-sm">Ver todos →</button>
+              </div>
+              <div class="pipeline-rows">
+                <div class="pipeline-row">
+                  <div class="pipeline-cand">
+                    <div class="avatar avatar-md av-1">PH</div>
+                    <div class="pipeline-cand-info">
+                      <div class="pipeline-cand-name">Pedro Henrique</div>
+                      <div class="pipeline-cand-meta">ML Engineer · São Paulo</div>
+                    </div>
+                  </div>
+                  <div class="pipeline-vaga">Senior ML Engineer</div>
+                  <div class="pipeline-score">92</div>
+                  <div><span class="status-pill s-recommended">Recomendado</span></div>
+                  <div class="pipeline-time">2 min</div>
+                  <div class="pipeline-action">→</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-cand">
+                    <div class="avatar avatar-md av-2">JS</div>
+                    <div class="pipeline-cand-info">
+                      <div class="pipeline-cand-name">Júlia Silveira</div>
+                      <div class="pipeline-cand-meta">Frontend Lead · Remoto</div>
+                    </div>
+                  </div>
+                  <div class="pipeline-vaga">Engenheiro Hybris</div>
+                  <div class="pipeline-score">87</div>
+                  <div><span class="status-pill s-review">Revisar</span></div>
+                  <div class="pipeline-time">14 min</div>
+                  <div class="pipeline-action">→</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-cand">
+                    <div class="avatar avatar-md av-3">RK</div>
+                    <div class="pipeline-cand-info">
+                      <div class="pipeline-cand-name">Rafael Kobayashi</div>
+                      <div class="pipeline-cand-meta">Staff Engineer · São Paulo</div>
+                    </div>
+                  </div>
+                  <div class="pipeline-vaga">Senior ML Engineer</div>
+                  <div class="pipeline-score">84</div>
+                  <div><span class="status-pill s-interview">Entrevista</span></div>
+                  <div class="pipeline-time">1h</div>
+                  <div class="pipeline-action">→</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-cand">
+                    <div class="avatar avatar-md av-4">MN</div>
+                    <div class="pipeline-cand-info">
+                      <div class="pipeline-cand-name">Marina Nogueira</div>
+                      <div class="pipeline-cand-meta">Product Designer · Remoto</div>
+                    </div>
+                  </div>
+                  <div class="pipeline-vaga">Designer Sr.</div>
+                  <div class="pipeline-score">78</div>
+                  <div><span class="status-pill s-client">Com cliente</span></div>
+                  <div class="pipeline-time">3h</div>
+                  <div class="pipeline-action">→</div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- KANBAN -->
+    <!-- ============================================================== -->
+    <section id="screen-kanban" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Tela · Kanban Pipeline</h2>
+        <span class="lib-block-tag">DRAG & DROP MOCKADO</span>
+      </div>
+      <p class="lib-desc">Drag-and-drop funcional pra demonstração. Arrasta um card pra outra coluna pra ver a interação.</p>
+
+      <div class="lib-canvas tight">
+        <div style="padding: 24px;">
+          <div class="page-header" style="margin-bottom: 24px;">
+            <div>
+              <div class="page-eyebrow">CONTROL CENTER</div>
+              <h2 class="page-title">Pipeline <span class="serif">global</span></h2>
+              <div class="page-sub">Senior ML Engineer · 12 candidatos · arraste para mover entre etapas</div>
+            </div>
+            <div class="page-actions">
+              <div class="select-wrap" style="min-width: 200px;">
+                <select class="select">
+                  <option>Senior ML Engineer</option>
+                  <option>Engenheiro Hybris</option>
+                  <option>Designer Sr.</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="kanban" id="kanban">
+            <div class="kan-col" data-status="recebidos">
+              <div class="kan-header">
+                <div class="kan-title"><span class="kan-dot" style="background: var(--cyan-400);"></span>Recebidos</div>
+                <span class="kan-count">4</span>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c1">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-1">PH</div>
+                  <span class="badge badge-live badge-sm">NEW</span>
+                </div>
+                <div class="kan-card-name">Pedro Henrique</div>
+                <div class="kan-card-role">ML Engineer · 8 anos</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">92</div>
+                  <div class="kan-card-info">2 min</div>
+                </div>
+                <div class="kan-card-hunter">
+                  <div class="avatar avatar-xs av-3">MP</div>
+                  Mariana P.
+                </div>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c2">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-5">LT</div>
+                </div>
+                <div class="kan-card-name">Luísa Toledo</div>
+                <div class="kan-card-role">Backend · 5 anos</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">73</div>
+                  <div class="kan-card-info">12 min</div>
+                </div>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c3">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-7">FA</div>
+                </div>
+                <div class="kan-card-name">Fernando Alves</div>
+                <div class="kan-card-role">Data Eng. · 6 anos</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">68</div>
+                  <div class="kan-card-info">25 min</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kan-col" data-status="curadoria">
+              <div class="kan-header">
+                <div class="kan-title"><span class="kan-dot" style="background: var(--amber-400);"></span>Curadoria HR</div>
+                <span class="kan-count">3</span>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c4">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-2">JS</div>
+                  <span class="status-pill s-review">REVISAR</span>
+                </div>
+                <div class="kan-card-name">Júlia Silveira</div>
+                <div class="kan-card-role">Frontend Lead · Remoto</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">87</div>
+                  <div class="kan-card-info">14 min</div>
+                </div>
+                <div class="kan-card-hunter">
+                  <div class="avatar avatar-xs av-3">MP</div>
+                  Mariana P.
+                </div>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c5">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-6">BC</div>
+                </div>
+                <div class="kan-card-name">Bruno Carvalho</div>
+                <div class="kan-card-role">ML Engineer · 7 anos</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">79</div>
+                  <div class="kan-card-info">1h</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kan-col" data-status="cliente">
+              <div class="kan-header">
+                <div class="kan-title"><span class="kan-dot" style="background: var(--plum-500);"></span>Com cliente</div>
+                <span class="kan-count">3</span>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c6">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-4">MN</div>
+                  <span class="status-pill s-client">PENDENTE</span>
+                </div>
+                <div class="kan-card-name">Marina Nogueira</div>
+                <div class="kan-card-role">Product Designer</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">78</div>
+                  <div class="kan-card-info">3h</div>
+                </div>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c7">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-3">RK</div>
+                </div>
+                <div class="kan-card-name">Rafael Kobayashi</div>
+                <div class="kan-card-role">Staff Engineer</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">84</div>
+                  <div class="kan-card-info">5h</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kan-col" data-status="entrevista">
+              <div class="kan-header">
+                <div class="kan-title"><span class="kan-dot" style="background: var(--cyan-400);"></span>Entrevista</div>
+                <span class="kan-count">2</span>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c8">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-1">CB</div>
+                  <span class="status-pill s-interview">HOJE 14h</span>
+                </div>
+                <div class="kan-card-name">Carla Beck</div>
+                <div class="kan-card-role">DevOps · 10 anos</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">91</div>
+                  <div class="kan-card-info">Em 2h</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kan-col" data-status="contratado">
+              <div class="kan-header">
+                <div class="kan-title"><span class="kan-dot" style="background: var(--neon);"></span>Contratado</div>
+                <span class="kan-count">1</span>
+              </div>
+              <div class="kan-card" draggable="true" data-id="c9" style="background: var(--accent-bg); border-color: var(--accent-border);">
+                <div class="kan-card-top">
+                  <div class="avatar avatar-sm av-6">AS</div>
+                  <span class="status-pill s-hired">CONTRATADO</span>
+                </div>
+                <div class="kan-card-name">Anderson Santos</div>
+                <div class="kan-card-role">Senior ML Engineer</div>
+                <div class="kan-card-meta">
+                  <div class="kan-card-score">94</div>
+                  <div class="kan-card-info">Ontem</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- AI ANALYSIS CARD -->
+    <!-- ============================================================== -->
+    <section id="screen-candidato" class="lib-block">
+      <div class="lib-block-h">
+        <h2 class="lib-block-title">Componente · AI Analysis Card</h2>
+        <span class="lib-block-tag">SCORE 96PX SERIF · BREAKDOWN BARS</span>
+      </div>
+
+      <div class="lib-canvas">
+        <div class="ai-card" style="max-width: 720px;">
+          <div class="ai-header">
+            <div class="ai-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4M12 8a4 4 0 0 0 0 8M12 8a4 4 0 0 1 0 8M12 16v4M4 12h4M16 12h4"/></svg>
+            </div>
+            <div>
+              <div class="ai-title">Análise de IA</div>
+              <div class="ai-sub">PEDRO HENRIQUE · PROCESSADO EM 1.4s · MODELO v4.2</div>
+            </div>
+            <div style="margin-left: auto;">
+              <span class="badge badge-live">FRESH</span>
+            </div>
+          </div>
+
+          <div class="ai-score-block">
+            <div class="ai-score">92</div>
+            <div>
+              <div class="ai-sub">AI MATCH SCORE</div>
+              <div class="ai-score-recommend">↑ Forte recomendação · Avançar</div>
+            </div>
+          </div>
+
+          <div class="ai-breakdown">
+            <div class="ai-bar">
+              <div class="ai-bar-label">Técnico <span class="v">96</span></div>
+              <div class="progress"><div class="progress-fill" style="width: 96%;"></div></div>
+            </div>
+            <div class="ai-bar">
+              <div class="ai-bar-label">Senioridade <span class="v">88</span></div>
+              <div class="progress"><div class="progress-fill" style="width: 88%;"></div></div>
+            </div>
+            <div class="ai-bar">
+              <div class="ai-bar-label">Cultural <span class="v">91</span></div>
+              <div class="progress"><div class="progress-fill" style="width: 91%;"></div></div>
+            </div>
+          </div>
+
+          <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border-1); position: relative;">
+            <div class="ai-sub" style="margin-bottom: 10px;">RESUMO DA IA</div>
+            <p style="font-size: 13.5px; line-height: 1.65; color: var(--text-2);">
+              Candidato com 8 anos em ML, experiência sólida em PyTorch e MLOps. Liderou time de 6 engenheiros em scale-up brasileira (2022-2025). <span style="color: var(--accent-text); font-weight: 500;">Pontos fortes:</span> publicações acadêmicas, mentoria, design de sistemas distribuídos.
+            </p>
+
+            <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <span class="badge badge-green">PyTorch</span>
+              <span class="badge badge-green">MLOps</span>
+              <span class="badge badge-green">Liderança</span>
+              <span class="badge badge-yellow">Falta GCP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* Theme toggle */
+document.querySelector('.lib-tools').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-theme-set]');
+  if (!btn) return;
+  document.documentElement.setAttribute('data-theme', btn.dataset.themeSet);
+  document.querySelectorAll('.theme-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+/* Drag and drop kanban (mock) */
+const kanban = document.getElementById('kanban');
+if (kanban) {
+  let dragged = null;
+  kanban.querySelectorAll('.kan-card').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      dragged = card;
+      card.classList.add('is-dragging');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('is-dragging');
+      kanban.querySelectorAll('.kan-col').forEach(c => c.classList.remove('is-drag-over'));
+    });
+  });
+
+  kanban.querySelectorAll('.kan-col').forEach(col => {
+    col.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      col.classList.add('is-drag-over');
+    });
+    col.addEventListener('dragleave', () => {
+      col.classList.remove('is-drag-over');
+    });
+    col.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (dragged && !col.contains(dragged)) {
+        col.appendChild(dragged);
+        // Update count
+        kanban.querySelectorAll('.kan-col').forEach(c => {
+          const count = c.querySelectorAll('.kan-card').length;
+          c.querySelector('.kan-count').textContent = count;
+        });
+      }
+      col.classList.remove('is-drag-over');
+    });
+  });
+}
+
+/* Sidebar nav highlight on scroll */
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.lib-side a');
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id));
+    }
+  });
+}, { rootMargin: '-30% 0px -50% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

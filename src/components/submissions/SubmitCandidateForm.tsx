@@ -5,13 +5,35 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import Textarea from '@/components/ui/Textarea'
 import Card from '@/components/ui/Card'
+import FormError from '@/components/ui/FormError'
+import CVUpload from '@/components/submissions/CVUpload'
 
 interface SubmitCandidateFormProps {
   jobId: string
   recruiterId: string
   remainingSlots: number
 }
+
+const INTERVIEW_PLACEHOLDER = `Experiência relevante para a vaga:
+-
+
+Skills validadas na conversa:
+-
+
+Motivação do candidato pela posição:
+-
+
+Pretensão salarial e disponibilidade:
+-
+
+Pontos a validar / riscos:
+- `
+
+const JD_PRIORITIES_PLACEHOLDER = `1.
+2.
+3. `
 
 export default function SubmitCandidateForm({
   jobId,
@@ -35,7 +57,12 @@ export default function SubmitCandidateForm({
   const [submission, setSubmission] = useState({
     interview_summary: '',
     recruiter_notes: '',
+    jd_priorities: '',
+    hunter_score_rationale: '',
   })
+
+  const [hunterScore, setHunterScore] = useState<number | null>(null)
+  const [cvPath, setCvPath] = useState<string | null>(null)
 
   function handleCandidateChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setCandidate(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -45,7 +72,6 @@ export default function SubmitCandidateForm({
     setSubmission(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  // Dispara email para HR. Falha de email NÃO bloqueia o fluxo.
   async function notifyHR(submissionId: string) {
     try {
       await fetch('/api/notifications/new-submission', {
@@ -58,23 +84,47 @@ export default function SubmitCandidateForm({
     }
   }
 
+  function validate(): string | null {
+    if (!cvPath) return 'Anexe o currículo em PDF antes de enviar.'
+    if (submission.jd_priorities.trim().length < 20)
+      return 'Liste os 3 pontos da vaga que você priorizou na conversa.'
+    if (hunterScore === null) return 'Selecione seu score de fit (1-10) para este candidato.'
+    if (submission.hunter_score_rationale.trim().length < 20)
+      return 'Justifique seu score em ao menos 1 frase.'
+    if (submission.interview_summary.trim().length < 30)
+      return 'O resumo da entrevista precisa de mais detalhes.'
+    return null
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setLoading(true)
     const supabase = createClient()
 
-    // Verificar duplicidade por email
+    const submissionPayload = {
+      interview_summary: submission.interview_summary,
+      recruiter_notes: submission.recruiter_notes,
+      jd_priorities: submission.jd_priorities,
+      hunter_score: hunterScore,
+      hunter_score_rationale: submission.hunter_score_rationale,
+    }
+
     if (candidate.email) {
       const { data: existing } = await supabase
         .from('candidates')
-        .select('id')
+        .select('id, cv_url')
         .eq('email', candidate.email)
         .single()
 
       if (existing) {
-        // Verificar se já foi enviado para esta vaga
         const { data: dupSubmission } = await supabase
           .from('submissions')
           .select('id')
@@ -88,30 +138,37 @@ export default function SubmitCandidateForm({
           return
         }
 
-        // Criar submissão com candidato existente
+        if (cvPath && !existing.cv_url) {
+          await supabase
+            .from('candidates')
+            .update({ cv_url: cvPath })
+            .eq('id', existing.id)
+        }
+
         const ownership = new Date()
         ownership.setDate(ownership.getDate() + 60)
+        const newSubId = crypto.randomUUID()
 
-        const { data: newSub, error: subError } = await supabase
+        const { error: subError } = await supabase
           .from('submissions')
           .insert({
+            ...submissionPayload,
+            id: newSubId,
             job_id: jobId,
             candidate_id: existing.id,
             recruiter_id: recruiterId,
-            interview_summary: submission.interview_summary,
-            recruiter_notes: submission.recruiter_notes,
             ownership_expires_at: ownership.toISOString(),
           })
-          .select()
-          .single()
 
         if (subError) {
-          setError('Erro ao enviar candidato. Tente novamente.')
+          const meta = { code: subError.code, message: subError.message, details: subError.details, hint: subError.hint }
+          console.error('[submit-candidate:existing]', meta)
+          setError(`Não foi possível enviar o candidato. ${subError.message ?? ''}`.trim())
           setLoading(false)
           return
         }
 
-        if (newSub?.id) await notifyHR(newSub.id)
+        await notifyHR(newSubId)
 
         setSuccess(true)
         router.refresh()
@@ -119,50 +176,55 @@ export default function SubmitCandidateForm({
       }
     }
 
-    // Criar novo candidato
-    const { data: newCandidate, error: candError } = await supabase
+    // Gera o ID do candidato no client pra evitar RETURNING (que falha por RLS:
+    // hunter só pode SELECT candidato via submissão, que ainda não existe nessa linha).
+    const newCandidateId = crypto.randomUUID()
+
+    const { error: candError } = await supabase
       .from('candidates')
       .insert({
+        id: newCandidateId,
         full_name: candidate.full_name,
         email: candidate.email || null,
         phone: candidate.phone || null,
         linkedin_url: candidate.linkedin_url || null,
         current_title: candidate.current_title || null,
         location: candidate.location || null,
+        cv_url: cvPath,
       })
-      .select()
-      .single()
 
-    if (candError || !newCandidate) {
-      setError('Erro ao cadastrar candidato.')
+    if (candError) {
+      const meta = { code: candError.code, message: candError.message, details: candError.details, hint: candError.hint }
+      console.error('[submit-candidate:create-candidate]', meta)
+      setError(`Não foi possível cadastrar o candidato. ${candError.message ?? ''}`.trim())
       setLoading(false)
       return
     }
 
-    // Criar submissão
     const ownership = new Date()
     ownership.setDate(ownership.getDate() + 60)
+    const newSubId = crypto.randomUUID()
 
-    const { data: newSub, error: subError } = await supabase
+    const { error: subError } = await supabase
       .from('submissions')
       .insert({
+        ...submissionPayload,
+        id: newSubId,
         job_id: jobId,
-        candidate_id: newCandidate.id,
+        candidate_id: newCandidateId,
         recruiter_id: recruiterId,
-        interview_summary: submission.interview_summary,
-        recruiter_notes: submission.recruiter_notes,
         ownership_expires_at: ownership.toISOString(),
       })
-      .select()
-      .single()
 
     if (subError) {
-      setError('Erro ao enviar candidato.')
+      const meta = { code: subError.code, message: subError.message, details: subError.details, hint: subError.hint }
+      console.error('[submit-candidate:create-submission]', meta)
+      setError(`Não foi possível registrar a submissão. ${subError.message ?? ''}`.trim())
       setLoading(false)
       return
     }
 
-    if (newSub?.id) await notifyHR(newSub.id)
+    await notifyHR(newSubId)
 
     setSuccess(true)
     router.refresh()
@@ -170,29 +232,55 @@ export default function SubmitCandidateForm({
 
   if (success) {
     return (
-      <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
+      <Card padding="md" role="status" style={{ background: 'var(--color-m100)', borderColor: 'var(--color-border-g)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#16A34A] flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <div
+            aria-hidden="true"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'var(--color-g600)',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--text-on-dark)" strokeWidth={3} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <div>
-            <div className="text-sm font-medium text-[#052E16]">Candidato enviado com sucesso</div>
-            <div className="text-xs text-[#16A34A] mt-0.5">
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text)' }}>
+              Candidato enviado.
+            </div>
+            <div style={{ fontSize: '12.5px', color: 'var(--color-text2)', marginTop: '2px' }}>
               {remainingSlots - 1 > 0
-                ? `Você ainda pode enviar ${remainingSlots - 1} candidato${remainingSlots - 1 !== 1 ? 's' : ''}.`
-                : 'Você atingiu o limite de candidatos para esta vaga.'
-              }
+                ? `Você ainda pode enviar ${remainingSlots - 1} candidato${remainingSlots - 1 !== 1 ? 's' : ''} nesta vaga.`
+                : 'Você atingiu o limite de 3 candidatos para esta vaga.'}
             </div>
           </div>
         </div>
         {remainingSlots - 1 > 0 && (
           <button
-            onClick={() => { setSuccess(false); setCandidate({ full_name: '', email: '', phone: '', linkedin_url: '', current_title: '', location: '' }); setSubmission({ interview_summary: '', recruiter_notes: '' }) }}
-            className="mt-3 text-sm text-[#16A34A] font-medium hover:underline"
+            type="button"
+            onClick={() => {
+              setSuccess(false)
+              setCandidate({ full_name: '', email: '', phone: '', linkedin_url: '', current_title: '', location: '' })
+              setSubmission({ interview_summary: '', recruiter_notes: '', jd_priorities: '', hunter_score_rationale: '' })
+              setHunterScore(null)
+              setCvPath(null)
+            }}
+            style={{
+              marginTop: '12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--color-g600)',
+              cursor: 'pointer',
+            }}
+            className="hover:underline"
           >
-            Enviar outro candidato
+            Enviar outro candidato →
           </button>
         )}
       </Card>
@@ -210,8 +298,8 @@ export default function SubmitCandidateForm({
         <div
           className="flex items-start gap-2.5 mt-3 p-3 rounded-lg"
           style={{
-            background: isLastSlot ? '#FFFBEB' : 'var(--color-m100)',
-            border: `1px solid ${isLastSlot ? '#FDE68A' : 'var(--color-border-g)'}`,
+            background: isLastSlot ? 'var(--warning-bg)' : 'var(--color-m100)',
+            border: `1px solid ${isLastSlot ? 'var(--warning-border)' : 'var(--color-border-g)'}`,
           }}
         >
           <svg
@@ -219,9 +307,10 @@ export default function SubmitCandidateForm({
             height="16"
             fill="none"
             viewBox="0 0 24 24"
-            stroke={isLastSlot ? '#D97706' : 'var(--color-g600)'}
+            stroke={isLastSlot ? 'var(--warning-text)' : 'var(--color-g600)'}
             strokeWidth={2}
             style={{ flexShrink: 0, marginTop: '2px' }}
+            aria-hidden="true"
           >
             {isLastSlot ? (
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -232,7 +321,7 @@ export default function SubmitCandidateForm({
           <div style={{ minWidth: 0 }}>
             <div
               className="text-sm font-medium"
-              style={{ color: isLastSlot ? '#92400E' : 'var(--color-f800)' }}
+              style={{ color: isLastSlot ? 'var(--warning-text)' : 'var(--color-f800)' }}
             >
               {isLastSlot
                 ? 'Atenção — este é seu último envio'
@@ -240,25 +329,24 @@ export default function SubmitCandidateForm({
             </div>
             <div
               className="text-xs mt-0.5"
-              style={{ color: isLastSlot ? '#B45309' : 'var(--color-muted)', lineHeight: 1.5 }}
+              style={{ color: isLastSlot ? 'var(--warning-text)' : 'var(--color-muted)', lineHeight: 1.5 }}
             >
               {isLastSlot
-                ? 'Cada hunter pode enviar no máximo 3 candidatos por vaga. Use este envio com cuidado: candidatos reprovados também contam para o limite.'
-                : 'Cada hunter pode enviar no máximo 3 candidatos por vaga. Priorize qualidade sobre quantidade — candidatos reprovados não dão direito a novo envio.'}
+                ? 'Cada hunter pode enviar no máximo 3 candidatos por vaga. Candidatos reprovados também contam.'
+                : 'Cada hunter pode enviar no máximo 3 candidatos por vaga. Priorize qualidade — reprovados não dão direito a novo envio.'}
             </div>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Dados do candidato */}
-        <div className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+        <FieldGroup title="Dados do candidato">
           <Input
             label="Nome completo"
             name="full_name"
             value={candidate.full_name}
             onChange={handleCandidateChange}
-            placeholder="Nome do candidato"
+            placeholder="Ex: Pedro Henrique"
             required
           />
           <div className="grid grid-cols-2 gap-3">
@@ -268,14 +356,14 @@ export default function SubmitCandidateForm({
               type="email"
               value={candidate.email}
               onChange={handleCandidateChange}
-              placeholder="email@exemplo.com"
+              placeholder="voce@empresa.com"
             />
             <Input
               label="Telefone"
               name="phone"
               value={candidate.phone}
               onChange={handleCandidateChange}
-              placeholder="+55 11 99999-9999"
+              placeholder="(11) 99999-9999"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -291,7 +379,7 @@ export default function SubmitCandidateForm({
               name="location"
               value={candidate.location}
               onChange={handleCandidateChange}
-              placeholder="Ex: São Paulo, SP"
+              placeholder="São Paulo, SP"
             />
           </div>
           <Input
@@ -299,50 +387,169 @@ export default function SubmitCandidateForm({
             name="linkedin_url"
             value={candidate.linkedin_url}
             onChange={handleCandidateChange}
-            placeholder="https://linkedin.com/in/..."
+            placeholder="linkedin.com/in/seu-perfil"
           />
-        </div>
+          <CVUpload
+            value={cvPath}
+            onUploaded={path => setCvPath(path)}
+            onRemoved={() => setCvPath(null)}
+            disabled={loading}
+            required
+          />
+        </FieldGroup>
 
-        {/* Resumo da entrevista */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
-            Resumo da entrevista <span className="text-[#16A34A]">*</span>
-          </label>
-          <textarea
+        <FieldGroup
+          title="Validações do envio"
+          description="Garantem que você de fato entrevistou o candidato e conhece a vaga."
+        >
+          <Textarea
+            label="3 pontos da vaga que você priorizou na entrevista"
+            name="jd_priorities"
+            value={submission.jd_priorities}
+            onChange={handleSubmissionChange}
+            placeholder={JD_PRIORITIES_PLACEHOLDER}
+            required
+            rows={5}
+            hint="Liste os 3 pontos da descrição da vaga que você abordou diretamente."
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="hunter-score"
+              style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text2)' }}
+            >
+              Seu score de fit (1 = baixo, 10 = excelente)
+              <span aria-hidden="true" style={{ color: 'var(--danger-text)', marginLeft: '4px' }}>
+                *
+              </span>
+            </label>
+            <div
+              id="hunter-score"
+              role="radiogroup"
+              aria-label="Score de fit do candidato"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(10, 1fr)',
+                gap: '6px',
+              }}
+            >
+              {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+                const selected = hunterScore === n
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setHunterScore(n)}
+                    className="hunter-score-pill"
+                    style={{
+                      height: '38px',
+                      borderRadius: '10px',
+                      border: `1px solid ${selected ? 'var(--color-f900)' : 'var(--color-border)'}`,
+                      background: selected ? 'var(--color-f900)' : 'var(--color-surf)',
+                      color: selected ? 'var(--color-neon)' : 'var(--color-text2)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {n}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <Textarea
+            label="Por que esse score?"
+            name="hunter_score_rationale"
+            value={submission.hunter_score_rationale}
+            onChange={handleSubmissionChange}
+            placeholder="Ex: senioridade compatível, gaps de conhecimento em X que podem ser tratados no onboarding..."
+            required
+            rows={3}
+            hint="Em 1-2 frases. Aparece pro HR como sua avaliação inicial."
+          />
+        </FieldGroup>
+
+        <FieldGroup title="Conversa com o candidato">
+          <Textarea
+            label="Resumo / transcrição da entrevista"
             name="interview_summary"
             value={submission.interview_summary}
             onChange={handleSubmissionChange}
+            placeholder={INTERVIEW_PLACEHOLDER}
             required
-            rows={4}
-            placeholder="Descreva como foi a conversa com o candidato, pontos fortes, experiências relevantes e por que ele é adequado para esta vaga..."
-            className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
+            rows={12}
+            hint="Use o placeholder como guia. Quanto mais detalhe, melhor a análise da IA."
           />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
-            Notas internas (opcional)
-          </label>
-          <textarea
+          <Textarea
+            label="Notas internas (opcional)"
             name="recruiter_notes"
             value={submission.recruiter_notes}
             onChange={handleSubmissionChange}
+            placeholder="Observações privadas sobre o candidato. Não aparecem pro cliente."
             rows={2}
-            placeholder="Observações privadas sobre o candidato..."
-            className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
           />
-        </div>
+        </FieldGroup>
 
-        {error && (
-          <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
+        {error && <FormError>{error}</FormError>}
 
         <Button type="submit" loading={loading}>
           Enviar candidato
         </Button>
       </form>
     </Card>
+  )
+}
+
+interface FieldGroupProps {
+  title: string
+  description?: string
+  children: React.ReactNode
+}
+
+function FieldGroup({ title, description, children }: FieldGroupProps) {
+  return (
+    <fieldset
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        border: 'none',
+        padding: 0,
+        margin: 0,
+      }}
+    >
+      <legend
+        style={{
+          fontSize: '10.5px',
+          fontWeight: 600,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'var(--color-subtle)',
+          marginBottom: '2px',
+          padding: 0,
+        }}
+      >
+        {title}
+      </legend>
+      {description && (
+        <p
+          style={{
+            fontSize: '12px',
+            color: 'var(--color-muted)',
+            marginTop: '-6px',
+            marginBottom: '4px',
+            lineHeight: 1.5,
+          }}
+        >
+          {description}
+        </p>
+      )}
+      {children}
+    </fieldset>
   )
 }

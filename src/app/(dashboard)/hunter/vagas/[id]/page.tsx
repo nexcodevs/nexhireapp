@@ -32,6 +32,14 @@ export default async function HunterVagaDetailPage({
 
   if (!job) notFound()
 
+  type CompanyRel = { name: string | null }
+  type CandidateRel = { full_name: string | null }
+  function pickOne<T>(rel: T | T[] | null | undefined): T | null {
+    if (!rel) return null
+    return Array.isArray(rel) ? rel[0] ?? null : rel
+  }
+  const company = pickOne(job.companies as CompanyRel | CompanyRel[] | null | undefined)
+
   const { data: mySubmissions } = await supabase
     .from('submissions')
     .select('id, status, candidates(full_name)')
@@ -50,7 +58,7 @@ export default async function HunterVagaDetailPage({
       <div className="mb-6">
         <Link
           href="/hunter/vagas"
-          className="text-sm text-[#6B7280] hover:text-[#052E16] flex items-center gap-1 mb-4 transition-colors"
+          className="text-sm text-muted hover:text-text flex items-center gap-1 mb-4 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -60,9 +68,9 @@ export default async function HunterVagaDetailPage({
 
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#052E16] mb-1">{job.title}</h1>
-            <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-              <span className="font-medium">{(job.companies as any)?.name}</span>
+            <h1 className="text-2xl font-bold text-text mb-1">{job.title}</h1>
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <span className="font-medium">{company?.name}</span>
               {job.seniority && <span>· {job.seniority}</span>}
               {job.location && <span>· {job.location}</span>}
               {job.work_model && <span>· {job.work_model}</span>}
@@ -70,7 +78,7 @@ export default async function HunterVagaDetailPage({
           </div>
           {job.salary_min && (
             <div className="text-right">
-              <div className="text-lg font-bold text-[#16A34A]">
+              <div className="text-lg font-bold text-g600">
                 {formatCurrency(job.salary_min)}
                 {job.salary_max && ` — ${formatCurrency(job.salary_max)}`}
               </div>
@@ -82,22 +90,24 @@ export default async function HunterVagaDetailPage({
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-4">
           <Card padding="md">
-            <h2 className="text-base font-bold text-[#052E16] mb-3">Descrição</h2>
-            <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
+            <h2 className="text-base font-bold text-text mb-3">Descrição</h2>
+            <p className="text-sm text-text2 leading-relaxed whitespace-pre-wrap">
               {job.description || 'Sem descrição.'}
             </p>
           </Card>
 
           {mySubmissions && mySubmissions.length > 0 && (
             <Card padding="md">
-              <h2 className="text-base font-bold text-[#052E16] mb-3">
+              <h2 className="text-base font-bold text-text mb-3">
                 Meus candidatos ({submissionsCount}/{job.max_submissions_per_recruiter})
               </h2>
               <div className="flex flex-col gap-2">
-                {mySubmissions.map(sub => (
-                  <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB]">
-                    <span className="text-sm font-medium text-[#052E16]">
-                      {(sub.candidates as any)?.full_name}
+                {mySubmissions.map(sub => {
+                  const subCandidate = pickOne(sub.candidates as CandidateRel | CandidateRel[] | null | undefined)
+                  return (
+                  <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ background: 'var(--bg-elev-2)', borderColor: 'var(--border-2)' }}>
+                    <span className="text-sm font-medium text-text">
+                      {subCandidate?.full_name}
                     </span>
                     <Badge variant={
                       sub.status === 'hr_approved' ? 'green' :
@@ -110,7 +120,8 @@ export default async function HunterVagaDetailPage({
                       {sub.status === 'hired' && 'Contratado'}
                     </Badge>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </Card>
           )}
@@ -124,20 +135,20 @@ export default async function HunterVagaDetailPage({
           )}
 
           {!canSubmit && (
-            <Card padding="md" className="border-[#FEF3C7] bg-[#FFFBEB]">
+            <Card padding="md" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}>
               <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-[#D97706] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 shrink-0" style={{ color: 'var(--warning-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
                   {recruiter?.status !== 'approved' && (
-                    <p className="text-sm text-[#92400E]">Seu perfil ainda não foi aprovado.</p>
+                    <p className="text-sm" style={{ color: 'var(--warning-text)' }}>Seu perfil ainda não foi aprovado.</p>
                   )}
                   {limitReached && (
-                    <p className="text-sm text-[#92400E]">Você atingiu o limite de {job.max_submissions_per_recruiter} candidatos.</p>
+                    <p className="text-sm" style={{ color: 'var(--warning-text)' }}>Você atingiu o limite de {job.max_submissions_per_recruiter} candidatos.</p>
                   )}
                   {deadlineExpired && (
-                    <p className="text-sm text-[#92400E]">O prazo para envio expirou.</p>
+                    <p className="text-sm" style={{ color: 'var(--warning-text)' }}>O prazo para envio expirou.</p>
                   )}
                 </div>
               </div>
@@ -147,7 +158,7 @@ export default async function HunterVagaDetailPage({
 
         <div className="flex flex-col gap-4">
           <Card padding="md">
-            <h2 className="text-sm font-bold text-[#052E16] mb-3">Detalhes</h2>
+            <h2 className="text-sm font-bold text-text mb-3">Detalhes</h2>
             <div className="flex flex-col gap-2.5">
               {[
                 { label: 'Contrato', value: job.employment_type || 'Não informado' },
@@ -156,8 +167,8 @@ export default async function HunterVagaDetailPage({
                 { label: 'Seus envios', value: `${submissionsCount}/${job.max_submissions_per_recruiter}` },
               ].map(item => (
                 <div key={item.label} className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[#9CA3AF]">{item.label}</span>
-                  <span className="text-sm font-medium text-[#052E16]">{item.value}</span>
+                  <span className="text-xs text-subtle">{item.label}</span>
+                  <span className="text-sm font-medium text-text">{item.value}</span>
                 </div>
               ))}
             </div>

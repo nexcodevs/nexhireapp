@@ -4,6 +4,24 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notificarVagaLiberada } from '@/lib/email/templates/vagaLiberada'
 import { visibleTypesForLevel, type RecruiterLevel, type VisibilityType } from '@/lib/visibility'
 
+interface JobRelations {
+  id: string
+  title: string
+  seniority: string | null
+  location: string | null
+  work_model: string | null
+  salary_min: number | null
+  salary_max: number | null
+  visibility_type: string | null
+  companies: { name: string | null } | null
+}
+
+interface HunterRelation {
+  user_id: string
+  level: string | null
+  users: { email: string | null; full_name: string | null } | null
+}
+
 export async function POST(request: Request) {
   try {
     const { jobId } = await request.json()
@@ -19,13 +37,12 @@ export async function POST(request: Request) {
       .from('jobs')
       .select(`id, title, seniority, location, work_model, salary_min, salary_max, visibility_type, companies ( name )`)
       .eq('id', jobId)
-      .single()
+      .single<JobRelations>()
 
     if (error || !job) return NextResponse.json({ error: 'Vaga não encontrada' }, { status: 404 })
 
     const jobVisibility = (job.visibility_type || 'open') as VisibilityType
 
-    // Define quais níveis podem ver a vaga
     const eligibleLevels: RecruiterLevel[] = []
     if (visibleTypesForLevel('beginner').includes(jobVisibility)) eligibleLevels.push('beginner')
     if (visibleTypesForLevel('specialist').includes(jobVisibility)) eligibleLevels.push('specialist')
@@ -36,6 +53,7 @@ export async function POST(request: Request) {
       .select('user_id, level, users ( email, full_name )')
       .eq('status', 'approved')
       .in('level', eligibleLevels)
+      .overrideTypes<HunterRelation[]>()
 
     if (!hunters || hunters.length === 0) {
       return NextResponse.json({ warning: 'Nenhum hunter elegível pra essa vaga' })
@@ -43,14 +61,14 @@ export async function POST(request: Request) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    await Promise.all(hunters.map((h: any) => {
+    await Promise.all(hunters.map(h => {
       const u = h.users
       if (!u?.email) return null
       return notificarVagaLiberada({
         hunterEmail: u.email,
-        hunterName: u.full_name,
+        hunterName: u.full_name ?? undefined,
         jobTitle: job.title,
-        companyName: (job.companies as any)?.name || 'Empresa',
+        companyName: job.companies?.name || 'Empresa',
         seniority: job.seniority || undefined,
         location: job.location || undefined,
         workModel: job.work_model || undefined,
@@ -62,8 +80,9 @@ export async function POST(request: Request) {
     }))
 
     return NextResponse.json({ success: true, sent: hunters.length, visibility: jobVisibility })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[notify-job-open] erro:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Erro desconhecido'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

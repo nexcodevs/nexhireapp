@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import HRSubmissionActions from '@/components/submissions/HRSubmissionActions'
 import AIAnalyzeButton from '@/components/submissions/AIAnalyzeButton'
+import AIAnalysisCard from '@/components/ui/AIAnalysisCard'
 import { formatDate } from '@/lib/utils'
 
 export default async function HRSubmissaoDetailPage({
@@ -23,15 +24,65 @@ export default async function HRSubmissaoDetailPage({
 
   const { data: sub } = await supabase
     .from('submissions')
-    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url), jobs(id, title, seniority, location, work_model, companies(name)), recruiters(level, users(full_name, email))')
+    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url), jobs(id, title, seniority, location, work_model, companies(name)), recruiters(level, users(full_name, email))')
     .eq('id', id)
     .single()
 
   if (!sub) notFound()
 
-  const candidate = sub.candidates as any
-  const job = sub.jobs as any
-  const recruiter = sub.recruiters as any
+  type CandidateRel = {
+    full_name: string | null
+    current_title: string | null
+    location: string | null
+    email: string | null
+    phone: string | null
+    linkedin_url: string | null
+    cv_url: string | null
+  }
+  type JobRel = {
+    id: string
+    title: string | null
+    seniority: string | null
+    location: string | null
+    work_model: string | null
+    companies: { name: string | null } | { name: string | null }[] | null
+  }
+  type RecruiterRel = {
+    level: string | null
+    users: { full_name: string | null; email: string | null } | { full_name: string | null; email: string | null }[] | null
+  }
+
+  const candidatesRel = sub.candidates as CandidateRel | CandidateRel[] | null | undefined
+  const jobsRel = sub.jobs as JobRel | JobRel[] | null | undefined
+  const recruitersRel = sub.recruiters as RecruiterRel | RecruiterRel[] | null | undefined
+
+  const candidate = Array.isArray(candidatesRel) ? candidatesRel[0] ?? null : candidatesRel ?? null
+  const jobRaw = Array.isArray(jobsRel) ? jobsRel[0] ?? null : jobsRel ?? null
+  const recruiterRaw = Array.isArray(recruitersRel) ? recruitersRel[0] ?? null : recruitersRel ?? null
+
+  const jobCompanies = jobRaw?.companies
+  const job = jobRaw
+    ? {
+        ...jobRaw,
+        companies: Array.isArray(jobCompanies) ? jobCompanies[0] ?? null : jobCompanies ?? null,
+      }
+    : null
+
+  const recruiterUsers = recruiterRaw?.users
+  const recruiter = recruiterRaw
+    ? {
+        ...recruiterRaw,
+        users: Array.isArray(recruiterUsers) ? recruiterUsers[0] ?? null : recruiterUsers ?? null,
+      }
+    : null
+
+  let cvSignedUrl: string | null = null
+  if (candidate?.cv_url) {
+    const { data: signed } = await supabase.storage
+      .from('cvs')
+      .createSignedUrl(candidate.cv_url, 60 * 5)
+    cvSignedUrl = signed?.signedUrl ?? null
+  }
 
   const statusInfo: Record<string, { label: string; variant: 'gray' | 'yellow' | 'green' | 'blue' | 'dark' | 'red' }> = {
     submitted: { label: 'Aguardando curadoria', variant: 'yellow' },
@@ -75,7 +126,7 @@ export default async function HRSubmissaoDetailPage({
           marginBottom: '20px',
           transition: 'color .15s',
         }}
-        className="hover:text-[#052E16]"
+        className="hover:text-text"
       >
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -112,14 +163,14 @@ export default async function HRSubmissaoDetailPage({
             {candidate?.location && ` · ${candidate.location}`}
           </p>
         </div>
-        {sub.ai_score && (
+        {sub.ai_score && !sub.ai_summary && (
           <div
-            className="flex-shrink-0 text-center"
+            className="shrink-0 text-center"
             style={{
               padding: '14px 22px',
-              background: 'linear-gradient(135deg, var(--color-m100) 0%, #ffffff 100%)',
-              border: '1px solid var(--color-border-g)',
-              borderRadius: 'var(--radius-lg)',
+              background: 'var(--accent-bg)',
+              border: '1px solid var(--accent-border)',
+              borderRadius: 'var(--r-lg)',
               minWidth: '120px',
             }}
           >
@@ -127,7 +178,7 @@ export default async function HRSubmissaoDetailPage({
               className="it"
               style={{
                 fontSize: '38px',
-                color: 'var(--color-g600)',
+                color: 'var(--accent-text)',
                 lineHeight: 1,
                 letterSpacing: '-0.02em',
               }}
@@ -136,8 +187,9 @@ export default async function HRSubmissaoDetailPage({
             </div>
             <div
               style={{
+                fontFamily: 'var(--font-mono)',
                 fontSize: '10px',
-                color: 'var(--color-muted)',
+                color: 'var(--text-4)',
                 fontWeight: 500,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
@@ -172,15 +224,26 @@ export default async function HRSubmissaoDetailPage({
 
           {/* Action Card escuro — decisão do HR */}
           {(sub.status === 'submitted' || sub.status === 'ai_analyzed') && (
-            <HRSubmissionActions submissionId={sub.id} jobId={job?.id} />
+            <HRSubmissionActions submissionId={sub.id} />
           )}
 
           {sub.status === 'hr_approved' && (
-            <HRSubmissionActions submissionId={sub.id} jobId={job?.id} mode="send" />
+            <HRSubmissionActions submissionId={sub.id} mode="send" />
           )}
 
           {/* Análise da IA */}
           {sub.ai_summary && (
+            <AIAnalysisCard
+              candidateName={candidate?.full_name ?? undefined}
+              score={Number(sub.ai_score ?? 0)}
+              summary={sub.ai_summary}
+              risks={(sub.ai_risks as string[] | null) ?? undefined}
+              gaps={(sub.ai_gaps as string[] | null) ?? undefined}
+            />
+          )}
+
+          {/* Avaliação do hunter */}
+          {(sub.hunter_score || sub.jd_priorities || sub.hunter_score_rationale) && (
             <Card padding="none">
               <div style={{ padding: '22px 26px' }}>
                 <div
@@ -193,57 +256,38 @@ export default async function HRSubmissaoDetailPage({
                     marginBottom: '12px',
                   }}
                 >
-                  Análise da IA
+                  Avaliação do hunter
                 </div>
-                <p
-                  style={{
-                    fontSize: '13.5px',
-                    color: 'var(--color-text)',
-                    lineHeight: 1.7,
-                    fontWeight: 400,
-                  }}
-                >
-                  {sub.ai_summary}
-                </p>
-
-                {sub.ai_risks && (sub.ai_risks as string[]).length > 0 && (
-                  <>
-                    <div
+                {sub.hunter_score !== null && (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '14px' }}>
+                    <span
+                      className="it"
                       style={{
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        letterSpacing: '0.16em',
-                        textTransform: 'uppercase',
-                        color: 'var(--color-subtle)',
-                        marginTop: '20px',
-                        marginBottom: '10px',
+                        fontSize: '28px',
+                        color: 'var(--color-text)',
+                        lineHeight: 1,
+                        letterSpacing: '-0.02em',
                       }}
                     >
-                      Riscos identificados
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(sub.ai_risks as string[]).map((risk, i) => (
-                        <span
-                          key={i}
-                          style={{
-                            background: '#FEF2F2',
-                            color: '#991B1B',
-                            fontSize: '11.5px',
-                            padding: '5px 11px',
-                            borderRadius: '8px',
-                            border: '1px solid #FECACA',
-                            fontWeight: 400,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {risk}
-                        </span>
-                      ))}
-                    </div>
-                  </>
+                      {sub.hunter_score}
+                    </span>
+                    <span style={{ fontSize: '13px', color: 'var(--color-muted)' }}>/ 10 de fit</span>
+                  </div>
                 )}
-
-                {sub.ai_gaps && (sub.ai_gaps as string[]).length > 0 && (
+                {sub.hunter_score_rationale && (
+                  <p
+                    style={{
+                      fontSize: '13.5px',
+                      color: 'var(--color-text)',
+                      lineHeight: 1.7,
+                      whiteSpace: 'pre-wrap',
+                      marginBottom: sub.jd_priorities ? '16px' : 0,
+                    }}
+                  >
+                    {sub.hunter_score_rationale}
+                  </p>
+                )}
+                {sub.jd_priorities && (
                   <>
                     <div
                       style={{
@@ -252,31 +296,21 @@ export default async function HRSubmissaoDetailPage({
                         letterSpacing: '0.16em',
                         textTransform: 'uppercase',
                         color: 'var(--color-subtle)',
-                        marginTop: '20px',
-                        marginBottom: '10px',
+                        marginBottom: '8px',
                       }}
                     >
-                      Gaps a validar
+                      Pontos do JD priorizados
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(sub.ai_gaps as string[]).map((gap, i) => (
-                        <span
-                          key={i}
-                          style={{
-                            background: '#FFFBEB',
-                            color: '#92400E',
-                            fontSize: '11.5px',
-                            padding: '5px 11px',
-                            borderRadius: '8px',
-                            border: '1px solid #FDE68A',
-                            fontWeight: 400,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {gap}
-                        </span>
-                      ))}
-                    </div>
+                    <p
+                      style={{
+                        fontSize: '13px',
+                        color: 'var(--color-text2)',
+                        lineHeight: 1.6,
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {sub.jd_priorities}
+                    </p>
                   </>
                 )}
               </div>
@@ -437,6 +471,7 @@ export default async function HRSubmissaoDetailPage({
                       alignItems: 'center',
                       fontSize: '12.5px',
                       padding: '7px 0',
+                      borderBottom: cvSignedUrl ? '1px solid var(--color-border)' : 'none',
                     }}
                   >
                     <span style={{ color: 'var(--color-muted)' }}>LinkedIn</span>
@@ -448,6 +483,28 @@ export default async function HRSubmissaoDetailPage({
                       className="hover:underline"
                     >
                       Ver perfil →
+                    </a>
+                  </div>
+                )}
+                {cvSignedUrl && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '12.5px',
+                      padding: '7px 0',
+                    }}
+                  >
+                    <span style={{ color: 'var(--color-muted)' }}>Currículo</span>
+                    <a
+                      href={cvSignedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--color-g600)', fontWeight: 500, textDecoration: 'none' }}
+                      className="hover:underline"
+                    >
+                      Ver CV →
                     </a>
                   </div>
                 )}
