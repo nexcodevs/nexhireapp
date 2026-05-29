@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notificarDecisaoCliente } from '@/lib/email/templates/decisaoCliente'
+import { notifyUsers } from '@/lib/notifications'
 
 interface SubmissionRelations {
   id: string
   candidates: { full_name: string | null } | null
   jobs: { title: string | null; companies: { name: string | null } | null } | null
+  recruiters: { user_id: string } | null
 }
 
 export async function POST(request: Request) {
@@ -27,7 +29,8 @@ export async function POST(request: Request) {
       .select(`
         id,
         candidates ( full_name ),
-        jobs ( title, companies ( name ) )
+        jobs ( title, companies ( name ) ),
+        recruiters ( user_id )
       `)
       .eq('id', submissionId)
       .single<SubmissionRelations>()
@@ -36,12 +39,23 @@ export async function POST(request: Request) {
 
     const { data: hrs } = await admin
       .from('users')
-      .select('email, full_name')
+      .select('id, email, full_name')
       .in('role', ['hr_manager', 'admin'])
 
     if (!hrs || hrs.length === 0) return NextResponse.json({ warning: 'Nenhum HR' })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    const decisionLabel = decision === 'approved' ? 'aprovou' : 'reprovou'
+    const targetUserIds = [...hrs.map(h => h.id)]
+    if (sub.recruiters?.user_id) targetUserIds.push(sub.recruiters.user_id)
+
+    void notifyUsers(targetUserIds, {
+      type: 'client_decision',
+      title: `Cliente ${decisionLabel} candidato`,
+      message: `${sub.jobs?.companies?.name || 'Cliente'} ${decisionLabel} ${sub.candidates?.full_name || 'um candidato'} para ${sub.jobs?.title || 'a vaga'}.`,
+      link: `/hr/submissoes/${sub.id}`,
+    })
 
     await Promise.all(hrs.map(hr => notificarDecisaoCliente({
       hrEmail: hr.email,

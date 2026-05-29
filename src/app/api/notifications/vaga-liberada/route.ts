@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notificarVagaLiberada } from '@/lib/email/templates/vagaLiberada'
 import { visibleTypesForLevel, type RecruiterLevel, type VisibilityType } from '@/lib/visibility'
+import { notifyUsers } from '@/lib/notifications'
 
 interface JobRelations {
   id: string
@@ -60,6 +61,16 @@ export async function POST(request: Request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    void notifyUsers(
+      hunters.map(h => h.user_id),
+      {
+        type: 'job_opened',
+        title: 'Nova vaga disponível',
+        message: `${job.title}${job.companies?.name ? ` · ${job.companies.name}` : ''}${job.seniority ? ` · ${job.seniority}` : ''}`,
+        link: `/hunter/vagas/${job.id}`,
+      },
+    )
 
     await Promise.all(hunters.map(h => {
       const u = h.users

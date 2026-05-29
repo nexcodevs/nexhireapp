@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { prefillSubmission } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
+import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
 import { NextResponse } from 'next/server'
 
 interface JobRow {
@@ -18,6 +19,16 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+    }
+
+    const quota = await checkDailyAIQuota(user.id, 'prefill_submission', DAILY_AI_LIMITS.prefill_submission)
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: `Limite diário de pré-fills atingido (${quota.used}/${quota.limit}). Tente novamente amanhã.`,
+        },
+        { status: 429 },
+      )
     }
 
     const body = (await request.json()) as { jobId?: unknown; cvPath?: unknown }
@@ -81,12 +92,15 @@ export async function POST(request: Request) {
       )
     }
 
-    const suggestion = await prefillSubmission({
-      jobTitle: job.title,
-      jobDescription: job.description ?? '',
-      seniority: job.seniority ?? '',
-      cvText,
-    })
+    const suggestion = await prefillSubmission(
+      {
+        jobTitle: job.title,
+        jobDescription: job.description ?? '',
+        seniority: job.seniority ?? '',
+        cvText,
+      },
+      user.id,
+    )
 
     return NextResponse.json({ suggestion })
   } catch (error) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notificarCandidatoEnviadoCliente } from '@/lib/email/templates/candidatoEnviadoCliente'
+import { notifyUsers } from '@/lib/notifications'
 
 interface SubmissionRelations {
   id: string
@@ -51,6 +52,16 @@ export async function POST(request: Request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    void notifyUsers(
+      companyUsers.map(cu => cu.user_id),
+      {
+        type: 'candidate_sent_to_you',
+        title: 'Candidato para avaliar',
+        message: `${sub.candidates?.full_name || 'Um candidato'} foi enviado para ${sub.jobs?.title || 'sua vaga'}.`,
+        link: `/empresa/candidatos/${sub.id}`,
+      },
+    )
 
     const results = await Promise.all(
       companyUsers.map(async cu => {

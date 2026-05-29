@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface Notification {
@@ -10,6 +11,21 @@ interface Notification {
   read_at: string | null
   created_at: string
   type: string
+  link: string | null
+}
+
+function relativeTime(iso: string): string {
+  const now = new Date().getTime()
+  const then = new Date(iso).getTime()
+  const diffSec = Math.max(0, Math.floor((now - then) / 1000))
+  if (diffSec < 60) return 'agora'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `há ${diffMin}min`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `há ${diffHour}h`
+  const diffDay = Math.floor(diffHour / 24)
+  if (diffDay < 30) return `há ${diffDay}d`
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
 interface NotificationBellProps {
@@ -70,6 +86,19 @@ export default function NotificationBell({
       .is('read_at', null)
 
     setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })))
+  }
+
+  async function markOneRead(id: string) {
+    const supabase = createClient()
+    const ts = new Date().toISOString()
+    await supabase
+      .from('notifications')
+      .update({ read_at: ts })
+      .eq('id', id)
+      .is('read_at', null)
+    setNotifications(prev =>
+      prev.map(n => (n.id === id && !n.read_at ? { ...n, read_at: ts } : n)),
+    )
   }
 
   const bellSvg = (
@@ -170,23 +199,84 @@ export default function NotificationBell({
               ) : notifications.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm text-subtle">Nenhuma notificação</div>
               ) : (
-                notifications.map(n => (
-                  <div
-                    key={n.id}
-                    className="px-4 py-3 border-b last:border-0"
-                    style={{ borderColor: 'var(--border-2)', background: !n.read_at ? 'var(--accent-bg)' : undefined }}
-                  >
+                notifications.map(n => {
+                  const unread = !n.read_at
+                  const content = (
                     <div className="flex items-start gap-2">
-                      {!n.read_at && (
-                        <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: 'var(--neon)' }} />
+                      {unread && (
+                        <div
+                          className="w-2 h-2 rounded-full shrink-0 mt-1.5"
+                          style={{ background: 'var(--neon)' }}
+                          aria-hidden
+                        />
                       )}
-                      <div className={!n.read_at ? '' : 'pl-4'}>
-                        <div className="text-sm font-medium text-text">{n.title}</div>
-                        <div className="text-xs text-muted mt-0.5">{n.message}</div>
+                      <div className={unread ? '' : 'pl-4'} style={{ minWidth: 0, flex: 1 }}>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="text-sm font-medium text-text" style={{ minWidth: 0 }}>
+                            {n.title}
+                          </div>
+                          <span
+                            className="mono shrink-0"
+                            style={{ fontSize: '10px', color: 'var(--text-4)', letterSpacing: '0.04em' }}
+                          >
+                            {relativeTime(n.created_at)}
+                          </span>
+                        </div>
+                        <div
+                          className="text-xs text-muted mt-0.5"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {n.message}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  )
+
+                  const baseStyle: React.CSSProperties = {
+                    borderColor: 'var(--border-2)',
+                    background: unread ? 'var(--accent-bg)' : undefined,
+                    display: 'block',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                  }
+
+                  if (n.link) {
+                    return (
+                      <Link
+                        key={n.id}
+                        href={n.link}
+                        prefetch={false}
+                        onClick={() => {
+                          if (unread) void markOneRead(n.id)
+                          setOpen(false)
+                        }}
+                        className="px-4 py-3 border-b last:border-0 nx-notif-item"
+                        style={baseStyle}
+                      >
+                        {content}
+                      </Link>
+                    )
+                  }
+
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => {
+                        if (unread) void markOneRead(n.id)
+                      }}
+                      className="px-4 py-3 border-b last:border-0 w-full text-left nx-notif-item"
+                      style={{ ...baseStyle, border: 'none', borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }}
+                    >
+                      {content}
+                    </button>
+                  )
+                })
               )}
             </div>
           </div>
@@ -197,6 +287,9 @@ export default function NotificationBell({
         .nx-notif-wide:hover {
           background: rgba(255,255,255,.06);
           color: var(--text-on-dark);
+        }
+        .nx-notif-item:hover {
+          background: var(--bg-elev-2) !important;
         }
       `}</style>
     </div>

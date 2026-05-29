@@ -4,6 +4,8 @@ import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import KPICard from '@/components/ui/KPICard'
+import InsightsCards from '@/components/dashboard/InsightsCards'
+import WelcomeCard from '@/components/dashboard/WelcomeCard'
 
 export const metadata = {
   title: 'Dashboard HR — Nexhire',
@@ -58,6 +60,9 @@ export default async function HRDashboard() {
         titleAccent="da plataforma"
         subtitle="Visão geral de vagas, submissões e operações em curso."
       />
+
+      <WelcomeCard role="hr_manager" userId={user.id} />
+      <InsightsCards role="hr_manager" />
 
       {/* Alertas de ação */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

@@ -3,9 +3,8 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
-import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
-import { formatDaysSince } from '@/lib/utils'
+import SelectableCandidatesList from './SelectableCandidatesList'
 import type { SubmissionStatus } from '@/types/database'
 
 export const metadata = {
@@ -28,35 +27,9 @@ interface RawSubmission {
   submitted_at: string
   sent_to_client_at: string | null
   ai_score: number | null
+  ai_summary: string | null
   candidates: { full_name: string; current_title: string | null; location: string | null } | null
   recruiters: { level: string | null; users: { full_name: string | null } | null } | null
-}
-
-const statusInfo: Record<string, { label: string; variant: 'gray' | 'yellow' | 'green' | 'blue' | 'dark' | 'red' }> = {
-  sent_to_client: { label: 'Aguardando você', variant: 'yellow' },
-  client_approved: { label: 'Aprovado por você', variant: 'green' },
-  client_rejected: { label: 'Reprovado', variant: 'red' },
-  interview_scheduled: { label: 'Em entrevista', variant: 'blue' },
-  offer: { label: 'Em proposta', variant: 'dark' },
-  hired: { label: 'Contratado', variant: 'dark' },
-  not_hired: { label: 'Não contratado', variant: 'gray' },
-}
-
-const recruiterLevelLabel: Record<string, string> = {
-  beginner: 'Iniciante',
-  specialist: 'Especialista',
-  top_hunter: 'Top Hunter',
-}
-
-function initialsOf(name: string): string {
-  return (
-    name
-      .split(' ')
-      .map(n => n.charAt(0))
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || '??'
-  )
 }
 
 export default async function EmpresaVagaCandidatosPage({
@@ -88,7 +61,7 @@ export default async function EmpresaVagaCandidatosPage({
 
   const { data: rawSubs } = await supabase
     .from('submissions')
-    .select('id, status, submitted_at, sent_to_client_at, ai_score, candidates(full_name, current_title, location), recruiters(level, users(full_name))')
+    .select('id, status, submitted_at, sent_to_client_at, ai_score, ai_summary, candidates(full_name, current_title, location), recruiters(level, users(full_name))')
     .eq('job_id', id)
     .in('status', VISIBLE_STATUSES)
     .returns<RawSubmission[]>()
@@ -186,7 +159,7 @@ export default async function EmpresaVagaCandidatosPage({
           </div>
         </Card>
       ) : (
-        <CandidateList ranked={ranked} />
+        <SelectableCandidatesList ranked={ranked} jobId={id} />
       )}
     </div>
   )
@@ -266,246 +239,3 @@ function FunnelStats({ stats }: FunnelStatsProps) {
   )
 }
 
-interface CandidateListProps {
-  ranked: RawSubmission[]
-}
-
-function scoreTier(score: number): {
-  ring: string
-  fill: string
-  text: string
-  label: string
-} {
-  if (score >= 75) {
-    return {
-      ring: 'var(--color-g600)',
-      fill: 'var(--color-m100)',
-      text: 'var(--color-f800)',
-      label: 'Forte fit',
-    }
-  }
-  if (score >= 50) {
-    return {
-      ring: 'var(--info-text)',
-      fill: 'var(--info-bg)',
-      text: 'var(--info-text)',
-      label: 'Fit médio',
-    }
-  }
-  return {
-    ring: 'var(--warning-text)',
-    fill: 'var(--warning-bg)',
-    text: 'var(--warning-text)',
-    label: 'Fit baixo',
-  }
-}
-
-function CandidateList({ ranked }: CandidateListProps) {
-  const anyScored = ranked.some(s => s.ai_score !== null)
-  const topId = anyScored ? ranked[0]?.id : null
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      {ranked.map((sub, index) => {
-        const candidate = sub.candidates
-        const recruiter = sub.recruiters
-        const status = statusInfo[sub.status] ?? { label: sub.status, variant: 'gray' as const }
-        const reference = sub.sent_to_client_at ?? sub.submitted_at
-        const isTop = sub.id === topId && sub.ai_score !== null
-        const tier = sub.ai_score !== null ? scoreTier(sub.ai_score) : null
-
-        return (
-          <Link
-            key={sub.id}
-            href={`/empresa/candidatos/${sub.id}`}
-            className="kanban-card"
-            style={{
-              display: 'block',
-              background: 'var(--color-surf)',
-              border: isTop
-                ? '1.5px solid var(--color-g600)'
-                : '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px 20px',
-              textDecoration: 'none',
-              transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
-              position: 'relative',
-            }}
-          >
-            {isTop && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-9px',
-                  left: '16px',
-                  background: 'var(--color-f900)',
-                  color: 'var(--color-neon)',
-                  fontSize: '9.5px',
-                  fontWeight: 600,
-                  letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                  padding: '3px 10px',
-                  borderRadius: '999px',
-                }}
-              >
-                Top match
-              </span>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'relative',
-                  width: '52px',
-                  height: '52px',
-                  flexShrink: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: 'var(--color-f900)',
-                    color: 'var(--color-neon)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    margin: '6px',
-                  }}
-                >
-                  {initialsOf(candidate?.full_name ?? '??')}
-                </div>
-                <span
-                  className="mono"
-                  style={{
-                    position: 'absolute',
-                    bottom: '-4px',
-                    right: '-4px',
-                    background: 'var(--color-surf)',
-                    color: 'var(--color-text)',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    padding: '2px 6px',
-                    borderRadius: '999px',
-                    border: '1px solid var(--color-border)',
-                  }}
-                >
-                  #{(index + 1).toString().padStart(2, '0')}
-                </span>
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span
-                    style={{
-                      fontSize: '14.5px',
-                      fontWeight: 600,
-                      color: 'var(--color-text)',
-                      letterSpacing: '-0.005em',
-                    }}
-                  >
-                    {candidate?.full_name ?? 'Candidato sem nome'}
-                  </span>
-                  <Badge variant={status.variant}>{status.label}</Badge>
-                </div>
-                <div
-                  style={{
-                    fontSize: '12.5px',
-                    color: 'var(--color-muted)',
-                    marginTop: '2px',
-                  }}
-                >
-                  {candidate?.current_title || 'Cargo não informado'}
-                  {candidate?.location && ` · ${candidate.location}`}
-                </div>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--color-subtle)',
-                    marginTop: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {recruiter?.users?.full_name && (
-                    <span>
-                      Hunter: {recruiter.users.full_name}
-                      {recruiter.level && ` · ${recruiterLevelLabel[recruiter.level] ?? recruiter.level}`}
-                    </span>
-                  )}
-                  <span>· Atualizado {formatDaysSince(reference)}</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                {sub.ai_score !== null && tier ? (
-                  <div
-                    aria-label={`AI score ${sub.ai_score} — ${tier.label}`}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '50%',
-                        background: tier.fill,
-                        border: `2px solid ${tier.ring}`,
-                        display: 'grid',
-                        placeItems: 'center',
-                      }}
-                    >
-                      <span
-                        className="it"
-                        style={{
-                          fontSize: '24px',
-                          fontWeight: 400,
-                          color: tier.text,
-                          lineHeight: 1,
-                          letterSpacing: '-0.02em',
-                        }}
-                      >
-                        {sub.ai_score}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '9.5px',
-                        fontWeight: 600,
-                        letterSpacing: '0.14em',
-                        textTransform: 'uppercase',
-                        color: tier.text,
-                      }}
-                    >
-                      {tier.label}
-                    </span>
-                  </div>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      color: 'var(--color-subtle)',
-                      fontStyle: 'italic',
-                      textAlign: 'center',
-                      minWidth: '56px',
-                    }}
-                  >
-                    sem análise da IA
-                  </span>
-                )}
-              </div>
-            </div>
-          </Link>
-        )
-      })}
-    </div>
-  )
-}

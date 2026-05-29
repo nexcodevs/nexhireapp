@@ -1,10 +1,14 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import KPICard from '@/components/ui/KPICard'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Avatar from '@/components/ui/Avatar'
+import InsightsCards from '@/components/dashboard/InsightsCards'
+import WelcomeCard from '@/components/dashboard/WelcomeCard'
 import { formatDate } from '@/lib/utils'
 import type { RecruiterStatus } from '@/types/database'
 
@@ -29,6 +33,10 @@ interface RecruiterListRow {
 }
 
 export default async function AdminDashboardPage() {
+  const userClient = await createClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) redirect('/login')
+
   const supabase = createAdminClient()
 
   // 4 contadores em paralelo
@@ -82,6 +90,9 @@ export default async function AdminDashboardPage() {
         titleAccent="plataforma"
         subtitle="Indicadores globais e atalhos pra operação master."
       />
+
+      <WelcomeCard role="admin" userId={user.id} />
+      <InsightsCards role="admin" />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

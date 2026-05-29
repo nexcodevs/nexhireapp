@@ -6,6 +6,8 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import KPICard from '@/components/ui/KPICard'
+import InsightsCards from '@/components/dashboard/InsightsCards'
+import WelcomeCard from '@/components/dashboard/WelcomeCard'
 import { formatDate } from '@/lib/utils'
 import { requireCompany } from '@/lib/company'
 
@@ -124,6 +126,9 @@ export default async function EmpresaDashboard() {
           </Link>
         }
       />
+
+      <WelcomeCard role="company_user" userId={user.id} />
+      <InsightsCards role="company_user" />
 
       {/* Funil de candidatos */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

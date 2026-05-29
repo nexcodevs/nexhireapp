@@ -109,9 +109,34 @@ export default async function HRVagaDetailPage({
 
           {/* Submissões */}
           <Card padding="md">
-            <h2 className="text-base font-bold text-text mb-4">
-              Submissões ({submissions?.length || 0})
-            </h2>
+            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+              <h2 className="text-base font-bold text-text">
+                Submissões ({submissions?.length || 0})
+              </h2>
+              {submissions && submissions.length > 0 && (
+                <Link
+                  href={`/hr/vagas/${job.id}/shortlist`}
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--accent-text)',
+                    background: 'var(--accent-bg)',
+                    border: '1px solid var(--accent-border)',
+                    padding: '6px 10px',
+                    borderRadius: 'var(--r-md)',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                  </svg>
+                  Ver shortlist IA →
+                </Link>
+              )}
+            </div>
             {!submissions || submissions.length === 0 ? (
               <p className="text-sm text-subtle text-center py-4">
                 Nenhuma submissão ainda.

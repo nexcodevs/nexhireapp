@@ -23,11 +23,13 @@ const navItems: Record<string, NavItemDef[]> = {
     { href: '/empresa/vagas', label: 'Minhas vagas', icon: 'briefcase' },
     { href: '/empresa/candidatos', label: 'Candidatos', icon: 'users' },
     { href: '/empresa/hunters-bloqueados', label: 'Hunters bloqueados', icon: 'building' },
+    { href: '/empresa/configuracoes', label: 'Configurações', icon: 'columns' },
   ],
   recruiter: [
     { href: '/hunter', label: 'Dashboard', icon: 'home' },
     { href: '/hunter/vagas', label: 'Vagas disponíveis', icon: 'search' },
     { href: '/hunter/submissoes', label: 'Minhas submissões', icon: 'send' },
+    { href: '/hunters/ranking', label: 'Ranking', icon: 'columns' },
   ],
   hr_manager: [
     { href: '/hr', label: 'Dashboard', icon: 'home' },
@@ -42,6 +44,7 @@ const navItems: Record<string, NavItemDef[]> = {
     { href: '/admin/empresas', label: 'Empresas', icon: 'building' },
     { href: '/admin/hunters', label: 'Hunters', icon: 'users' },
     { href: '/admin/audit', label: 'Audit log', icon: 'inbox' },
+    { href: '/admin/ai-usage', label: 'Consumo IA', icon: 'columns' },
     { href: '/hr/vagas', label: 'Curadoria (HR)', icon: 'columns' },
   ],
   candidate: [
@@ -73,6 +76,7 @@ export default async function DashboardLayout({
       userId={user.id}
       userName={user.full_name}
       userEmail={user.email}
+      userRole={user.role}
       roleLabel={roleLabels[user.role] || ''}
       items={items}
     >

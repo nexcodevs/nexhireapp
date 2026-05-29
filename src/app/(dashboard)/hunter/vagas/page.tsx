@@ -5,6 +5,8 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import PageHeader from '@/components/ui/PageHeader'
 import JobFilters from '@/components/jobs/JobFilters'
+import SemanticJobSearch from '@/components/jobs/SemanticJobSearch'
+import CompanyAvatar from '@/components/empresa/CompanyAvatar'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
 import { getBlockedCompanyIds } from '@/lib/blocks'
@@ -19,6 +21,8 @@ interface PageProps {
     model?: string
     type?: string
     hideSubmitted?: string
+    q?: string
+    ids?: string
   }>
 }
 
@@ -28,6 +32,8 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   const modelFilter = sp.model?.split(',').filter(Boolean) ?? []
   const typeFilter = sp.type?.split(',').filter(Boolean) ?? []
   const hideSubmitted = sp.hideSubmitted === '1'
+  const semanticIds = sp.ids?.split(',').filter(Boolean) ?? []
+  const semanticQuery = sp.q?.trim() ?? ''
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -47,7 +53,7 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
 
   let query = supabase
     .from('jobs')
-    .select('*, companies(name)')
+    .select('*, companies(name, logo_url)')
     .eq('status', 'open_for_hunters')
     .order('created_at', { ascending: false })
 
@@ -56,10 +62,19 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   if (typeFilter.length > 0) query = query.in('employment_type', typeFilter)
   if (blockedCompanyIds.length > 0)
     query = query.not('company_id', 'in', `(${blockedCompanyIds.join(',')})`)
+  if (semanticIds.length > 0) query = query.in('id', semanticIds)
 
   const { data: allJobs } = await query
 
   let jobs = filterJobsByVisibility(allJobs, hunterLevel)
+
+  // Quando vem da busca semântica, ordenar pela ordem retornada pelo match (similarity desc)
+  if (semanticIds.length > 0) {
+    const orderMap = new Map(semanticIds.map((id, i) => [id, i]))
+    jobs = [...jobs].sort(
+      (a, b) => (orderMap.get(a.id) ?? Infinity) - (orderMap.get(b.id) ?? Infinity),
+    )
+  }
 
   const { data: mySubmissions } = await supabase
     .from('submissions')
@@ -76,14 +91,20 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   const hasFilters =
     seniorityFilter.length + modelFilter.length + typeFilter.length + (hideSubmitted ? 1 : 0) > 0
 
+  const subtitle = semanticQuery
+    ? `${totalCount} vaga${totalCount !== 1 ? 's' : ''} pra "${semanticQuery}"`
+    : `${totalCount} vaga${totalCount !== 1 ? 's' : ''} ${hasFilters ? 'após filtros' : 'abertas para você'}`
+
   return (
     <div className="max-w-5xl">
       <PageHeader
         eyebrow="Marketplace"
         title="Vagas"
         titleAccent="disponíveis"
-        subtitle={`${totalCount} vaga${totalCount !== 1 ? 's' : ''} ${hasFilters ? 'após filtros' : 'abertas para você'}`}
+        subtitle={subtitle}
       />
+
+      <SemanticJobSearch />
 
       {(!recruiter || recruiter.status !== 'approved') && (
         <Card padding="md" className="mb-6" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}>
@@ -130,7 +151,13 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
               <Link key={job.id} href={`/hunter/vagas/${job.id}`} className="block">
                 <Card padding="md" hover className="cursor-pointer">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <CompanyAvatar
+                        name={(job.companies as { name: string | null; logo_url: string | null } | null)?.name ?? null}
+                        logoPath={(job.companies as { name: string | null; logo_url: string | null } | null)?.logo_url ?? null}
+                        size="md"
+                      />
+                      <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h2 className="text-base font-bold truncate" style={{ color: 'var(--color-text)' }}>{job.title}</h2>
                         {alreadySubmitted && <Badge variant="green">Candidato enviado</Badge>}
@@ -153,6 +180,7 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
                           <span className="text-xs" style={{ color: 'var(--color-subtle)' }}>Prazo: {formatDate(job.submission_deadline)}</span>
                         )}
                         <span className="text-xs" style={{ color: 'var(--color-subtle)' }}>Limite: {job.max_submissions_per_recruiter} candidatos</span>
+                      </div>
                       </div>
                     </div>
                     <div className="text-right shrink-0">

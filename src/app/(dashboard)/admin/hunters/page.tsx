@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import PageHeader from '@/components/ui/PageHeader'
+import RecomputeScoresButton from '@/components/admin/RecomputeScoresButton'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Avatar from '@/components/ui/Avatar'
@@ -82,6 +83,7 @@ export default async function AdminHuntersPage() {
         title="Rede de"
         titleAccent="hunters"
         subtitle="Visão global. Pra aprovação operacional dos novos, use Curadoria HR."
+        action={<RecomputeScoresButton />}
       />
 
       {/* Quick stats */}

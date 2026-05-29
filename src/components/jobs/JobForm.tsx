@@ -7,26 +7,39 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 
+export interface JobFormInitialValues {
+  title?: string
+  seniority?: string
+  location?: string
+  work_model?: string
+  employment_type?: string
+  salary_min?: number | null
+  salary_max?: number | null
+  description?: string
+}
+
 interface JobFormProps {
   companyId: string
   userId: string
+  initialValues?: JobFormInitialValues
+  aiGenerated?: boolean
 }
 
-export default function JobForm({ companyId, userId }: JobFormProps) {
+export default function JobForm({ companyId, userId, initialValues, aiGenerated = false }: JobFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
-    title: '',
-    seniority: '',
+    title: initialValues?.title ?? '',
+    seniority: initialValues?.seniority ?? '',
     area: '',
-    location: '',
-    work_model: '',
-    employment_type: '',
-    salary_min: '',
-    salary_max: '',
-    description: '',
+    location: initialValues?.location ?? '',
+    work_model: initialValues?.work_model ?? '',
+    employment_type: initialValues?.employment_type ?? '',
+    salary_min: initialValues?.salary_min ? String(initialValues.salary_min) : '',
+    salary_max: initialValues?.salary_max ? String(initialValues.salary_max) : '',
+    description: initialValues?.description ?? '',
     requirements: '',
     deadline_days: '7',
   })
@@ -74,6 +87,42 @@ export default function JobForm({ companyId, userId }: JobFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {aiGenerated && (
+        <div
+          role="status"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 14px',
+            borderRadius: 'var(--r-md)',
+            background: 'var(--accent-bg)',
+            border: '1px solid var(--accent-border)',
+            color: 'var(--accent-text)',
+            fontSize: '12.5px',
+            fontWeight: 500,
+            letterSpacing: '-0.005em',
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+          </svg>
+          <span>
+            Rascunho gerado pela IA a partir do seu brief. Revise tudo antes de publicar.
+          </span>
+        </div>
+      )}
+
       {/* Informações básicas */}
       <div className="bg-surf rounded-xl border border-(--border-2) p-6">
         <h2 className="text-base font-bold text-text mb-4">Informações básicas</h2>

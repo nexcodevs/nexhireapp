@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { analyzeCandidate } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
+import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
 import { NextResponse } from 'next/server'
 
 interface SubmissionWithRelations {
@@ -28,6 +29,16 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const quota = await checkDailyAIQuota(user.id, 'analyze_candidate', DAILY_AI_LIMITS.analyze_candidate)
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: `Limite diário de análises atingido (${quota.used}/${quota.limit}). Tente novamente amanhã.`,
+        },
+        { status: 429 },
+      )
     }
 
     const { submissionId } = await request.json()
@@ -69,18 +80,21 @@ export async function POST(request: Request) {
       }
     }
 
-    const analysis = await analyzeCandidate({
-      jobTitle: job.title,
-      jobDescription: job.description ?? '',
-      seniority: job.seniority ?? '',
-      candidateName: candidate.full_name,
-      candidateTitle: candidate.current_title ?? '',
-      interviewSummary: sub.interview_summary ?? '',
-      cvText,
-      jdPriorities: sub.jd_priorities,
-      hunterScore: sub.hunter_score,
-      hunterScoreRationale: sub.hunter_score_rationale,
-    })
+    const analysis = await analyzeCandidate(
+      {
+        jobTitle: job.title,
+        jobDescription: job.description ?? '',
+        seniority: job.seniority ?? '',
+        candidateName: candidate.full_name,
+        candidateTitle: candidate.current_title ?? '',
+        interviewSummary: sub.interview_summary ?? '',
+        cvText,
+        jdPriorities: sub.jd_priorities,
+        hunterScore: sub.hunter_score,
+        hunterScoreRationale: sub.hunter_score_rationale,
+      },
+      user.id,
+    )
 
     const { error: updateError } = await supabase
       .from('submissions')

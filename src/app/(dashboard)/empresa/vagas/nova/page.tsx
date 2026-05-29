@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import JobForm from '@/components/jobs/JobForm'
+import PageHeader from '@/components/ui/PageHeader'
+import JobFromBriefFlow from '@/components/jobs/JobFromBriefFlow'
 import { requireCompany } from '@/lib/company'
 
 export const metadata = {
@@ -17,14 +18,14 @@ export default async function NovaVagaPage() {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text mb-1">Abrir nova vaga</h1>
-        <p className="text-muted text-sm">
-          Preencha os dados da vaga. Após enviar, o HR Manager vai revisar e liberar para os hunters.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Nova vaga"
+        title="Vamos abrir uma"
+        titleAccent="vaga"
+        subtitle="Descreve em texto livre o que você precisa contratar. A IA monta a vaga, você revisa e publica."
+      />
 
-      <JobForm companyId={companyId} userId={user.id} />
+      <JobFromBriefFlow companyId={companyId} userId={user.id} />
     </div>
   )
 }

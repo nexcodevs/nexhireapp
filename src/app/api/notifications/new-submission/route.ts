@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notificarNovaSubmissao } from '@/lib/email/templates/novaSubmissao'
+import { notifyUsers } from '@/lib/notifications'
 
 interface SubmissionRelations {
   id: string
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 
     const { data: hrs } = await admin
       .from('users')
-      .select('email, full_name, role')
+      .select('id, email, full_name, role')
       .in('role', ['hr_manager', 'admin'])
 
     console.log('[notify] HRs encontrados:', hrs?.length)
@@ -57,6 +58,13 @@ export async function POST(request: Request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    void notifyUsers(hrs.map(h => h.id), {
+      type: 'new_submission',
+      title: 'Nova submissão',
+      message: `${sub.recruiters?.users?.full_name || 'Hunter'} enviou ${sub.candidates?.full_name || 'um candidato'} para ${sub.jobs?.title || 'vaga'}.`,
+      link: `/hr/submissoes/${sub.id}`,
+    })
 
     const results = await Promise.all(
       hrs.map(async hr => {

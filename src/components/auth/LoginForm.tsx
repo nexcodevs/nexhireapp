@@ -20,6 +20,23 @@ export default function LoginForm() {
     setError('')
     setLoading(true)
 
+    // Checagem de rate limit antes do auth — bloqueia abuso casual
+    try {
+      const rl = await fetch('/api/auth/rate-limit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'login' }),
+      })
+      if (!rl.ok) {
+        const data = (await rl.json().catch(() => ({}))) as { error?: string }
+        setError(data.error || 'Muitas tentativas. Aguarde alguns minutos.')
+        setLoading(false)
+        return
+      }
+    } catch {
+      // fail open
+    }
+
     const supabase = createClient()
 
     const { error: authError } = await supabase.auth.signInWithPassword({

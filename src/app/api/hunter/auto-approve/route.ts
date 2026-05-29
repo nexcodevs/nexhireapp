@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { evaluateHunterRisk } from '@/lib/ai/analyze'
+import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
 import { logAudit } from '@/lib/audit'
 import { getClientIp } from '@/lib/ratelimit'
 
@@ -18,6 +19,16 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+    }
+
+    const quota = await checkDailyAIQuota(user.id, 'evaluate_hunter', DAILY_AI_LIMITS.evaluate_hunter)
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: `Muitas tentativas hoje (${quota.used}/${quota.limit}). Tente novamente amanhã.`,
+        },
+        { status: 429 },
+      )
     }
 
     const body = (await request.json()) as RequestBody
@@ -50,14 +61,17 @@ export async function POST(request: Request) {
     }
 
     // Chama IA
-    const assessment = await evaluateHunterRisk({
-      fullName: userData.full_name ?? '',
-      email: userData.email,
-      linkedinUrl,
-      specialties,
-      yearsExperience,
-      bio,
-    })
+    const assessment = await evaluateHunterRisk(
+      {
+        fullName: userData.full_name ?? '',
+        email: userData.email,
+        linkedinUrl,
+        specialties,
+        yearsExperience,
+        bio,
+      },
+      user.id,
+    )
 
     const newStatus =
       assessment.decision === 'auto_approve'

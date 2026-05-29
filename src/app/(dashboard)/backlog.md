@@ -110,29 +110,27 @@ Sem isso o produto fica passivo. Construir antes dos primeiros 5 clientes pagant
 
 ---
 
-## P1 — Sprint 10 — Ranking de Hunters (em andamento)
+## P1 — Sprint 10 — Ranking de Hunters
 
-Transforma marketplace de "todos concorrem" em meritocrático. Sem isso, o produto fica ruidoso quando crescer.
+**Status:** ✅ Núcleo entregue em 2026-05-29.
 
-- [ ] Função SQL de cálculo automático de score do hunter (taxa de aprovação HR, cliente, contratação, velocidade, baixa duplicidade)
-- [ ] Atualização de score via trigger ao mudar status de submissão (ou cron diário)
-- [ ] Painel do hunter com score, nível atual, progresso pro próximo nível
-- [ ] Comparativo visual: "você está acima da média da rede em X"
-- [ ] Filtro de visibilidade na criação/revisão de vaga (open, specialist_only, top_hunters_only, hybrid)
-- [ ] Leaderboard público (`/hunters/ranking`) com pseudonimização (proteger identidade) — motivacional
-- [ ] Mecânica de progressão Iniciante → Especialista → Top Hunter
-- [ ] Suspensão automática se hunter ultrapassar limite de duplicidades ou cair abaixo de score mínimo
+- [x] Função SQL `refresh_recruiter_score(p_recruiter_id)` — calcula HR rate (peso 40%), cliente rate (35%), contratações até 5 (20pts) e volume até 30 envios (5pts) → overall_score 0-100. Aplica nível: top_hunter (≥30 envios + score≥80 + ≥5 hires), specialist (≥10 envios + score≥60), beginner. Propaga `level` pra `recruiters`.
+- [x] Trigger `trg_submissions_refresh_score` em `submissions` (after insert / after update of status) — score atualiza em tempo real.
+- [x] Função `refresh_all_recruiter_scores()` pra rebuild global.
+- [x] Endpoint `/api/admin/recompute-scores` (admin only) + botão "Recalcular scores" em `/admin/hunters`.
+- [x] Painel do hunter com score, nível, progresso pro próximo nível e comparativo com média (já existia, agora alimentado pela função).
+- [x] Filtro de visibilidade na criação/revisão de vaga (já existia: `visibility_type`).
+- [x] Leaderboard `/hunters/ranking` (top 20, pseudônimo determinístico "Hunter #ABC", próprio user vê nome real).
+- [x] Mecânica de progressão Iniciante → Especialista → Top Hunter (regras na função SQL).
+- [ ] **Pendente (P2):** suspensão automática (cron diário ou trigger) se hunter ultrapassar limite de duplicidades ou cair abaixo de score mínimo durante N envios.
 
 ---
 
 ## P1 — Bugs descobertos durante desenvolvimento
 
 ### Contador de envios do hunter está errado
-- **Esforço:** S (30min) · **Impacto:** Hunter
-- **Origem:** Descoberto na Sprint 8 quando Carlos Lopes/João Pereira ocuparam slots mesmo reprovados.
-- O contador `remainingSlots` em `src/app/(dashboard)/hunter/vagas/[id]/page.tsx` está contando submissões em todos os status.
-- Deveria contar apenas as **ativas**: `submitted`, `ai_analyzed`, `hr_approved`, `sent_to_client`, `client_approved`, `interview_scheduled`, `offer`, `hired`
-- Submissões em `hr_rejected`, `client_rejected`, `not_hired`, `duplicate` devem **liberar o slot**.
+- **Status:** ✅ Resolvido em 2026-05-29
+- `activeCount` em `hunter/vagas/[id]/page.tsx` filtra apenas status ativos: `submitted`, `ai_analyzed`, `hr_approved`, `sent_to_client`, `client_approved`, `interview_scheduled`, `offer`, `hired`. Rejeitados/duplicados liberam o slot.
 
 ### Pasta de criação de vaga fora do padrão
 - **Status:** ✅ Resolvido em 2026-05-28 (Bloco 0)
@@ -167,16 +165,15 @@ Decisão de 2026-05-28: o produto está funcional mas operacionalmente simples. 
   - Empty states com ilustrações sutis em vez de texto italic
 
 ### `/empresa/candidatos/[id]` com gráficos e IA expandida
-- **Esforço:** L (6-8h) · **Impacto:** Empresa (decisão)
-- **Pedido do Daniel em 2026-05-28:** "deve mostrar mais informações da entrevista realizada pelo hunter. A tela precisa ser mais visual, com gráfico, informações da IA (quando tiver) e mais detalhes para tomada de decisão."
-- Sugestões de conteúdo:
-  - Score breakdown radar chart (fit_tecnico / fit_senioridade / fit_comportamental) — usar recharts ou similar
-  - Hero card com Top match badge se score > 75
-  - Tabs: Visão geral / Análise IA / Conversa do hunter / Histórico
-  - CV PDF visualizado inline com pdf-viewer leve
-  - Hunter assessment card (jd_priorities + hunter_score + rationale) destacado
-  - Perguntas recomendadas pela IA pra próxima entrevista, com botão "Copiar"
-  - Timeline visual com ícones em vez da lista linear atual
+- **Status parcial:** ✅ Em 2026-05-29 adicionados:
+  - Card "Avaliação do hunter" destacado (`jd_priorities` + `hunter_score` em escala /10 + `hunter_score_rationale`)
+  - Card "Análise da IA (curadoria interna)" com `ai_score`/100 + `ai_summary` + badges de `ai_gaps` (yellow) e `ai_risks` (red)
+  - Link "Abrir PDF" do CV na sidebar de contato (signed URL 10min)
+- **Pendente (P3):**
+  - Radar chart de `fit_tecnico` / `fit_senioridade` / `fit_comportamental` — exige migration pra persistir esses campos no `analyzeCandidate` (hoje só vivem na resposta IA, não são salvos)
+  - Tabs (Visão / IA / Hunter / Histórico) — sem necessidade urgente, layout em colunas dá conta
+  - CV PDF inline com pdf-viewer (hoje abre em nova aba via signed URL)
+  - Timeline visual com ícones
 
 ### Outras telas operacionais com mais densidade visual
 - **Esforço:** M (4-6h cada) · **Impacto:** HR, Hunter
@@ -195,10 +192,8 @@ Decisão de 2026-05-28: o produto está funcional mas operacionalmente simples. 
 - Visualização para empresa (no `/empresa/vagas/.../candidatos/...`) será adicionada quando aquela página ganhar a sidebar com contato.
 
 ### `/empresa/vagas/[id]/page.tsx` está com lógica de hunter (broken)
-- **Prioridade:** P1 · **Esforço:** S (1-2h) · **Impacto:** Empresa
-- O arquivo `src/app/(dashboard)/empresa/vagas/[id]/page.tsx` tem `export default function HunterVagaDetailPage`, queries em `recruiters`, renderiza `<SubmitCandidateForm>` e link "Voltar para vagas" apontando pra `/hunter/vagas`. É claramente a página do hunter colada no caminho da empresa.
-- Bloco 3 (2026-05-28) redirecionou TODOS os links da empresa pra `/empresa/vagas/[id]/candidatos` (que é a página correta). Mas a rota antiga continua acessível por URL direta e mostra UI errada se acessada.
-- Decisão: substituir o conteúdo por um redirect server-side pra `/empresa/vagas/[id]/candidatos`, OU reescrever o detalhe da vaga com info relevante pra empresa (descrição editável, status, prazo, gestão de visibilidade) — definir antes de fazer.
+- **Status:** ✅ Resolvido (verificado em 2026-05-29)
+- A página já foi reescrita: `EmpresaVagaDetailPage` consulta `company_users`, exige match de `company_id`, renderiza `PageHeader` + descrição + funil de candidatos (recebidos/aguardando/entrevista/contratado) + sidebar com detalhes (salário, contrato, modalidade, prazo, limite por hunter). Botões "Ver candidatos" e "Ver pipeline" no header. Sem lógica de hunter.
 
 ### Refactor do SubmitCandidateForm pra design system completo
 - **Prioridade:** P2 · **Esforço:** S (1h) · **Impacto:** Manutenção, a11y
@@ -212,27 +207,21 @@ Decisão de 2026-05-28: o produto está funcional mas operacionalmente simples. 
   - Cliente vê botão "Baixar CV" no perfil curado
 
 ### Notificações in-app (sino com badge)
-- **Esforço:** M (4-5h) · **Impacto:** Todos
-- O sino visual já existe na sidebar mas não consome a tabela `notifications`.
-- Implementar:
-  - Inserts na tabela `notifications` em paralelo aos disparos de email
-  - Componente `NotificationBell` com contagem não lida
-  - Dropdown listando últimas 10 notificações
-  - Marcar como lida ao clicar
-  - Realtime (Supabase Realtime) para chegar sem refresh
+- **Status:** ✅ Resolvido em 2026-05-29
+- Migration `20260530_notifications.sql` cria tabela com RLS (user lê/atualiza só suas; inserts via service_role) e habilita Realtime.
+- Helper `src/lib/notifications.ts` com `notifyUser` e `notifyUsers` (fail-safe).
+- 4 endpoints `/api/notifications/*` agora inserem in-app em paralelo ao email (`new_submission`, `job_opened`, `candidate_sent_to_you`, `client_decision`).
+- `NotificationBell` virou clicável: cada item é Link pro `notification.link`, marca como lida ao clicar (`markOneRead`), tempo relativo ("há 2h"), realtime via canal `postgres_changes` filtrado por user_id.
 
 ### Página de perfil do usuário
-- **Esforço:** M (3-4h) · **Impacto:** Todos
-- Tela `/perfil` para qualquer usuário editar:
-  - Nome, avatar
-  - Telefone (só hunter e company_user)
-  - Preferências de notificação por email (granular por tipo)
-  - Trocar senha (atual + nova)
+- **Status:** ✅ Parcial em 2026-05-29
+- `/perfil` permite editar nome e trocar senha (com reauth via senha atual).
+- **Pendente (P3):** upload de avatar, telefone na `users` (precisa migration), preferências granulares de notificação.
 
 ### Avatar/logo da empresa
-- **Esforço:** S (1-2h) · **Impacto:** Empresa
-- Upload no momento do cadastro e na página de perfil da empresa.
-- Exibir nos cards de vaga vistos pelo hunter (aumenta confiança).
+- **Status:** ✅ Resolvido em 2026-05-29
+- Migration `20260530_company_branding.sql` adiciona coluna `logo_url` em `companies` e cria bucket público `company_logos` (path `{company_id}/logo-{ts}.ext`). Upload restrito a `company_users` da empresa.
+- Componentes `LogoUpload` (preview + upload) e `CompanyAvatar` (mostra logo ou iniciais). Página nova `/empresa/configuracoes` edita logo + dados da empresa. Cards de vaga em `/hunter/vagas` exibem `CompanyAvatar`.
 
 ### Filtros avançados no marketplace de hunters
 - **Esforço:** M (3h) · **Impacto:** Hunter
@@ -252,15 +241,13 @@ Decisão de 2026-05-28: o produto está funcional mas operacionalmente simples. 
 - Aumenta qualidade do resumo da entrevista → aumenta qualidade da análise da IA.
 
 ### IA: identificação de duplicidade inteligente
-- **Status:** MVP atual usa apenas email exato
-- **Esforço:** M (3-4h) · **Impacto:** HR, Hunter
-- PRD prevê deduplicação por email + telefone + LinkedIn + matching difuso de nome.
-- Quando hunter tenta enviar candidato que já existe, mostrar alerta com info do registro original (quem enviou primeiro, quando, status atual).
+- **Status:** ✅ Parcialmente resolvido em 2026-05-29
+- `POST /api/candidates/check-duplicate` cruza email (lowercase), phone (só dígitos, sem código país BR), LinkedIn (username canônico) e retorna lista de matches enriquecida com último envio (hunter, vaga, status, ownership_expires_at). `SubmitCandidateForm` faz polling debounced (500ms) e exibe `DuplicateWarning` com 3 tons: bloqueante (mesma vaga), alerta (ownership ativo de outro hunter), informativo (já existe).
+- **Pendente (P3):** matching fuzzy de nome (similaridade, ex: pg_trgm) pra capturar "João Silva" vs "Joao da Silva". Hoje cobertura é determinística (email/phone/linkedin) — bom o bastante pra 90%+ dos casos.
 
 ### IA: ranking automático de candidatos por vaga
-- **Status:** Especificada no PRD mas não implementada (Sprint 7 cobriu só análise individual)
-- **Esforço:** M (3h) · **Impacto:** HR
-- Tela `/hr/vagas/[id]/shortlist` mostrando todos os candidatos da vaga ordenados por AI score, com justificativa, riscos, e ação rápida de aprovar/reprovar em lote.
+- **Status:** ✅ Resolvido em 2026-05-29
+- Página `/hr/vagas/[id]/shortlist` lista candidatos ordenados por `ai_score` desc (nulls last), com badge visual de score (top match ≥75, médio ≥50, fraco <50), ai_summary, gaps (yellow) e risks (red), hunter score, link pra detalhe da submissão. Botão "Ver shortlist IA →" no card de submissões da `/hr/vagas/[id]`. Pendente (P3): ações de aprovar/reprovar em lote.
 
 ### Página pública de vagas (`/vagas`)
 - **Esforço:** M (3-4h) · **Impacto:** Candidato, Crescimento
@@ -269,10 +256,9 @@ Decisão de 2026-05-28: o produto está funcional mas operacionalmente simples. 
 - Ajuda SEO e captura demanda orgânica.
 
 ### Onboarding guiado por papel
-- **Esforço:** M (4h) · **Impacto:** Empresa, Hunter
-- Hoje usuário cadastra e cai direto no dashboard sem orientação.
-- Tour interativo (Intro.js ou similar) explicando os 3-4 primeiros passos para cada papel.
-- Para hunters: checklist de "perfil completo" (LinkedIn, especialidades, CV próprio).
+- **Status:** ✅ Parcial em 2026-05-29
+- `WelcomeCard` aparece no topo dos dashboards de cada papel (empresa, hunter, HR, admin) com 3 passos clicáveis. Dispensável via localStorage (`nx-welcome-dismissed-{userId}`), persistido por usuário no browser.
+- **Pendente (P3):** tour interativo com tooltips contextuais (Intro.js ou similar) percorrendo páginas; checklist de "perfil completo" pro hunter.
 
 ---
 

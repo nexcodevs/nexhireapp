@@ -81,6 +81,23 @@ export default function SignupForm() {
       return
     }
 
+    // Rate limit antes do auth — bloqueia criação em massa
+    try {
+      const rl = await fetch('/api/auth/rate-limit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'signup', email }),
+      })
+      if (!rl.ok) {
+        const data = (await rl.json().catch(() => ({}))) as { error?: string }
+        setError(data.error || 'Muitos cadastros. Tente novamente em alguns minutos.')
+        setLoading(false)
+        return
+      }
+    } catch {
+      // fail open
+    }
+
     const supabase = createClient()
 
     const { error: authError } = await supabase.auth.signUp({

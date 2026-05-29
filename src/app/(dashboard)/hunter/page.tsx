@@ -5,6 +5,8 @@ import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import KPICard from '@/components/ui/KPICard'
+import InsightsCards from '@/components/dashboard/InsightsCards'
+import WelcomeCard from '@/components/dashboard/WelcomeCard'
 import { formatCurrency } from '@/lib/utils'
 
 type CompanyRel = { name: string | null }
@@ -144,6 +146,9 @@ export default async function HunterDashboard() {
         titleAccent={userData?.full_name?.split(' ')[0] || 'hunter'}
         subtitle="Seu painel de oportunidades, performance e submissões."
       />
+
+      <WelcomeCard role="recruiter" userId={user.id} />
+      <InsightsCards role="recruiter" />
 
       {(!recruiter || recruiter.status !== 'approved') && (
         <Card padding="md" className="mb-6" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}>

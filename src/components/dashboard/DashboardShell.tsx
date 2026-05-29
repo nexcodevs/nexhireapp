@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import NotificationBell from '@/components/ui/NotificationBell'
 import Avatar from '@/components/ui/Avatar'
 import NexhireLogo from '@/components/brand/NexhireLogo'
+import NexhireAssistant from '@/components/assistant/NexhireAssistant'
 import { toggleTheme, useTheme } from '@/components/providers/theme'
 
 const STORAGE_KEY = 'nexhire:sidebar:collapsed'
@@ -58,6 +59,7 @@ interface DashboardShellProps {
   userId: string
   userName: string | null
   userEmail: string
+  userRole: string
   roleLabel: string
   items: NavItemDef[]
   children: React.ReactNode
@@ -218,6 +220,7 @@ export default function DashboardShell({
   userId,
   userName,
   userEmail,
+  userRole,
   roleLabel,
   items,
   children,
@@ -289,20 +292,6 @@ export default function DashboardShell({
               style={{ display: 'block', flex: 1, minWidth: 0, color: 'var(--text-1)' }}
             >
               <NexhireLogo width={108} />
-              <span
-                style={{
-                  marginTop: '8px',
-                  display: 'inline-block',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 500,
-                  textTransform: 'uppercase',
-                  fontSize: '9.5px',
-                  letterSpacing: '0.18em',
-                  color: 'var(--accent-text)',
-                }}
-              >
-                {roleLabel}
-              </span>
             </Link>
           )}
         </div>
@@ -470,37 +459,51 @@ export default function DashboardShell({
             </>
           ) : (
             <>
-              <Avatar name={userName || userEmail} size="sm" status />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--text-1)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    letterSpacing: '-0.005em',
-                  }}
-                >
-                  {userName?.split(' ')[0] || 'Usuário'}
+              <Link
+                href="/perfil"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  minWidth: 0,
+                  flex: 1,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
+                title="Ver perfil"
+              >
+                <Avatar name={userName || userEmail} size="sm" status />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--text-1)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      letterSpacing: '-0.005em',
+                    }}
+                  >
+                    {userName?.split(' ')[0] || 'Usuário'}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '9px',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-4)',
+                      marginTop: '1px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {roleLabel}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '9px',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--text-4)',
-                    marginTop: '1px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {roleLabel}
-                </div>
-              </div>
+              </Link>
               <button
                 type="button"
                 onClick={toggleTheme}
@@ -537,6 +540,8 @@ export default function DashboardShell({
       >
         {children}
       </main>
+
+      <NexhireAssistant userRole={userRole} />
 
       <style>{`
         .nx-nav-item:hover {

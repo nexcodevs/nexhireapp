@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
@@ -9,6 +9,24 @@ import Textarea from '@/components/ui/Textarea'
 import Card from '@/components/ui/Card'
 import FormError from '@/components/ui/FormError'
 import CVUpload from '@/components/submissions/CVUpload'
+import VoiceRecorder from '@/components/submissions/VoiceRecorder'
+
+interface DuplicateMatch {
+  candidate_id: string
+  full_name: string | null
+  email: string | null
+  matched_on: ('email' | 'phone' | 'linkedin')[]
+  latest_submission: {
+    job_id: string
+    job_title: string | null
+    recruiter_name: string | null
+    status: string
+    submitted_at: string
+    ownership_active: boolean
+    ownership_expires_at: string | null
+    same_job: boolean
+  } | null
+}
 
 interface SubmitCandidateFormProps {
   jobId: string
@@ -63,6 +81,10 @@ export default function SubmitCandidateForm({
 
   const [hunterScore, setHunterScore] = useState<number | null>(null)
   const [cvPath, setCvPath] = useState<string | null>(null)
+
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([])
+  const [checkingDup, setCheckingDup] = useState(false)
+  const dupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Pré-fill IA: estado da chamada + flag por campo (true = sugestão IA pendente de revisão)
   const [prefilling, setPrefilling] = useState(false)
@@ -130,6 +152,47 @@ export default function SubmitCandidateForm({
   function handleCandidateChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setCandidate(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
+
+  // Dispara checagem de duplicidade ao mudar email/phone/linkedin (com debounce)
+  useEffect(() => {
+    const email = candidate.email.trim()
+    const phone = candidate.phone.trim()
+    const linkedin = candidate.linkedin_url.trim()
+
+    if (dupTimer.current) clearTimeout(dupTimer.current)
+    dupTimer.current = setTimeout(async () => {
+      if (!email && !phone && !linkedin) {
+        setDuplicateMatches([])
+        setCheckingDup(false)
+        return
+      }
+      setCheckingDup(true)
+      try {
+        const res = await fetch('/api/candidates/check-duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            phone,
+            linkedin_url: linkedin,
+            job_id: jobId,
+          }),
+        })
+        if (res.ok) {
+          const data = (await res.json()) as { matches: DuplicateMatch[] }
+          setDuplicateMatches(data.matches ?? [])
+        }
+      } catch (err) {
+        console.warn('[check-duplicate]', err)
+      } finally {
+        setCheckingDup(false)
+      }
+    }, 500)
+
+    return () => {
+      if (dupTimer.current) clearTimeout(dupTimer.current)
+    }
+  }, [candidate.email, candidate.phone, candidate.linkedin_url, jobId])
 
   function handleSubmissionChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const { name, value } = e.target
@@ -463,6 +526,21 @@ export default function SubmitCandidateForm({
             disabled={loading || prefilling}
             required
           />
+          {checkingDup && duplicateMatches.length === 0 && (
+            <div
+              className="mono"
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-4)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              Verificando duplicidade…
+            </div>
+          )}
+          {duplicateMatches.length > 0 && (
+            <DuplicateWarning matches={duplicateMatches} />
+          )}
           {prefilling && <AIHintBanner mode="loading" />}
           {prefillError && !prefilling && (
             <AIHintBanner mode="error" message={prefillError} />
@@ -558,12 +636,18 @@ export default function SubmitCandidateForm({
         </FieldGroup>
 
         <FieldGroup title="Conversa com o candidato">
-          {interviewOutline && (
-            <AIHintBanner
-              mode="tip"
-              message={`IA sugere validar na conversa: ${interviewOutline.replace(/\n/g, ' ')}`}
-            />
-          )}
+          {interviewOutline && <InterviewOutlineCard outline={interviewOutline} />}
+          <VoiceRecorder
+            disabled={loading}
+            onTranscribed={text => {
+              setSubmission(prev => ({
+                ...prev,
+                interview_summary: prev.interview_summary
+                  ? `${prev.interview_summary}\n\n${text}`
+                  : text,
+              }))
+            }}
+          />
           <Textarea
             label="Resumo / transcrição da entrevista"
             name="interview_summary"
@@ -572,7 +656,7 @@ export default function SubmitCandidateForm({
             placeholder={INTERVIEW_PLACEHOLDER}
             required
             rows={12}
-            hint="Use o placeholder como guia. Quanto mais detalhe, melhor a análise da IA."
+            hint="Use o placeholder como guia. Pode gravar voice memo acima (até 5min) que a IA transcreve."
           />
           <Textarea
             label="Notas internas (opcional)"
@@ -640,6 +724,179 @@ function FieldGroup({ title, description, children }: FieldGroupProps) {
       )}
       {children}
     </fieldset>
+  )
+}
+
+function DuplicateWarning({ matches }: { matches: DuplicateMatch[] }) {
+  const matchLabel: Record<DuplicateMatch['matched_on'][number], string> = {
+    email: 'mesmo email',
+    phone: 'mesmo telefone',
+    linkedin: 'mesmo LinkedIn',
+  }
+
+  const sameJob = matches.find(m => m.latest_submission?.same_job)
+  const ownershipActive = matches.find(
+    m => m.latest_submission?.ownership_active && !m.latest_submission.same_job,
+  )
+
+  const tone: 'block' | 'warn' = sameJob ? 'block' : 'warn'
+  const palette =
+    tone === 'block'
+      ? { bg: 'var(--danger-bg)', border: 'var(--danger-border)', color: 'var(--danger-text)' }
+      : { bg: 'var(--warning-bg)', border: 'var(--warning-border)', color: 'var(--warning-text)' }
+
+  const headline = sameJob
+    ? 'Este candidato já foi enviado pra essa vaga'
+    : ownershipActive
+      ? 'Outro hunter tem ownership ativo desse candidato'
+      : 'Candidato já existe na base'
+
+  return (
+    <div
+      role="alert"
+      style={{
+        background: palette.bg,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 'var(--r-md)',
+        padding: '12px 14px',
+        color: palette.color,
+        fontSize: '12.5px',
+        lineHeight: 1.55,
+      }}
+    >
+      <div style={{ fontWeight: 600, marginBottom: '6px' }}>{headline}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {matches.slice(0, 3).map(m => {
+          const sub = m.latest_submission
+          const ownsExpires = sub?.ownership_expires_at
+            ? new Date(sub.ownership_expires_at).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              })
+            : null
+          return (
+            <div key={m.candidate_id}>
+              <div style={{ fontWeight: 500 }}>
+                {m.full_name || 'Candidato sem nome'}
+                <span style={{ opacity: 0.7, fontWeight: 400 }}>
+                  {' '}
+                  · match por {m.matched_on.map(k => matchLabel[k]).join(' + ')}
+                </span>
+              </div>
+              {sub && (
+                <div style={{ opacity: 0.85, marginTop: '2px' }}>
+                  Último envio:{' '}
+                  {sub.same_job ? (
+                    <strong>esta mesma vaga</strong>
+                  ) : (
+                    <>vaga {sub.job_title || '(removida)'}</>
+                  )}
+                  {sub.recruiter_name && ` · por ${sub.recruiter_name}`}
+                  {sub.ownership_active && ownsExpires && (
+                    <> · ownership até {ownsExpires}</>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {tone === 'block' ? (
+        <div style={{ marginTop: '8px', fontWeight: 500 }}>
+          Você não pode reenviar o mesmo candidato nessa vaga.
+        </div>
+      ) : (
+        <div style={{ marginTop: '8px', opacity: 0.85 }}>
+          {ownershipActive
+            ? 'Você pode enviar mesmo assim — o HR decide se há conflito de ownership.'
+            : 'Confirme se é a mesma pessoa antes de prosseguir.'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InterviewOutlineCard({ outline }: { outline: string }) {
+  const [copied, setCopied] = useState(false)
+  const bullets = outline
+    .split('\n')
+    .map(l => l.replace(/^[\s•·\-*]+/, '').trim())
+    .filter(l => l.length > 0)
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(outline)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (err) {
+      console.warn('[copy] falhou:', err)
+    }
+  }
+
+  if (bullets.length === 0) return null
+
+  return (
+    <div
+      style={{
+        background: 'var(--accent-bg)',
+        border: '1px solid var(--accent-border)',
+        borderRadius: 'var(--r-md)',
+        padding: '14px 16px',
+      }}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--accent-text)',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+          </svg>
+          Roteiro IA — pontos a validar na conversa
+        </div>
+        <button
+          type="button"
+          onClick={copy}
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            color: 'var(--accent-text)',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            textDecoration: 'underline',
+          }}
+        >
+          {copied ? 'copiado' : 'copiar'}
+        </button>
+      </div>
+      <ul
+        style={{
+          margin: 0,
+          paddingLeft: '16px',
+          fontSize: '12.5px',
+          color: 'var(--text-2)',
+          lineHeight: 1.6,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+        }}
+      >
+        {bullets.map((b, i) => (
+          <li key={i}>{b}</li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

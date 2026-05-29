@@ -46,8 +46,20 @@ export default async function HunterVagaDetailPage({
     .eq('job_id', id)
     .eq('recruiter_id', recruiter?.id || '')
 
-  const submissionsCount = mySubmissions?.length || 0
-  const limitReached = submissionsCount >= job.max_submissions_per_recruiter
+  // Só envios em status "ativo" ocupam slot.
+  // Rejeitados / duplicados liberam o slot pro hunter usar de novo.
+  const ACTIVE_STATUSES = new Set([
+    'submitted',
+    'ai_analyzed',
+    'hr_approved',
+    'sent_to_client',
+    'client_approved',
+    'interview_scheduled',
+    'offer',
+    'hired',
+  ])
+  const activeCount = mySubmissions?.filter(s => ACTIVE_STATUSES.has(s.status)).length ?? 0
+  const limitReached = activeCount >= job.max_submissions_per_recruiter
   const deadlineExpired = job.submission_deadline
     ? new Date(job.submission_deadline) < new Date()
     : false
@@ -99,7 +111,7 @@ export default async function HunterVagaDetailPage({
           {mySubmissions && mySubmissions.length > 0 && (
             <Card padding="md">
               <h2 className="text-base font-bold text-text mb-3">
-                Meus candidatos ({submissionsCount}/{job.max_submissions_per_recruiter})
+                Meus candidatos ({activeCount}/{job.max_submissions_per_recruiter})
               </h2>
               <div className="flex flex-col gap-2">
                 {mySubmissions.map(sub => {
@@ -130,7 +142,7 @@ export default async function HunterVagaDetailPage({
             <SubmitCandidateForm
               jobId={job.id}
               recruiterId={recruiter.id}
-              remainingSlots={job.max_submissions_per_recruiter - submissionsCount}
+              remainingSlots={job.max_submissions_per_recruiter - activeCount}
             />
           )}
 
@@ -164,7 +176,7 @@ export default async function HunterVagaDetailPage({
                 { label: 'Contrato', value: job.employment_type || 'Não informado' },
                 { label: 'Prazo', value: job.submission_deadline ? formatDate(job.submission_deadline) : 'Não definido' },
                 { label: 'Limite por hunter', value: `${job.max_submissions_per_recruiter} candidatos` },
-                { label: 'Seus envios', value: `${submissionsCount}/${job.max_submissions_per_recruiter}` },
+                { label: 'Seus envios', value: `${activeCount}/${job.max_submissions_per_recruiter}` },
               ].map(item => (
                 <div key={item.label} className="flex flex-col gap-0.5">
                   <span className="text-xs text-subtle">{item.label}</span>
