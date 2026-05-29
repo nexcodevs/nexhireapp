@@ -7,6 +7,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import JobFilters from '@/components/jobs/JobFilters'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
+import { getBlockedCompanyIds } from '@/lib/blocks'
 
 export const metadata = {
   title: 'Vagas disponíveis — Nexhire',
@@ -41,6 +42,9 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   const hunterLevel: RecruiterLevel | null =
     recruiter?.status === 'approved' ? ((recruiter?.level as RecruiterLevel) || 'beginner') : null
 
+  // Empresas que bloquearam esse hunter — não devem aparecer na lista
+  const blockedCompanyIds = await getBlockedCompanyIds(supabase, user.id)
+
   let query = supabase
     .from('jobs')
     .select('*, companies(name)')
@@ -50,6 +54,8 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   if (seniorityFilter.length > 0) query = query.in('seniority', seniorityFilter)
   if (modelFilter.length > 0) query = query.in('work_model', modelFilter)
   if (typeFilter.length > 0) query = query.in('employment_type', typeFilter)
+  if (blockedCompanyIds.length > 0)
+    query = query.not('company_id', 'in', `(${blockedCompanyIds.join(',')})`)
 
   const { data: allJobs } = await query
 

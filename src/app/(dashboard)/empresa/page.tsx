@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import KPICard from '@/components/ui/KPICard'
 import { formatDate } from '@/lib/utils'
+import { requireCompany } from '@/lib/company'
 
 export const metadata = {
   title: 'Dashboard — Nexhire',
@@ -27,32 +28,15 @@ export default async function EmpresaDashboard() {
     redirect('/login')
   }
 
-  const { data: companyUser } = await supabase
-    .from('company_users')
-    .select('company_id, companies(name)')
-    .eq('user_id', user.id)
+  const companyId = await requireCompany(supabase, user.id)
+
+  const { data: companyRow } = await supabase
+    .from('companies')
+    .select('name')
+    .eq('id', companyId)
     .single()
 
-  const companyId = companyUser?.company_id
-  const companiesRel = companyUser?.companies as
-    | { name: string | null }
-    | { name: string | null }[]
-    | null
-    | undefined
-  const companyName = Array.isArray(companiesRel) ? companiesRel[0]?.name : companiesRel?.name
-
-  if (!companyId) {
-    return (
-      <div className="max-w-3xl">
-        <PageHeader
-          eyebrow="Acesso pendente"
-          title="Aguardando vínculo"
-          titleAccent="à empresa"
-          subtitle="Sua conta ainda não está associada a uma empresa. Entre em contato com o suporte para liberar o acesso."
-        />
-      </div>
-    )
-  }
+  const companyName = companyRow?.name ?? null
 
   // Stats de vagas e submissões da empresa
   const [

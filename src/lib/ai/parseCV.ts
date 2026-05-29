@@ -1,17 +1,18 @@
-import { PDFParse } from 'pdf-parse'
+import { extractText, getDocumentProxy } from 'unpdf'
 
 const MAX_CHARS = 15_000
 
+/**
+ * Extrai texto de um PDF (CV). Usa unpdf — lib moderna sem
+ * dependência de worker, funciona em runtime serverless e Turbopack.
+ */
 export async function parseCV(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: new Uint8Array(buffer) })
+  const data = new Uint8Array(buffer)
+  const pdf = await getDocumentProxy(data)
+  const { text } = await extractText(pdf, { mergePages: true })
 
-  try {
-    const result = await parser.getText()
-    const text = (result.text || '').trim()
+  const clean = (Array.isArray(text) ? text.join('\n') : text).trim()
 
-    if (text.length <= MAX_CHARS) return text
-    return text.slice(0, MAX_CHARS) + '\n\n[…texto truncado para análise]'
-  } finally {
-    await parser.destroy()
-  }
+  if (clean.length <= MAX_CHARS) return clean
+  return clean.slice(0, MAX_CHARS) + '\n\n[…texto truncado para análise]'
 }

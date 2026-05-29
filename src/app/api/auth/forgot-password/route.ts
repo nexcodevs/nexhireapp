@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { forgotPasswordLimiter, getClientIp } from '@/lib/ratelimit'
+import { logAudit } from '@/lib/audit'
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +38,16 @@ export async function POST(request: Request) {
     if (error) {
       console.error('[forgot-password] supabase error:', error.message)
     }
+
+    await logAudit({
+      actorId: null,
+      actorRole: null,
+      action: 'auth.password_reset_requested',
+      targetType: 'user',
+      payload: { email },
+      ip,
+      userAgent: request.headers.get('user-agent'),
+    })
 
     // Anti-enumeração: sempre retornar sucesso, independente do email existir
     return NextResponse.json({ success: true })

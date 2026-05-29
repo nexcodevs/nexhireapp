@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import JobFilters from '@/components/jobs/JobFilters'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { requireCompany } from '@/lib/company'
 
 export const metadata = {
   title: 'Minhas vagas — Nexhire',
@@ -46,16 +47,12 @@ export default async function EmpresaVagasPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: companyUser } = await supabase
-    .from('company_users')
-    .select('company_id')
-    .eq('user_id', user.id)
-    .single()
+  const companyId = await requireCompany(supabase, user.id)
 
   let query = supabase
     .from('jobs')
     .select('*')
-    .eq('company_id', companyUser?.company_id || '')
+    .eq('company_id', companyId)
     .order('created_at', { ascending: false })
 
   if (statusFilter.length > 0) query = query.in('status', statusFilter)

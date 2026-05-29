@@ -64,12 +64,79 @@ export default function SubmitCandidateForm({
   const [hunterScore, setHunterScore] = useState<number | null>(null)
   const [cvPath, setCvPath] = useState<string | null>(null)
 
+  // Pré-fill IA: estado da chamada + flag por campo (true = sugestão IA pendente de revisão)
+  const [prefilling, setPrefilling] = useState(false)
+  const [prefillError, setPrefillError] = useState('')
+  const [aiHints, setAiHints] = useState<{
+    jd_priorities?: boolean
+    hunter_score?: boolean
+    hunter_score_rationale?: boolean
+  }>({})
+  const [interviewOutline, setInterviewOutline] = useState('')
+
+  async function requestPrefill(path: string) {
+    setPrefilling(true)
+    setPrefillError('')
+    try {
+      const res = await fetch('/api/ai/prefill-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, cvPath: path }),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        setPrefillError(data.error || 'IA não conseguiu analisar este CV — preencha manualmente.')
+        return
+      }
+      const data = (await res.json()) as {
+        suggestion: {
+          jd_priorities: string
+          hunter_score: number
+          hunter_score_rationale: string
+          interview_outline: string
+        }
+      }
+      setSubmission(prev => ({
+        ...prev,
+        jd_priorities: data.suggestion.jd_priorities || prev.jd_priorities,
+        hunter_score_rationale: data.suggestion.hunter_score_rationale || prev.hunter_score_rationale,
+      }))
+      if (typeof data.suggestion.hunter_score === 'number') {
+        setHunterScore(data.suggestion.hunter_score)
+      }
+      setInterviewOutline(data.suggestion.interview_outline || '')
+      setAiHints({
+        jd_priorities: !!data.suggestion.jd_priorities,
+        hunter_score: typeof data.suggestion.hunter_score === 'number',
+        hunter_score_rationale: !!data.suggestion.hunter_score_rationale,
+      })
+    } catch (err) {
+      console.warn('[prefill] erro:', err)
+      setPrefillError('Falha ao chamar a IA. Preencha manualmente.')
+    } finally {
+      setPrefilling(false)
+    }
+  }
+
+  function handleCvUploaded(path: string) {
+    setCvPath(path)
+    requestPrefill(path)
+  }
+
+  function dismissHint(field: keyof typeof aiHints) {
+    setAiHints(prev => ({ ...prev, [field]: false }))
+  }
+
   function handleCandidateChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setCandidate(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   function handleSubmissionChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setSubmission(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, value } = e.target
+    setSubmission(prev => ({ ...prev, [name]: value }))
+    if (name === 'jd_priorities' && aiHints.jd_priorities) dismissHint('jd_priorities')
+    if (name === 'hunter_score_rationale' && aiHints.hunter_score_rationale)
+      dismissHint('hunter_score_rationale')
   }
 
   async function notifyHR(submissionId: string) {
@@ -391,17 +458,24 @@ export default function SubmitCandidateForm({
           />
           <CVUpload
             value={cvPath}
-            onUploaded={path => setCvPath(path)}
+            onUploaded={handleCvUploaded}
             onRemoved={() => setCvPath(null)}
-            disabled={loading}
+            disabled={loading || prefilling}
             required
           />
+          {prefilling && <AIHintBanner mode="loading" />}
+          {prefillError && !prefilling && (
+            <AIHintBanner mode="error" message={prefillError} />
+          )}
         </FieldGroup>
 
         <FieldGroup
           title="Validações do envio"
           description="Garantem que você de fato entrevistou o candidato e conhece a vaga."
         >
+          {aiHints.jd_priorities && (
+            <AIHintBanner mode="suggested" onDismiss={() => dismissHint('jd_priorities')} />
+          )}
           <Textarea
             label="3 pontos da vaga que você priorizou na entrevista"
             name="jd_priorities"
@@ -413,6 +487,9 @@ export default function SubmitCandidateForm({
             hint="Liste os 3 pontos da descrição da vaga que você abordou diretamente."
           />
 
+          {aiHints.hunter_score && (
+            <AIHintBanner mode="suggested" onDismiss={() => dismissHint('hunter_score')} />
+          )}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="hunter-score"
@@ -441,7 +518,10 @@ export default function SubmitCandidateForm({
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    onClick={() => setHunterScore(n)}
+                    onClick={() => {
+                      setHunterScore(n)
+                      if (aiHints.hunter_score) dismissHint('hunter_score')
+                    }}
                     className="hunter-score-pill"
                     style={{
                       height: '38px',
@@ -462,6 +542,9 @@ export default function SubmitCandidateForm({
             </div>
           </div>
 
+          {aiHints.hunter_score_rationale && (
+            <AIHintBanner mode="suggested" onDismiss={() => dismissHint('hunter_score_rationale')} />
+          )}
           <Textarea
             label="Por que esse score?"
             name="hunter_score_rationale"
@@ -475,6 +558,12 @@ export default function SubmitCandidateForm({
         </FieldGroup>
 
         <FieldGroup title="Conversa com o candidato">
+          {interviewOutline && (
+            <AIHintBanner
+              mode="tip"
+              message={`IA sugere validar na conversa: ${interviewOutline.replace(/\n/g, ' ')}`}
+            />
+          )}
           <Textarea
             label="Resumo / transcrição da entrevista"
             name="interview_summary"
@@ -551,5 +640,91 @@ function FieldGroup({ title, description, children }: FieldGroupProps) {
       )}
       {children}
     </fieldset>
+  )
+}
+
+type AIHintMode = 'loading' | 'error' | 'suggested' | 'tip'
+
+interface AIHintBannerProps {
+  mode: AIHintMode
+  message?: string
+  onDismiss?: () => void
+}
+
+function AIHintBanner({ mode, message, onDismiss }: AIHintBannerProps) {
+  const palette = (() => {
+    switch (mode) {
+      case 'loading':
+        return { bg: 'var(--accent-bg)', border: 'var(--accent-border)', color: 'var(--accent-text)' }
+      case 'error':
+        return { bg: 'var(--warning-bg)', border: 'var(--warning-border)', color: 'var(--warning-text)' }
+      case 'suggested':
+      case 'tip':
+      default:
+        return { bg: 'var(--accent-bg)', border: 'var(--accent-border)', color: 'var(--accent-text)' }
+    }
+  })()
+
+  return (
+    <div
+      role={mode === 'error' ? 'alert' : 'status'}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 12px',
+        borderRadius: 'var(--r-md)',
+        background: palette.bg,
+        border: `1px solid ${palette.border}`,
+        color: palette.color,
+        fontSize: '12px',
+        fontWeight: 500,
+        letterSpacing: '-0.005em',
+      }}
+    >
+      <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center' }}>
+        {mode === 'loading' ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite' }}>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        ) : mode === 'error' ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+          </svg>
+        )}
+      </span>
+      <span style={{ flex: 1, lineHeight: 1.4 }}>
+        {mode === 'loading' && 'IA analisando o currículo… preenchendo sugestões abaixo'}
+        {mode === 'error' && (message || 'IA não conseguiu analisar. Preencha manualmente.')}
+        {mode === 'suggested' && (message || 'Sugerido pela IA — revise e ajuste se quiser')}
+        {mode === 'tip' && message}
+      </span>
+      {mode === 'suggested' && onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: palette.color,
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: 0,
+            textDecoration: 'underline',
+            opacity: 0.7,
+          }}
+        >
+          revisei
+        </button>
+      )}
+    </div>
   )
 }
