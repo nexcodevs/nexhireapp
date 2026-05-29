@@ -81,6 +81,18 @@ export interface Recruiter {
   created_at: string
 }
 
+export interface Candidate {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  linkedin_url: string | null
+  current_title: string | null
+  location: string | null
+  cv_url: string | null
+  created_at: string
+}
+
 export interface Submission {
   id: string
   job_id: string
@@ -88,6 +100,9 @@ export interface Submission {
   recruiter_id: string
   status: SubmissionStatus
   interview_summary: string | null
+  jd_priorities: string | null
+  hunter_score: number | null
+  hunter_score_rationale: string | null
   ai_score: number | null
   ai_summary: string | null
   submitted_at: string

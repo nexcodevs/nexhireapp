@@ -31,6 +31,15 @@ export function getJobStatusLabel(status: string): string {
   return labels[status] || status
 }
 
+export function formatDaysSince(iso: string): string {
+  const days = Math.floor(
+    (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24),
+  )
+  if (days <= 0) return 'hoje'
+  if (days === 1) return 'ontem'
+  return `há ${days}d`
+}
+
 export function getJobStatusVariant(status: string): 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'dark' {
   const variants: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'dark'> = {
     draft: 'gray',

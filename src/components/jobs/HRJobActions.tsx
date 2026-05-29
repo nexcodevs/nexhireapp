@@ -73,20 +73,20 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
   }
 
   return (
-    <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
-      <h2 className="text-base font-bold text-[#052E16] mb-4">
+    <Card padding="md" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}>
+      <h2 className="text-base font-bold text-text mb-4">
         Revisão da vaga
       </h2>
 
       <div className="flex flex-col gap-4">
         {/* Visibilidade */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
+          <label className="text-sm font-medium text-text2">
             Visibilidade da vaga
           </label>
           <div className="flex flex-col gap-2">
             <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-              visibility === 'open' ? 'border-[#16A34A] bg-white' : 'border-[#E5E7EB] bg-white hover:border-[#BBF7D0]'
+              visibility === 'open' ? 'border-(--accent-text) bg-surf' : 'border-(--border-2) bg-surf hover:border-(--accent-border)'
             }`}>
               <input
                 type="radio"
@@ -94,15 +94,15 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
                 value="open"
                 checked={visibility === 'open'}
                 onChange={() => setVisibility('open')}
-                className="mt-0.5 accent-[#16A34A]"
+                className="mt-0.5 accent-(--accent-text)"
               />
               <div>
-                <div className="text-sm font-medium text-[#052E16]">Aberta para todos</div>
-                <div className="text-xs text-[#6B7280]">Todos os hunters aprovados podem enviar candidatos.</div>
+                <div className="text-sm font-medium text-text">Aberta para todos</div>
+                <div className="text-xs text-muted">Todos os hunters aprovados podem enviar candidatos.</div>
               </div>
             </label>
             <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-              visibility === 'specialist_plus' ? 'border-[#16A34A] bg-white' : 'border-[#E5E7EB] bg-white hover:border-[#BBF7D0]'
+              visibility === 'specialist_plus' ? 'border-(--accent-text) bg-surf' : 'border-(--border-2) bg-surf hover:border-(--accent-border)'
             }`}>
               <input
                 type="radio"
@@ -110,15 +110,15 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
                 value="specialist_plus"
                 checked={visibility === 'specialist_plus'}
                 onChange={() => setVisibility('specialist_plus')}
-                className="mt-0.5 accent-[#16A34A]"
+                className="mt-0.5 accent-(--accent-text)"
               />
               <div>
-                <div className="text-sm font-medium text-[#052E16]">Especialistas e Top Hunters</div>
-                <div className="text-xs text-[#6B7280]">Esconde a vaga dos hunters Iniciantes.</div>
+                <div className="text-sm font-medium text-text">Especialistas e Top Hunters</div>
+                <div className="text-xs text-muted">Esconde a vaga dos hunters Iniciantes.</div>
               </div>
             </label>
             <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-              visibility === 'top_hunters_only' ? 'border-[#16A34A] bg-white' : 'border-[#E5E7EB] bg-white hover:border-[#BBF7D0]'
+              visibility === 'top_hunters_only' ? 'border-(--accent-text) bg-surf' : 'border-(--border-2) bg-surf hover:border-(--accent-border)'
             }`}>
               <input
                 type="radio"
@@ -126,11 +126,11 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
                 value="top_hunters_only"
                 checked={visibility === 'top_hunters_only'}
                 onChange={() => setVisibility('top_hunters_only')}
-                className="mt-0.5 accent-[#16A34A]"
+                className="mt-0.5 accent-(--accent-text)"
               />
               <div>
-                <div className="text-sm font-medium text-[#052E16]">Top Hunters apenas</div>
-                <div className="text-xs text-[#6B7280]">Vaga exclusiva — só Top Hunters veem.</div>
+                <div className="text-sm font-medium text-text">Top Hunters apenas</div>
+                <div className="text-xs text-muted">Vaga exclusiva — só Top Hunters veem.</div>
               </div>
             </label>
           </div>
@@ -138,13 +138,13 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
 
         {/* Limite */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
+          <label className="text-sm font-medium text-text2">
             Limite de candidatos por hunter
           </label>
           <select
             value={maxSubmissions}
             onChange={e => setMaxSubmissions(e.target.value)}
-            className="h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] focus:outline-none focus:ring-2 focus:ring-[#16A34A] max-w-xs"
+            className="h-10 px-3 rounded-lg border border-(--border-2) bg-surf text-sm text-text focus:outline-none focus:ring-2 focus:ring-(--accent-text) max-w-xs"
           >
             <option value="1">1 candidato</option>
             <option value="2">2 candidatos</option>
@@ -156,7 +156,7 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
 
         {/* Notas */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
+          <label className="text-sm font-medium text-text2">
             Notas internas (opcional)
           </label>
           <textarea
@@ -164,7 +164,7 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
             onChange={e => setNotes(e.target.value)}
             rows={2}
             placeholder="Observações sobre a vaga..."
-            className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
+            className="px-3 py-2.5 rounded-lg border border-(--border-2) bg-surf text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-(--accent-text) resize-none"
           />
         </div>
 

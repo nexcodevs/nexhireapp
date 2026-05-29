@@ -23,6 +23,21 @@ Cada item tem:
 
 Itens obrigatórios antes de mostrar o produto para qualquer cliente real.
 
+### Rodar SQL do bucket `cvs` no Supabase
+- **Esforço:** S (5min) · **Impacto:** Hunter, IA
+- Arquivo: `supabase/migrations/20260528_cvs_storage.sql`
+- Sem isso o upload de CV no `SubmitCandidateForm` falha silenciosamente (RLS bloqueia, mas o erro pode passar despercebido).
+- Rodar em SQL Editor: https://supabase.com/dashboard/project/ahbpnufpyqcqdldhbxbl/sql/new
+
+### Template custom de email "Esqueci minha senha" via Resend
+- **Esforço:** M (2-3h) · **Impacto:** Todos (UX)
+- **Depende:** domínio verificado no Resend (item abaixo).
+- Hoje o email de recuperação vem do template padrão do Supabase, sem identidade visual Nexhire.
+- Plano:
+  1. Configurar SMTP custom no Supabase Auth apontando pro Resend, OU
+  2. Substituir o fluxo: `resetPasswordForEmail` direto pra `/api/auth/forgot-password` (route handler nosso) → gera token único + salva em tabela `password_resets` → envia email via Resend com template estilizado → `/reset-password?token=xxx` valida e atualiza senha via service role.
+- Opção (2) é mais controle, mais código. Opção (1) é mais simples mas amarra ao limite do Supabase.
+
 ### Verificar domínio no Resend
 - **Esforço:** S (30min) · **Impacto:** Todos
 - Hoje os emails saem de `onboarding@resend.dev` e só chegam em `daniel@nexco.cc` (limitação do plano free Resend).
@@ -55,12 +70,15 @@ Itens obrigatórios antes de mostrar o produto para qualquer cliente real.
 - Não afeta usuários finais (problema é só do nosso ambiente local).
 
 ### Fluxo "Esqueci minha senha"
-- **Esforço:** S (1-2h) · **Impacto:** Empresa, Hunter, Candidato, HR
-- Hoje não existe. Sem isso, qualquer usuário que esqueça a senha precisa do admin acessar Supabase Dashboard.
-- Supabase Auth já suporta nativamente. Falta:
-  - Tela `/login/esqueci-senha` com input de email
-  - Tela `/login/redefinir-senha` para clicar no link e definir nova senha
-  - Email template no Resend (ou usar template padrão do Supabase)
+- **Status:** ✅ Resolvido em 2026-05-28 (Bloco 0)
+- Páginas `/forgot-password` e `/reset-password` implementadas. `resetPasswordForEmail` + `updateUser`. Link no `LoginForm`. Componente `AuthLayout` extraído. Standards de design + a11y aplicados.
+- Email usa template padrão do Supabase. Trocar pra template Resend customizado é nice-to-have (P3).
+
+### Rate limit reforçado em fluxos sensíveis
+- **Prioridade:** P0 · **Esforço:** S (1-2h) · **Impacto:** Segurança
+- Supabase Auth já aplica ~4 emails/h por endereço em `resetPasswordForEmail`. Os standards pedem **3/h por email** em `/forgot-password` e **5/min por IP** em login.
+- Pra fechar o gap, adicionar camada com Upstash Redis (instalar `@upstash/ratelimit` + `@upstash/redis`) ou KV equivalente na Vercel.
+- Aplicar em: `POST /forgot-password` (3/h por email), `POST /login` (5/min por IP), `POST /signup` (3/h por IP).
 
 ---
 
@@ -121,9 +139,8 @@ Transforma marketplace de "todos concorrem" em meritocrático. Sem isso, o produ
 - Movido `src/app/(dashboard)/empresa/nova-vaga/` para `src/app/(dashboard)/empresa/vagas/nova/`. Pasta duplicada `vagas/_nova/` removida. Links atualizados em `empresa/page.tsx` e `empresa/vagas/page.tsx`.
 
 ### Duplicação de pasta de IA
-- **Esforço:** S (15min) · **Impacto:** Manutenção
-- Existem `src/lib/ai/analyse/route.ts` (com s) e `src/lib/ai/analyze/route.ts` (sem s).
-- Provável duplicidade gerada por erro de digitação. Consolidar em uma só pasta (`analyze`, inglês americano padrão).
+- **Status:** ✅ Resolvido em 2026-05-28 (Bloco 1)
+- `src/lib/ai/analyse/` removida. `src/lib/ai/analyze.ts` é o único módulo. Rota ativa: `src/app/api/ai/analyze/route.ts`.
 
 ### Reset de senha não acessível pelo painel Supabase
 - **Status:** ✅ Resolvido em 2026-05-28 (Bloco 0)
@@ -135,15 +152,63 @@ Transforma marketplace de "todos concorrem" em meritocrático. Sem isso, o produ
 
 ---
 
+## P1 — Sprint Visual (pós-deploy do MVP funcional)
+
+Decisão de 2026-05-28: o produto está funcional mas operacionalmente simples. Após Blocos 4-6 e deploy, fazer sprint dedicada de polish visual antes de mostrar pra cliente real.
+
+### Kanban com identidade visual mais forte
+- **Esforço:** M (4-6h) · **Impacto:** HR, Empresa (decisão)
+- Hoje as colunas são funcionais mas neutras (fundo cream, cards brancos, dots de status).
+- Sugestões:
+  - Headers de coluna com fundo gradiente sutil por status (mint pra recebidos, dark pra hired)
+  - Cards com micro-avatares maiores, mais respiro entre eles
+  - Ícones inline em cada coluna (lucide) — recebidos = inbox, hired = check, etc.
+  - Animação de transição quando mover (vai junto com drag-drop)
+  - Empty states com ilustrações sutis em vez de texto italic
+
+### `/empresa/candidatos/[id]` com gráficos e IA expandida
+- **Esforço:** L (6-8h) · **Impacto:** Empresa (decisão)
+- **Pedido do Daniel em 2026-05-28:** "deve mostrar mais informações da entrevista realizada pelo hunter. A tela precisa ser mais visual, com gráfico, informações da IA (quando tiver) e mais detalhes para tomada de decisão."
+- Sugestões de conteúdo:
+  - Score breakdown radar chart (fit_tecnico / fit_senioridade / fit_comportamental) — usar recharts ou similar
+  - Hero card com Top match badge se score > 75
+  - Tabs: Visão geral / Análise IA / Conversa do hunter / Histórico
+  - CV PDF visualizado inline com pdf-viewer leve
+  - Hunter assessment card (jd_priorities + hunter_score + rationale) destacado
+  - Perguntas recomendadas pela IA pra próxima entrevista, com botão "Copiar"
+  - Timeline visual com ícones em vez da lista linear atual
+
+### Outras telas operacionais com mais densidade visual
+- **Esforço:** M (4-6h cada) · **Impacto:** HR, Hunter
+- `/hr/submissoes/[id]` com tabs e gráficos similares
+- `/hr/submissoes` (fila) hoje é tabela simples — virar lista de cards visuais
+- `/hunter/vagas` cards de vaga com mais hierarquia visual (badge premium pra exclusivas, etc.)
+
+---
+
 ## P2 — Melhorias de produto
 
 ### Upload de CV em PDF/DOCX
-- **Esforço:** M (4-6h) · **Impacto:** Hunter, HR, IA
-- Hoje hunter cola dados manualmente. Limitação prevista no PRD.
-- Implementar:
-  - Upload no Supabase Storage com permissões por papel
-  - Extração de texto (pdf-parse, mammoth para .docx)
-  - Texto extraído alimenta a análise da IA (melhora score significativamente)
+- **Status:** ✅ Resolvido (PDF) em 2026-05-28 (Bloco 1)
+- Bucket `cvs` privado criado com RLS por role. Componente `CVUpload` em `components/submissions/`. Parse via `pdf-parse` integrado ao `analyzeCandidate`. Link "Ver CV" (signed URL 5min) na página `/hr/submissoes/[id]`.
+- Decisão MVP: aceitar **apenas PDF**. Suporte a DOCX (mammoth) fica como nice-to-have P3.
+- Visualização para empresa (no `/empresa/vagas/.../candidatos/...`) será adicionada quando aquela página ganhar a sidebar com contato.
+
+### `/empresa/vagas/[id]/page.tsx` está com lógica de hunter (broken)
+- **Prioridade:** P1 · **Esforço:** S (1-2h) · **Impacto:** Empresa
+- O arquivo `src/app/(dashboard)/empresa/vagas/[id]/page.tsx` tem `export default function HunterVagaDetailPage`, queries em `recruiters`, renderiza `<SubmitCandidateForm>` e link "Voltar para vagas" apontando pra `/hunter/vagas`. É claramente a página do hunter colada no caminho da empresa.
+- Bloco 3 (2026-05-28) redirecionou TODOS os links da empresa pra `/empresa/vagas/[id]/candidatos` (que é a página correta). Mas a rota antiga continua acessível por URL direta e mostra UI errada se acessada.
+- Decisão: substituir o conteúdo por um redirect server-side pra `/empresa/vagas/[id]/candidatos`, OU reescrever o detalhe da vaga com info relevante pra empresa (descrição editável, status, prazo, gestão de visibilidade) — definir antes de fazer.
+
+### Refactor do SubmitCandidateForm pra design system completo
+- **Prioridade:** P2 · **Esforço:** S (1h) · **Impacto:** Manutenção, a11y
+- Form hoje tem várias cores hex hardcoded (`#374151`, `#16A34A`, `#E5E7EB`, `#9CA3AF`, `#FFFBEB`, `#FDE68A`, `#92400E`, etc.) e `<textarea>` estilizado inline em vez de componente do design system.
+- Tarefas:
+  - Extrair componente `Textarea` em `components/ui/` seguindo padrão do `Input` (label htmlFor, aria-invalid, aria-describedby, asterisco vermelho)
+  - Trocar hex por `var(--color-...)` em todo o form
+  - Trocar erro inline por `<FormError>`
+  - Trocar success card por padrão `role="status"` consistente com outros forms
+- Bloco 0/1 deixou intencionalmente pra preservar diff mínimo.
   - Cliente vê botão "Baixar CV" no perfil curado
 
 ### Notificações in-app (sino com badge)

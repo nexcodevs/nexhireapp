@@ -38,19 +38,20 @@ export default async function CandidatoDashboard() {
       />
 
       {/* CTA */}
-      <Card padding="lg" className="mb-8 border-[#BBF7D0] bg-[#F0FDF4]">
+      <Card padding="lg" className="mb-8" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[#052E16] mb-1">
+            <h2 className="text-lg font-bold text-text mb-1">
               Complete seu perfil
             </h2>
-            <p className="text-sm text-[#6B7280]">
+            <p className="text-sm text-muted">
               Adicione seu CV para aparecer no matching de vagas.
             </p>
           </div>
           <Link
             href="/candidato/perfil"
-            className="inline-flex items-center gap-2 bg-[#052E16] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#064E1F] transition-colors flex-shrink-0"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shrink-0"
+            style={{ background: 'var(--text-1)', color: 'var(--text-on-dark)' }}
           >
             Completar perfil
           </Link>
@@ -60,15 +61,15 @@ export default async function CandidatoDashboard() {
       {/* Vagas abertas */}
       <Card padding="md">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-[#052E16]">Vagas abertas</h2>
-          <Link href="/candidato/vagas" className="text-sm text-[#16A34A] hover:underline">
+          <h2 className="text-base font-bold text-text">Vagas abertas</h2>
+          <Link href="/candidato/vagas" className="text-sm text-g600 hover:underline">
             Ver todas
           </Link>
         </div>
 
         {!availableJobs || availableJobs.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-[#9CA3AF] text-sm">
+            <p className="text-subtle text-sm">
               Nenhuma vaga disponível no momento.
             </p>
           </div>
@@ -78,16 +79,17 @@ export default async function CandidatoDashboard() {
               <Link
                 key={job.id}
                 href={`/candidato/vagas/${job.id}`}
-                className="flex flex-col p-4 rounded-lg border border-[#E5E7EB] hover:border-[#BBF7D0] hover:bg-[#F0FDF4] transition-all"
+                className="flex flex-col p-4 rounded-lg border transition-all hover:border-(--accent-border) hover:bg-(--accent-bg)"
+                style={{ borderColor: 'var(--border-2)' }}
               >
-                <div className="text-sm font-semibold text-[#052E16] mb-1">
+                <div className="text-sm font-semibold text-text mb-1">
                   {job.title}
                 </div>
-                <div className="text-xs text-[#9CA3AF] mb-3">
+                <div className="text-xs text-subtle mb-3">
                   {job.location} · {job.work_model} · {job.seniority}
                 </div>
                 {job.salary_min && (
-                  <div className="text-xs font-medium text-[#16A34A] mt-auto">
+                  <div className="text-xs font-medium text-g600 mt-auto">
                     R$ {job.salary_min.toLocaleString('pt-BR')}
                     {job.salary_max && ` — ${job.salary_max.toLocaleString('pt-BR')}`}
                   </div>

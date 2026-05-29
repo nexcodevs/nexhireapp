@@ -32,7 +32,11 @@ export default function ClientCandidateActions({
       schedule: 'interview_scheduled',
     }
 
-    const updatePayload: any = { status: statusMap[action] }
+    const updatePayload: {
+      status: string
+      client_feedback?: string
+      client_reviewed_at?: string
+    } = { status: statusMap[action] }
     if (reason && (action === 'approve' || action === 'reject')) {
       updatePayload.client_feedback = reason
       updatePayload.client_reviewed_at = new Date().toISOString()
@@ -68,9 +72,9 @@ export default function ClientCandidateActions({
 
   if (mode === 'schedule') {
     return (
-      <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
-        <h2 className="text-base font-bold text-[#052E16] mb-3">Agendar entrevista</h2>
-        <p className="text-sm text-[#6B7280] mb-4">
+      <Card padding="md" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}>
+        <h2 className="text-base font-bold text-text mb-3">Agendar entrevista</h2>
+        <p className="text-sm text-muted mb-4">
           Candidato aprovado. Deseja agendar uma entrevista?
         </p>
         {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
@@ -85,11 +89,11 @@ export default function ClientCandidateActions({
   }
 
   return (
-    <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
-      <h2 className="text-base font-bold text-[#052E16] mb-4">Avaliar candidato</h2>
+    <Card padding="md" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}>
+      <h2 className="text-base font-bold text-text mb-4">Avaliar candidato</h2>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
+          <label className="text-sm font-medium text-text2">
             Motivo (opcional)
           </label>
           <textarea
@@ -97,7 +101,7 @@ export default function ClientCandidateActions({
             onChange={e => setReason(e.target.value)}
             rows={2}
             placeholder="Compartilhe seu feedback sobre este candidato..."
-            className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
+            className="px-3 py-2.5 rounded-lg border border-(--border-2) bg-surf text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-(--accent-text) resize-none"
           />
         </div>
 

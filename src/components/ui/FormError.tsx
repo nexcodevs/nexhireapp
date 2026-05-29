@@ -7,12 +7,13 @@ export default function FormError({ children }: FormErrorProps) {
     <p
       role="alert"
       style={{
-        fontSize: '13px',
-        color: '#991B1B',
-        background: '#FEF2F2',
-        border: '1px solid #FECACA',
-        borderRadius: '8px',
-        padding: '8px 12px',
+        fontSize: '12.5px',
+        color: 'var(--danger-text)',
+        background: 'var(--danger-bg)',
+        border: '1px solid var(--danger-border)',
+        borderRadius: 'var(--r-md)',
+        padding: '10px 12px',
+        lineHeight: 1.5,
       }}
     >
       {children}

@@ -1,10 +1,21 @@
 import Image from 'next/image'
 import { ReactNode } from 'react'
+import NexhireLogo from '@/components/brand/NexhireLogo'
+
+interface AuthQuote {
+  text: ReactNode
+  authorName: string
+  authorRole: string
+  authorInitials?: string
+}
 
 interface AuthLayoutProps {
-  leftTitle: ReactNode
-  leftSubtitle: string
+  /** Variant: bullets (feature list) ou quote (testimonial). Default = bullets. */
+  leftVariant?: 'bullets' | 'quote'
+  leftTitle?: ReactNode
+  leftSubtitle?: string
   leftBullets?: string[]
+  leftQuote?: AuthQuote
   rightEyebrow: string
   rightTitle: ReactNode
   rightSubtitle: string
@@ -12,136 +23,250 @@ interface AuthLayoutProps {
 }
 
 export default function AuthLayout({
+  leftVariant = 'bullets',
   leftTitle,
   leftSubtitle,
   leftBullets,
+  leftQuote,
   rightEyebrow,
   rightTitle,
   rightSubtitle,
   children,
 }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex" style={{ background: 'var(--color-bg-app)' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        background: 'var(--bg-base)',
+      }}
+    >
+      {/* Side visual — escondida em mobile */}
       <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between"
+        className="hidden lg:flex"
         style={{
-          background: 'var(--color-f900)',
-          padding: '48px',
+          width: '50%',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '56px',
+          background: 'linear-gradient(135deg, var(--green-850) 0%, var(--green-950) 100%)',
+          color: 'var(--text-on-dark)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
         <div
-          aria-hidden="true"
+          aria-hidden
           style={{
             position: 'absolute',
-            top: '-100px',
-            right: '-100px',
+            top: '-30%',
+            right: '-30%',
+            width: '600px',
+            height: '600px',
+            background: 'radial-gradient(circle, rgba(0,230,118,.18) 0%, transparent 60%)',
+            pointerEvents: 'none',
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            bottom: '-20%',
+            left: '-20%',
             width: '400px',
             height: '400px',
-            background: 'radial-gradient(circle, rgba(0,230,118,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(139,92,246,.12) 0%, transparent 60%)',
             pointerEvents: 'none',
           }}
         />
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <Image
-            src="/brand/nexhire-logo.svg"
-            alt="Nexhire"
-            width={872}
-            height={180}
-            priority
-            style={{ width: '140px', height: 'auto', display: 'block' }}
-          />
+        <div style={{ position: 'relative', zIndex: 1, color: 'var(--text-on-dark)' }}>
+          <NexhireLogo width={128} />
+          <div
+            style={{
+              marginTop: '14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--neon)',
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                background: 'var(--neon)',
+                boxShadow: '0 0 6px var(--neon)',
+              }}
+            />
+            Sistema operacional · Nexhire
+          </div>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '460px' }}>
-          <h1
-            style={{
-              fontSize: '40px',
-              fontWeight: 700,
-              lineHeight: 1.1,
-              letterSpacing: '-0.03em',
-              color: '#FFFFFF',
-              marginBottom: '20px',
-            }}
-          >
-            {leftTitle}
-          </h1>
-          <p
-            style={{
-              fontSize: '16px',
-              color: 'rgba(255,255,255,0.6)',
-              fontWeight: 300,
-              lineHeight: 1.6,
-            }}
-          >
-            {leftSubtitle}
-          </p>
-        </div>
-
-        {leftBullets && leftBullets.length > 0 ? (
-          <ul
-            style={{
-              position: 'relative',
-              zIndex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            {leftBullets.map(item => (
-              <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span
-                  aria-hidden="true"
+        {leftVariant === 'quote' && leftQuote ? (
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: '520px' }}>
+            <blockquote
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontStyle: 'italic',
+                fontSize: '40px',
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+                color: 'var(--text-on-dark)',
+                marginBottom: '32px',
+                margin: 0,
+              }}
+            >
+              {leftQuote.text}
+            </blockquote>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                paddingTop: '32px',
+                marginTop: '32px',
+                borderTop: '1px solid rgba(255,255,255,.1)',
+              }}
+            >
+              <div
+                aria-hidden
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--neon), var(--green-600))',
+                  color: 'var(--green-950)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
+              >
+                {leftQuote.authorInitials ??
+                  leftQuote.authorName
+                    .split(' ')
+                    .map(n => n.charAt(0))
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600 }}>{leftQuote.authorName}</div>
+                <div
                   style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    background: 'var(--color-neon)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '11px',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255,255,255,.7)',
+                    marginTop: '2px',
                   }}
                 >
-                  <svg
-                    width="11"
-                    height="11"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={3}
-                    style={{ stroke: 'var(--color-f900)' }}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                <span style={{ fontSize: '14px', color: 'var(--color-m200)', fontWeight: 400 }}>
-                  {item}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  {leftQuote.authorRole}
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
-          <div style={{ position: 'relative', zIndex: 1 }} />
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: '460px' }}>
+            {leftTitle && (
+              <h1
+                style={{
+                  fontSize: '40px',
+                  fontWeight: 500,
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.03em',
+                  color: 'var(--text-on-dark)',
+                  marginBottom: '20px',
+                }}
+              >
+                {leftTitle}
+              </h1>
+            )}
+            {leftSubtitle && (
+              <p
+                style={{
+                  fontSize: '15px',
+                  color: 'rgba(255,255,255,.7)',
+                  fontWeight: 300,
+                  lineHeight: 1.55,
+                  marginBottom: leftBullets && leftBullets.length > 0 ? '32px' : 0,
+                }}
+              >
+                {leftSubtitle}
+              </p>
+            )}
+            {leftBullets && leftBullets.length > 0 && (
+              <ul
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                }}
+              >
+                {leftBullets.map(item => (
+                  <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span
+                      aria-hidden
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'var(--neon)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg
+                        width="11"
+                        height="11"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={3}
+                        style={{ stroke: 'var(--green-950)' }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                    <span style={{ fontSize: '14px', color: 'var(--green-200)', fontWeight: 400 }}>
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
+
+        <div style={{ position: 'relative', zIndex: 1 }} />
       </div>
 
+      {/* Form side */}
       <div
         className="w-full lg:w-1/2 flex items-center justify-center"
         style={{ padding: '32px' }}
       >
-        <div className="w-full" style={{ maxWidth: '380px' }}>
-          <div className="lg:hidden mb-8">
+        <div className="w-full" style={{ maxWidth: '400px' }}>
+          <div className="lg:hidden" style={{ marginBottom: '32px' }}>
             <Image
               src="/brand/nexhire-symbol.svg"
               alt="Nexhire"
               width={132}
               height={132}
               priority
-              style={{ width: '44px', height: '44px', display: 'block', marginBottom: '12px' }}
+              style={{ width: '44px', height: '44px', display: 'block' }}
             />
           </div>
 
@@ -150,39 +275,41 @@ export default function AuthLayout({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '10.5px',
-                fontWeight: 600,
-                letterSpacing: '0.18em',
+                gap: '8px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                fontWeight: 500,
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: 'var(--color-g600)',
-                marginBottom: '10px',
+                color: 'var(--accent-text)',
+                marginBottom: '12px',
               }}
             >
               <span
-                aria-hidden="true"
+                aria-hidden
                 style={{
                   width: '5px',
                   height: '5px',
                   borderRadius: '50%',
-                  background: 'var(--color-neon)',
+                  background: 'var(--neon)',
+                  boxShadow: '0 0 6px var(--neon)',
                 }}
               />
               {rightEyebrow}
             </div>
             <h2
               style={{
-                fontSize: '30px',
-                fontWeight: 700,
-                letterSpacing: '-0.025em',
-                lineHeight: 1.15,
-                color: 'var(--color-text)',
-                marginBottom: '6px',
+                fontSize: '32px',
+                fontWeight: 500,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
+                color: 'var(--text-1)',
+                marginBottom: '8px',
               }}
             >
               {rightTitle}
             </h2>
-            <p style={{ fontSize: '14px', color: 'var(--color-muted)', fontWeight: 300 }}>
+            <p style={{ fontSize: '13.5px', color: 'var(--text-3)', lineHeight: 1.55 }}>
               {rightSubtitle}
             </p>
           </div>

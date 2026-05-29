@@ -50,6 +50,37 @@ export default async function FilaSubmissoesPage() {
     .select('*', { count: 'exact', head: true })
     .eq('status', 'sent_to_client')
 
+  type CandidateRel = { id: string; full_name: string | null; current_title: string | null; location: string | null; email: string | null }
+  type CompanyRel = { name: string | null }
+  type JobRel = { id: string; title: string | null; seniority: string | null; companies: CompanyRel | CompanyRel[] | null }
+  type UserRel = { full_name: string | null }
+  type RecruiterRel = { id: string; level: string | null; users: UserRel | UserRel[] | null }
+  type SubmissionRow = {
+    id: string
+    status: string
+    submitted_at: string
+    interview_summary: string | null
+    recruiter_notes: string | null
+    candidates: CandidateRel | CandidateRel[] | null
+    jobs: JobRel | JobRel[] | null
+    recruiters: RecruiterRel | RecruiterRel[] | null
+  }
+  const pickOne = <T,>(rel: T | T[] | null | undefined): T | null =>
+    Array.isArray(rel) ? rel[0] ?? null : rel ?? null
+
+  const now = new Date().getTime()
+  const rows = ((submissoes ?? []) as unknown as SubmissionRow[]).map((s) => {
+    const candidate = pickOne(s.candidates)
+    const jobRaw = pickOne(s.jobs)
+    const recruiterRaw = pickOne(s.recruiters)
+    const jobCompany = jobRaw ? pickOne(jobRaw.companies) : null
+    const recruiterUser = recruiterRaw ? pickOne(recruiterRaw.users) : null
+    const diasEspera = Math.floor(
+      (now - new Date(s.submitted_at).getTime()) / (1000 * 60 * 60 * 24)
+    )
+    return { s, candidate, jobRaw, recruiterRaw, jobCompany, recruiterUser, diasEspera }
+  })
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <PageHeader
@@ -100,24 +131,20 @@ export default async function FilaSubmissoesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {submissoes.map((s: any) => {
-                const diasEspera = Math.floor(
-                  (Date.now() - new Date(s.submitted_at).getTime()) / (1000 * 60 * 60 * 24)
-                )
-                return (
+              {rows.map(({ s, candidate, jobRaw, recruiterRaw, jobCompany, recruiterUser, diasEspera }) => (
                   <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{s.candidates?.full_name}</div>
-                      <div className="text-sm text-gray-600">{s.candidates?.current_title || '—'}</div>
+                      <div className="font-medium text-gray-900">{candidate?.full_name}</div>
+                      <div className="text-sm text-gray-600">{candidate?.current_title || '—'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{s.jobs?.title}</div>
-                      <div className="text-sm text-gray-600">{s.jobs?.companies?.name}</div>
+                      <div className="font-medium text-gray-900">{jobRaw?.title}</div>
+                      <div className="text-sm text-gray-600">{jobCompany?.name}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{s.recruiters?.users?.full_name}</div>
-                      <Badge variant={s.recruiters?.level === 'top_hunter' ? 'dark' : 'gray'} className="mt-1">
-                        {s.recruiters?.level === 'top_hunter' ? 'Top Hunter' : s.recruiters?.level === 'specialist' ? 'Especialista' : 'Iniciante'}
+                      <div className="text-sm text-gray-900">{recruiterUser?.full_name}</div>
+                      <Badge variant={recruiterRaw?.level === 'top_hunter' ? 'dark' : 'gray'} className="mt-1">
+                        {recruiterRaw?.level === 'top_hunter' ? 'Top Hunter' : recruiterRaw?.level === 'specialist' ? 'Especialista' : 'Iniciante'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
@@ -137,8 +164,7 @@ export default async function FilaSubmissoesPage() {
                       </Link>
                     </td>
                   </tr>
-                )
-              })}
+              ))}
             </tbody>
           </table>
         </div>

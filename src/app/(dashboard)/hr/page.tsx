@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
+import KPICard from '@/components/ui/KPICard'
 
 export const metadata = {
   title: 'Dashboard HR — Nexhire',
@@ -59,99 +60,70 @@ export default async function HRDashboard() {
       />
 
       {/* Alertas de ação */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {[
-          {
-            label: 'Vagas para revisar',
-            value: pendingJobs || 0,
-            href: '/hr/vagas?status=pending_hr_review',
-            urgent: (pendingJobs || 0) > 0,
-          },
-          {
-            label: 'Submissões para curar',
-            value: pendingSubmissions || 0,
-            href: '/hr/submissoes?status=submitted',
-            urgent: (pendingSubmissions || 0) > 0,
-          },
-          {
-            label: 'Hunters para aprovar',
-            value: pendingHunters || 0,
-            href: '/hr/hunters?status=pending',
-            urgent: (pendingHunters || 0) > 0,
-          },
-        ].map(item => (
-          <Link key={item.label} href={item.href}>
-            <Card
-              padding="md"
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                item.urgent
-                  ? 'border-[#FEF3C7] bg-[#FFFBEB]'
-                  : 'hover:border-[#BBF7D0]'
-              }`}
-            >
-              <div className={`text-3xl font-bold mb-1 ${
-                item.urgent ? 'text-[#D97706]' : 'text-[#052E16]'
-              }`}>
-                {item.value}
-              </div>
-              <div className="text-sm text-[#6B7280]">{item.label}</div>
-              {item.urgent && item.value > 0 && (
-                <div className="text-xs text-[#D97706] mt-1 font-medium">
-                  Requer atenção
-                </div>
-              )}
-            </Card>
-          </Link>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Link href="/hr/vagas?status=pending_hr_review">
+          <KPICard
+            label="Vagas para revisar"
+            value={pendingJobs || 0}
+            footer={(pendingJobs || 0) > 0 ? 'Requer atenção' : 'Nenhuma pendência'}
+          />
+        </Link>
+        <Link href="/hr/submissoes?status=submitted">
+          <KPICard
+            label="Submissões para curar"
+            value={pendingSubmissions || 0}
+            footer={(pendingSubmissions || 0) > 0 ? 'Requer atenção' : 'Nenhuma pendência'}
+          />
+        </Link>
+        <Link href="/hr/hunters?status=pending">
+          <KPICard
+            label="Hunters para aprovar"
+            value={pendingHunters || 0}
+            footer={(pendingHunters || 0) > 0 ? 'Requer atenção' : 'Nenhuma pendência'}
+          />
+        </Link>
       </div>
 
       {/* Stats gerais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total de vagas', value: totalJobs || 0 },
-          { label: 'Vagas abertas', value: 0 },
-          { label: 'Total submissões', value: 0 },
-          { label: 'Contratações', value: 0 },
-        ].map(stat => (
-          <Card key={stat.label} padding="md">
-            <div className="text-3xl font-bold text-[#052E16] mb-1">
-              {stat.value}
-            </div>
-            <div className="text-sm text-[#6B7280]">{stat.label}</div>
-          </Card>
-        ))}
+        <KPICard label="Total de vagas" value={totalJobs || 0} numSize="sm" />
+        <KPICard label="Vagas abertas" value={0} numSize="sm" />
+        <KPICard label="Total submissões" value={0} numSize="sm" />
+        <KPICard label="Contratações" value={0} numSize="sm" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Vagas recentes */}
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-[#052E16]">Vagas recentes</h2>
-            <Link href="/hr/vagas" className="text-sm text-[#16A34A] hover:underline">
+            <h2 className="text-base font-bold text-text">Vagas recentes</h2>
+            <Link href="/hr/vagas" className="text-sm text-g600 hover:underline">
               Ver todas
             </Link>
           </div>
           {!recentJobs || recentJobs.length === 0 ? (
-            <p className="text-sm text-[#9CA3AF] text-center py-6">
+            <p className="text-sm text-subtle text-center py-6">
               Nenhuma vaga ainda.
             </p>
           ) : (
-            <div className="flex flex-col divide-y divide-[#F3F4F6]">
+            <div className="flex flex-col divide-y divide-(--border-1)">
               {recentJobs.map(job => (
                 <div key={job.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-[#052E16]">{job.title}</div>
-                    <div className="text-xs text-[#9CA3AF] mt-0.5">
+                    <div className="text-sm font-medium text-text">{job.title}</div>
+                    <div className="text-xs text-subtle mt-0.5">
                       {new Date(job.created_at).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
-                  <span className={`
-                    text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ml-2
-                    ${job.status === 'pending_hr_review' ? 'bg-[#FFFBEB] text-[#D97706]' : ''}
-                    ${job.status === 'open_for_hunters' ? 'bg-[#F0FDF4] text-[#16A34A]' : ''}
-                    ${job.status === 'hired' ? 'bg-[#052E16] text-[#00E676]' : ''}
-                    ${!['pending_hr_review', 'open_for_hunters', 'hired'].includes(job.status) ? 'bg-[#F3F4F6] text-[#6B7280]' : ''}
-                  `}>
+                  <span
+                    className="text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2"
+                    style={
+                      job.status === 'pending_hr_review' ? { background: 'var(--warning-bg)', color: 'var(--warning-text)' } :
+                      job.status === 'open_for_hunters' ? { background: 'var(--accent-bg)', color: 'var(--accent-text)' } :
+                      job.status === 'hired' ? { background: 'var(--text-1)', color: 'var(--neon)' } :
+                      { background: 'var(--bg-elev-2)', color: 'var(--text-3)' }
+                    }
+                  >
                     {job.status === 'pending_hr_review' && 'Para revisar'}
                     {job.status === 'open_for_hunters' && 'Aberta'}
                     {job.status === 'hired' && 'Contratado'}
@@ -166,40 +138,51 @@ export default async function HRDashboard() {
         {/* Submissões recentes */}
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-[#052E16]">Submissões recentes</h2>
-            <Link href="/hr/submissoes" className="text-sm text-[#16A34A] hover:underline">
+            <h2 className="text-base font-bold text-text">Submissões recentes</h2>
+            <Link href="/hr/submissoes" className="text-sm text-g600 hover:underline">
               Ver todas
             </Link>
           </div>
           {!recentSubmissions || recentSubmissions.length === 0 ? (
-            <p className="text-sm text-[#9CA3AF] text-center py-6">
+            <p className="text-sm text-subtle text-center py-6">
               Nenhuma submissão ainda.
             </p>
           ) : (
-            <div className="flex flex-col divide-y divide-[#F3F4F6]">
-              {recentSubmissions.map(sub => (
+            <div className="flex flex-col divide-y divide-(--border-1)">
+              {recentSubmissions.map(sub => {
+                type CandidateRel = { full_name: string | null }
+                type JobRel = { title: string | null }
+                const candidatesRel = sub.candidates as CandidateRel | CandidateRel[] | null | undefined
+                const jobsRel = sub.jobs as JobRel | JobRel[] | null | undefined
+                const candidate = Array.isArray(candidatesRel) ? candidatesRel[0] ?? null : candidatesRel ?? null
+                const job = Array.isArray(jobsRel) ? jobsRel[0] ?? null : jobsRel ?? null
+                return (
                 <div key={sub.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-[#052E16]">
-                      {(sub.candidates as any)?.full_name || 'Candidato'}
+                    <div className="text-sm font-medium text-text">
+                      {candidate?.full_name || 'Candidato'}
                     </div>
-                    <div className="text-xs text-[#9CA3AF] mt-0.5">
-                      {(sub.jobs as any)?.title || 'Vaga'}
+                    <div className="text-xs text-subtle mt-0.5">
+                      {job?.title || 'Vaga'}
                     </div>
                   </div>
-                  <span className={`
-                    text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ml-2
-                    ${sub.status === 'submitted' ? 'bg-[#F3F4F6] text-[#6B7280]' : ''}
-                    ${sub.status === 'hr_approved' ? 'bg-[#F0FDF4] text-[#16A34A]' : ''}
-                    ${sub.status === 'hr_rejected' ? 'bg-red-50 text-red-500' : ''}
-                  `}>
+                  <span
+                    className="text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2"
+                    style={
+                      sub.status === 'submitted' ? { background: 'var(--bg-elev-2)', color: 'var(--text-3)' } :
+                      sub.status === 'hr_approved' ? { background: 'var(--accent-bg)', color: 'var(--accent-text)' } :
+                      sub.status === 'hr_rejected' ? { background: 'var(--danger-bg)', color: 'var(--danger-text)' } :
+                      undefined
+                    }
+                  >
                     {sub.status === 'submitted' && 'Aguardando'}
                     {sub.status === 'hr_approved' && 'Aprovado'}
                     {sub.status === 'hr_rejected' && 'Reprovado'}
                     {!['submitted', 'hr_approved', 'hr_rejected'].includes(sub.status) && sub.status}
                   </span>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </Card>

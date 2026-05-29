@@ -49,10 +49,10 @@ export default async function NovaVagaPage() {
   return (
     <div className="max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#052E16] mb-1">
+        <h1 className="text-2xl font-bold text-text mb-1">
           Abrir nova vaga
         </h1>
-        <p className="text-[#6B7280] text-sm">
+        <p className="text-muted text-sm">
           Preencha os dados da vaga. Após enviar, o HR Manager vai revisar e liberar para os hunters.
         </p>
       </div>

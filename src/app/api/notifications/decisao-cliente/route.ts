@@ -3,6 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notificarDecisaoCliente } from '@/lib/email/templates/decisaoCliente'
 
+interface SubmissionRelations {
+  id: string
+  candidates: { full_name: string | null } | null
+  jobs: { title: string | null; companies: { name: string | null } | null } | null
+}
+
 export async function POST(request: Request) {
   try {
     const { submissionId, decision, reason } = await request.json()
@@ -24,7 +30,7 @@ export async function POST(request: Request) {
         jobs ( title, companies ( name ) )
       `)
       .eq('id', submissionId)
-      .single()
+      .single<SubmissionRelations>()
 
     if (error || !sub) return NextResponse.json({ error: 'Submissão não encontrada' }, { status: 404 })
 
@@ -40,9 +46,9 @@ export async function POST(request: Request) {
     await Promise.all(hrs.map(hr => notificarDecisaoCliente({
       hrEmail: hr.email,
       hrName: hr.full_name,
-      candidateName: (sub.candidates as any)?.full_name || 'Candidato',
-      jobTitle: (sub.jobs as any)?.title || 'Vaga',
-      companyName: (sub.jobs as any)?.companies?.name || 'Empresa',
+      candidateName: sub.candidates?.full_name || 'Candidato',
+      jobTitle: sub.jobs?.title || 'Vaga',
+      companyName: sub.jobs?.companies?.name || 'Empresa',
       decision,
       reason,
       submissionId: sub.id,
@@ -50,8 +56,9 @@ export async function POST(request: Request) {
     })))
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[notify-decision] erro:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Erro desconhecido'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

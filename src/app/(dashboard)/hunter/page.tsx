@@ -4,7 +4,17 @@ import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import KPICard from '@/components/ui/KPICard'
+import { formatCurrency } from '@/lib/utils'
+
+type CompanyRel = { name: string | null }
+type JobRel = { title: string | null }
+type CandidateRel = { full_name: string | null }
+
+function pickOne<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null
+  return Array.isArray(rel) ? rel[0] ?? null : rel
+}
 import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
 
 export const metadata = {
@@ -64,11 +74,12 @@ export default async function HunterDashboard() {
     vagas_disponiveis: openJobs?.length || 0,
   }
 
-  const levelLabel = {
+  const levelLabels: Record<string, string> = {
     beginner: 'Iniciante',
     specialist: 'Especialista',
     top_hunter: 'Top Hunter',
-  }[score?.level || 'beginner']
+  }
+  const levelLabel = levelLabels[score?.level || 'beginner'] ?? 'Iniciante'
 
   const totalSubs = score?.total_submissions || 0
   const overall = Number(score?.overall_score || 0)
@@ -135,32 +146,32 @@ export default async function HunterDashboard() {
       />
 
       {(!recruiter || recruiter.status !== 'approved') && (
-        <Card padding="md" className="mb-6 border-[#FEF3C7] bg-[#FFFBEB]">
+        <Card padding="md" className="mb-6" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}>
           <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-[#D97706] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-5 h-5 shrink-0" style={{ color: 'var(--warning-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <div className="text-sm font-medium text-[#92400E]">Perfil em análise</div>
-              <div className="text-xs text-[#B45309]">Seu cadastro está sendo avaliado pelo time Nexhire. Você será notificado quando aprovado.</div>
+              <div className="text-sm font-medium" style={{ color: 'var(--warning-text)' }}>Perfil em análise</div>
+              <div className="text-xs" style={{ color: 'var(--warning-text)' }}>Seu cadastro está sendo avaliado pelo time Nexhire. Você será notificado quando aprovado.</div>
             </div>
           </div>
         </Card>
       )}
 
       {recruiter?.status === 'approved' && (
-        <Card padding="md" className="mb-6 border-[#BBF7D0] bg-gradient-to-br from-[#F0FDF4] to-white">
+        <Card padding="md" className="mb-6" style={{ borderColor: 'var(--accent-border)', background: 'linear-gradient(to bottom right, var(--accent-bg), var(--bg-elev-1))' }}>
           <div className="flex items-start justify-between mb-5">
             <div>
-              <div className="text-xs uppercase tracking-wide text-[#16A34A] font-medium mb-1">Sua performance</div>
+              <div className="text-xs uppercase tracking-wide font-medium mb-1" style={{ color: 'var(--accent-text)' }}>Sua performance</div>
               <div className="flex items-baseline gap-3">
-                <h2 className="text-2xl font-bold text-[#052E16]">{levelLabel}</h2>
-                <span className="text-sm text-[#6B7280]">score {overall.toFixed(0)}</span>
+                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-1)' }}>{levelLabel}</h2>
+                <span className="text-sm" style={{ color: 'var(--text-3)' }}>score {overall.toFixed(0)}</span>
               </div>
             </div>
             {nextLevelLabel && (
               <div className="text-right">
-                <div className="text-xs text-[#6B7280] mb-1">Próximo nível</div>
+                <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Próximo nível</div>
                 <Badge variant="dark">{nextLevelLabel}</Badge>
               </div>
             )}
@@ -169,26 +180,26 @@ export default async function HunterDashboard() {
           {nextLevelLabel && (
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs text-[#6B7280]">{progressDescription}</div>
-                <div className="text-xs font-bold text-[#16A34A]">{progressPercent}%</div>
+                <div className="text-xs" style={{ color: 'var(--text-3)' }}>{progressDescription}</div>
+                <div className="text-xs font-bold" style={{ color: 'var(--accent-text)' }}>{progressPercent}%</div>
               </div>
-              <div className="h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
-                <div className="h-full bg-[#16A34A] transition-all" style={{ width: `${progressPercent}%` }} />
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-2)' }}>
+                <div className="h-full transition-all" style={{ width: `${progressPercent}%`, background: 'var(--accent-text)' }} />
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-3 pt-4 border-t border-[#BBF7D0]">
+          <div className="grid grid-cols-3 gap-3 pt-4 border-t" style={{ borderColor: 'var(--accent-border)' }}>
             <div>
-              <div className="text-xs text-[#6B7280] mb-1">Envios totais</div>
-              <div className="text-lg font-bold text-[#052E16]">{totalSubs}</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Envios totais</div>
+              <div className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>{totalSubs}</div>
             </div>
             <div>
-              <div className="text-xs text-[#6B7280] mb-1">Aprovação HR</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Aprovação HR</div>
               <Badge variant={hrCompare.color}>{hrCompare.label}</Badge>
             </div>
             <div>
-              <div className="text-xs text-[#6B7280] mb-1">Aprovação cliente</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Aprovação cliente</div>
               <Badge variant={clientCompare.color}>{clientCompare.label}</Badge>
             </div>
           </div>
@@ -196,70 +207,78 @@ export default async function HunterDashboard() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Candidatos enviados', value: stats.enviados, color: 'text-[#052E16]' },
-          { label: 'Aprovados pelo HR', value: stats.aprovados_hr, color: 'text-[#16A34A]' },
-          { label: 'Contratações', value: stats.contratacoes, color: 'text-[#16A34A]' },
-          { label: 'Vagas disponíveis', value: stats.vagas_disponiveis, color: 'text-[#3B82F6]' },
-        ].map(stat => (
-          <Card key={stat.label} padding="md">
-            <div className={`text-3xl font-bold mb-1 ${stat.color}`}>{stat.value}</div>
-            <div className="text-sm text-[#6B7280]">{stat.label}</div>
-          </Card>
-        ))}
+        <KPICard label="Candidatos enviados" value={stats.enviados} />
+        <KPICard label="Aprovados pelo HR" value={stats.aprovados_hr} />
+        <KPICard label="Contratações" value={stats.contratacoes} />
+        <KPICard label="Vagas disponíveis" value={stats.vagas_disponiveis} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-[#052E16]">Vagas disponíveis</h2>
-            <Link href="/hunter/vagas" className="text-sm text-[#16A34A] hover:underline">Ver todas</Link>
+            <h2 className="text-base font-bold" style={{ color: 'var(--text-1)' }}>Vagas disponíveis</h2>
+            <Link href="/hunter/vagas" className="text-sm hover:underline" style={{ color: 'var(--accent-text)' }}>Ver todas</Link>
           </div>
           {!openJobs || openJobs.length === 0 ? (
-            <p className="text-sm text-[#9CA3AF] text-center py-6">Nenhuma vaga disponível no momento.</p>
+            <p className="text-sm text-center py-6" style={{ color: 'var(--text-4)' }}>Nenhuma vaga disponível no momento.</p>
           ) : (
-            <div className="flex flex-col divide-y divide-[#F3F4F6]">
-              {openJobs.map(job => (
-                <Link key={job.id} href={`/hunter/vagas/${job.id}`} className="py-3 flex items-center justify-between hover:bg-[#F9FAFB] -mx-2 px-2 rounded transition-colors">
+            <div className="flex flex-col divide-y divide-(--border-1)">
+              {openJobs.map(job => {
+                const company = pickOne(job.companies as CompanyRel | CompanyRel[] | null | undefined)
+                return (
+                <Link key={job.id} href={`/hunter/vagas/${job.id}`} className="py-3 flex items-center justify-between -mx-2 px-2 rounded transition-colors hover:bg-(--bg-elev-2)">
                   <div>
-                    <div className="text-sm font-medium text-[#052E16]">{job.title}</div>
-                    <div className="text-xs text-[#9CA3AF]">
-                      {(job.companies as any)?.name}
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{job.title}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-4)' }}>
+                      {company?.name}
                       {job.location && ` · ${job.location}`}
                     </div>
                   </div>
                   {job.salary_min && (
-                    <div className="text-xs font-medium text-[#16A34A]">
+                    <div className="text-xs font-medium" style={{ color: 'var(--accent-text)' }}>
                       {formatCurrency(job.salary_min)}+
                     </div>
                   )}
                 </Link>
-              ))}
+                )
+              })}
             </div>
           )}
         </Card>
 
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-[#052E16]">Minhas submissões</h2>
-            <Link href="/hunter/submissoes" className="text-sm text-[#16A34A] hover:underline">Ver todas</Link>
+            <h2 className="text-base font-bold" style={{ color: 'var(--text-1)' }}>Minhas submissões</h2>
+            <Link href="/hunter/submissoes" className="text-sm hover:underline" style={{ color: 'var(--accent-text)' }}>Ver todas</Link>
           </div>
           {!submissions || submissions.length === 0 ? (
-            <p className="text-sm text-[#9CA3AF] text-center py-6">Nenhuma submissão ainda.</p>
+            <p className="text-sm text-center py-6" style={{ color: 'var(--text-4)' }}>Nenhuma submissão ainda.</p>
           ) : (
-            <div className="flex flex-col divide-y divide-[#F3F4F6]">
-              {submissions.slice(0, 5).map(sub => (
+            <div className="flex flex-col divide-y divide-(--border-1)">
+              {submissions.slice(0, 5).map(sub => {
+                const candidate = pickOne(sub.candidates as CandidateRel | CandidateRel[] | null | undefined)
+                const subJob = pickOne(sub.jobs as JobRel | JobRel[] | null | undefined)
+                return (
                 <div key={sub.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-[#052E16]">
-                      {(sub.candidates as any)?.full_name}
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>
+                      {candidate?.full_name}
                     </div>
-                    <div className="text-xs text-[#9CA3AF]">{(sub.jobs as any)?.title}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-4)' }}>{subJob?.title}</div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {sub.ai_score && (
-                      <span className="text-xs font-bold text-[#16A34A] bg-[#F0FDF4] px-2 py-0.5 rounded-full">
-                        {sub.ai_score}
+                      <span
+                        className="mono"
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          color: 'var(--text-4)',
+                          letterSpacing: '0.02em',
+                        }}
+                        aria-label={`AI score ${sub.ai_score}`}
+                      >
+                        AI {sub.ai_score}
                       </span>
                     )}
                     <Badge variant={
@@ -281,7 +300,8 @@ export default async function HunterDashboard() {
                     </Badge>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </Card>

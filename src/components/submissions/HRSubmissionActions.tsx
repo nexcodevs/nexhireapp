@@ -8,13 +8,11 @@ import Card from '@/components/ui/Card'
 
 interface HRSubmissionActionsProps {
   submissionId: string
-  jobId: string
   mode?: 'review' | 'send'
 }
 
 export default function HRSubmissionActions({
   submissionId,
-  jobId,
   mode = 'review',
 }: HRSubmissionActionsProps) {
   const router = useRouter()
@@ -34,8 +32,11 @@ export default function HRSubmissionActions({
       send: 'sent_to_client',
     }
 
-    const updatePayload: any = { status: statusMap[action] }
-    // Salva notas no banco quando há texto
+    const updatePayload: {
+      status: string
+      hr_notes?: string
+      hr_reviewed_at?: string
+    } = { status: statusMap[action] }
     if (notes && (action === 'approve' || action === 'reject')) {
       updatePayload.hr_notes = notes
       updatePayload.hr_reviewed_at = new Date().toISOString()
@@ -67,9 +68,9 @@ export default function HRSubmissionActions({
 
   if (mode === 'send') {
     return (
-      <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
-        <h2 className="text-base font-bold text-[#052E16] mb-3">Enviar para cliente</h2>
-        <p className="text-sm text-[#6B7280] mb-4">
+      <Card padding="md" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}>
+        <h2 className="text-base font-bold text-text mb-3">Enviar para cliente</h2>
+        <p className="text-sm text-muted mb-4">
           Este candidato foi aprovado. Deseja enviá-lo para o cliente avaliar?
         </p>
         {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
@@ -84,11 +85,11 @@ export default function HRSubmissionActions({
   }
 
   return (
-    <Card padding="md" className="border-[#BBF7D0] bg-[#F0FDF4]">
-      <h2 className="text-base font-bold text-[#052E16] mb-4">Curadoria</h2>
+    <Card padding="md" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}>
+      <h2 className="text-base font-bold text-text mb-4">Curadoria</h2>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#374151]">
+          <label className="text-sm font-medium text-text2">
             Notas internas (opcional)
           </label>
           <textarea
@@ -96,7 +97,8 @@ export default function HRSubmissionActions({
             onChange={e => setNotes(e.target.value)}
             rows={3}
             placeholder="Observações sobre o candidato para registro interno..."
-            className="px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#052E16] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#16A34A] resize-none"
+            className="px-3 py-2.5 rounded-lg border text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 resize-none"
+            style={{ borderColor: 'var(--border-2)', background: 'var(--bg-elev-1)', '--tw-ring-color': 'var(--accent-text)' } as React.CSSProperties}
           />
         </div>
 

@@ -1,13 +1,42 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
-import SubmitCandidateForm from '@/components/submissions/SubmitCandidateForm'
+import Button from '@/components/ui/Button'
 import { formatDate, formatCurrency } from '@/lib/utils'
-import { visibleTypesForLevel, type RecruiterLevel } from '@/lib/visibility'
+import type { SubmissionStatus } from '@/types/database'
 
-export default async function HunterVagaDetailPage({
+export const metadata = {
+  title: 'Detalhes da vaga — Nexhire',
+}
+
+const statusInfo: Record<string, { label: string; variant: 'gray' | 'yellow' | 'green' | 'blue' | 'dark' | 'red' }> = {
+  draft: { label: 'Rascunho', variant: 'gray' },
+  pending_hr_review: { label: 'Em revisão', variant: 'yellow' },
+  open_for_hunters: { label: 'Aberta', variant: 'green' },
+  submission_closed: { label: 'Envios fechados', variant: 'blue' },
+  in_hr_curation: { label: 'Em curadoria', variant: 'blue' },
+  sent_to_client: { label: 'Aguardando você', variant: 'yellow' },
+  interviewing: { label: 'Em entrevista', variant: 'blue' },
+  offer: { label: 'Em proposta', variant: 'dark' },
+  hired: { label: 'Contratado', variant: 'green' },
+  closed: { label: 'Encerrada', variant: 'gray' },
+  cancelled: { label: 'Cancelada', variant: 'red' },
+}
+
+const VISIBLE_STATUSES: SubmissionStatus[] = [
+  'sent_to_client',
+  'client_approved',
+  'client_rejected',
+  'interview_scheduled',
+  'offer',
+  'hired',
+  'not_hired',
+]
+
+export default async function EmpresaVagaDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
@@ -15,153 +44,182 @@ export default async function HunterVagaDetailPage({
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) redirect('/login')
 
-  const { data: recruiter } = await supabase
-    .from('recruiters')
-    .select('*')
+  const { data: companyUser } = await supabase
+    .from('company_users')
+    .select('company_id')
     .eq('user_id', user.id)
     .single()
+
+  if (!companyUser?.company_id) redirect('/login')
 
   const { data: job } = await supabase
     .from('jobs')
     .select('*, companies(name)')
     .eq('id', id)
-    .eq('status', 'open_for_hunters')
+    .eq('company_id', companyUser.company_id)
     .single()
 
   if (!job) notFound()
 
-  // Checagem de visibilidade — protege acesso direto via URL
-  const hunterLevel: RecruiterLevel | null =
-    recruiter?.status === 'approved' ? ((recruiter?.level as RecruiterLevel) || 'beginner') : null
-  const allowedTypes = visibleTypesForLevel(hunterLevel)
-  const jobVisibility = job.visibility_type || 'open'
+  const { data: subs } = await supabase
+    .from('submissions')
+    .select('status')
+    .eq('job_id', id)
+    .in('status', VISIBLE_STATUSES)
 
-  // Bloqueia se hunter aprovado tenta acessar vaga acima do seu nível
-  if (hunterLevel && !allowedTypes.includes(jobVisibility)) {
-    notFound()
+  const submissions = subs ?? []
+  const stats = {
+    recebidos: submissions.length,
+    aguardando: submissions.filter(s => s.status === 'sent_to_client').length,
+    aprovados: submissions.filter(s =>
+      ['client_approved', 'interview_scheduled', 'offer', 'hired'].includes(s.status),
+    ).length,
+    entrevista: submissions.filter(s => s.status === 'interview_scheduled').length,
+    contratado: submissions.filter(s => s.status === 'hired').length,
   }
 
-  const { data: mySubmissions } = await supabase
-    .from('submissions')
-    .select('id, status, candidates(full_name)')
-    .eq('job_id', id)
-    .eq('recruiter_id', recruiter?.id || '')
-
-  const submissionsCount = mySubmissions?.length || 0
-  const limitReached = submissionsCount >= job.max_submissions_per_recruiter
-  const deadlineExpired = job.submission_deadline
-    ? new Date(job.submission_deadline) < new Date()
-    : false
-  const canSubmit = recruiter?.status === 'approved' && !limitReached && !deadlineExpired
-
-  const isExclusive = jobVisibility !== 'open'
+  const status = statusInfo[job.status] ?? { label: job.status, variant: 'gray' as const }
+  const company = (job.companies as { name: string | null } | null)?.name
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6">
-        <Link
-          href="/hunter/vagas"
-          className="text-sm text-[#6B7280] hover:text-[#052E16] flex items-center gap-1 mb-4 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Voltar para vagas
-        </Link>
+    <div className="max-w-5xl">
+      <Link
+        href="/empresa/vagas"
+        style={{
+          fontSize: '13px',
+          color: 'var(--color-muted)',
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginBottom: '20px',
+        }}
+        className="hover:underline"
+      >
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        Voltar para vagas
+      </Link>
 
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="text-2xl font-bold text-[#052E16]">{job.title}</h1>
-              {isExclusive && jobVisibility === 'top_hunters_only' && (
-                <Badge variant="dark">Exclusiva Top Hunters</Badge>
-              )}
-              {isExclusive && jobVisibility === 'specialist_plus' && (
-                <Badge variant="blue">Especialistas+</Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-              <span className="font-medium">{(job.companies as any)?.name}</span>
-              {job.seniority && <span>· {job.seniority}</span>}
-              {job.location && <span>· {job.location}</span>}
-              {job.work_model && <span>· {job.work_model}</span>}
-            </div>
+      <PageHeader
+        eyebrow="Vaga"
+        title={job.title}
+        titleAccent=""
+        subtitle={[company, job.seniority, job.location, job.work_model]
+          .filter(Boolean)
+          .join(' · ')}
+        action={
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <Link href={`/empresa/vagas/${id}/candidatos`}>
+              <Button variant="dark" size="md">
+                Ver candidatos
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Button>
+            </Link>
+            <Link href={`/empresa/vagas/${id}/pipeline`}>
+              <Button variant="outline" size="md">Ver pipeline</Button>
+            </Link>
           </div>
-          {job.salary_min && (
-            <div className="text-right">
-              <div className="text-lg font-bold text-[#16A34A]">
-                {formatCurrency(job.salary_min)}
-                {job.salary_max && ` — ${formatCurrency(job.salary_max)}`}
-              </div>
-            </div>
-          )}
-        </div>
+        }
+      />
+
+      <div style={{ marginBottom: '20px' }}>
+        <Badge variant={status.variant}>{status.label}</Badge>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 flex flex-col gap-4">
           <Card padding="md">
-            <h2 className="text-base font-bold text-[#052E16] mb-3">Descrição</h2>
-            <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
-              {job.description || 'Sem descrição.'}
+            <h2
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--color-subtle)',
+                marginBottom: '12px',
+              }}
+            >
+              Descrição
+            </h2>
+            <p
+              style={{
+                fontSize: '14px',
+                lineHeight: 1.65,
+                color: 'var(--color-text)',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {job.description || 'Sem descrição preenchida.'}
             </p>
           </Card>
 
-          {mySubmissions && mySubmissions.length > 0 && (
+          {stats.recebidos > 0 && (
             <Card padding="md">
-              <h2 className="text-base font-bold text-[#052E16] mb-3">
-                Meus candidatos ({submissionsCount}/{job.max_submissions_per_recruiter})
+              <h2
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-subtle)',
+                  marginBottom: '14px',
+                }}
+              >
+                Funil de candidatos
               </h2>
-              <div className="flex flex-col gap-2">
-                {mySubmissions.map(sub => (
-                  <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB]">
-                    <span className="text-sm font-medium text-[#052E16]">
-                      {(sub.candidates as any)?.full_name}
-                    </span>
-                    <Badge variant={
-                      sub.status === 'hr_approved' ? 'green' :
-                      sub.status === 'hr_rejected' ? 'red' :
-                      sub.status === 'hired' ? 'dark' : 'gray'
-                    }>
-                      {sub.status === 'submitted' && 'Enviado'}
-                      {sub.status === 'hr_approved' && 'Aprovado'}
-                      {sub.status === 'hr_rejected' && 'Reprovado'}
-                      {sub.status === 'hired' && 'Contratado'}
-                    </Badge>
+              <div
+                className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+                role="list"
+                aria-label="Funil de candidatos"
+              >
+                {[
+                  { label: 'Recebidos', value: stats.recebidos, attention: false },
+                  { label: 'Aguardando você', value: stats.aguardando, attention: stats.aguardando > 0 },
+                  { label: 'Em entrevista', value: stats.entrevista, attention: false },
+                  { label: 'Contratado', value: stats.contratado, attention: false },
+                ].map(item => (
+                  <div
+                    key={item.label}
+                    role="listitem"
+                    style={{
+                      background: item.attention ? 'var(--color-m100)' : 'var(--color-cream)',
+                      border: '1px solid',
+                      borderColor: item.attention ? 'var(--color-border-g)' : 'var(--color-border)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        letterSpacing: '0.14em',
+                        textTransform: 'uppercase',
+                        color: 'var(--color-subtle)',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                    <div
+                      className="it"
+                      style={{
+                        fontSize: '26px',
+                        color: item.value > 0 ? 'var(--color-g600)' : 'var(--color-subtle)',
+                        lineHeight: 1,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {item.value}
+                    </div>
                   </div>
                 ))}
-              </div>
-            </Card>
-          )}
-
-          {canSubmit && recruiter && (
-            <SubmitCandidateForm
-              jobId={job.id}
-              recruiterId={recruiter.id}
-              remainingSlots={job.max_submissions_per_recruiter - submissionsCount}
-            />
-          )}
-
-          {!canSubmit && (
-            <Card padding="md" className="border-[#FEF3C7] bg-[#FFFBEB]">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-[#D97706] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  {recruiter?.status !== 'approved' && (
-                    <p className="text-sm text-[#92400E]">Seu perfil ainda não foi aprovado.</p>
-                  )}
-                  {limitReached && (
-                    <p className="text-sm text-[#92400E]">Você atingiu o limite de {job.max_submissions_per_recruiter} candidatos.</p>
-                  )}
-                  {deadlineExpired && (
-                    <p className="text-sm text-[#92400E]">O prazo para envio expirou.</p>
-                  )}
-                </div>
               </div>
             </Card>
           )}
@@ -169,17 +227,59 @@ export default async function HunterVagaDetailPage({
 
         <div className="flex flex-col gap-4">
           <Card padding="md">
-            <h2 className="text-sm font-bold text-[#052E16] mb-3">Detalhes</h2>
-            <div className="flex flex-col gap-2.5">
+            <h2
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--color-subtle)',
+                marginBottom: '14px',
+              }}
+            >
+              Detalhes
+            </h2>
+            <div className="flex flex-col gap-3">
               {[
+                {
+                  label: 'Salário',
+                  value: job.salary_min
+                    ? `${formatCurrency(job.salary_min)}${job.salary_max ? ` — ${formatCurrency(job.salary_max)}` : ''}`
+                    : 'Não informado',
+                },
                 { label: 'Contrato', value: job.employment_type || 'Não informado' },
-                { label: 'Prazo', value: job.submission_deadline ? formatDate(job.submission_deadline) : 'Não definido' },
-                { label: 'Limite por hunter', value: `${job.max_submissions_per_recruiter} candidatos` },
-                { label: 'Seus envios', value: `${submissionsCount}/${job.max_submissions_per_recruiter}` },
+                { label: 'Modalidade', value: job.work_model || 'Não informada' },
+                {
+                  label: 'Prazo de envios',
+                  value: job.submission_deadline ? formatDate(job.submission_deadline) : 'Não definido',
+                },
+                {
+                  label: 'Limite por hunter',
+                  value: `${job.max_submissions_per_recruiter} candidato${job.max_submissions_per_recruiter !== 1 ? 's' : ''}`,
+                },
+                { label: 'Criada em', value: formatDate(job.created_at) },
               ].map(item => (
                 <div key={item.label} className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[#9CA3AF]">{item.label}</span>
-                  <span className="text-sm font-medium text-[#052E16]">{item.value}</span>
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 600,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-subtle)',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '13.5px',
+                      fontWeight: 500,
+                      color: 'var(--color-text)',
+                    }}
+                  >
+                    {item.value}
+                  </span>
                 </div>
               ))}
             </div>

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import FormError from '@/components/ui/FormError'
@@ -18,14 +17,23 @@ export default function ForgotPasswordForm() {
     setError('')
     setLoading(true)
 
-    const supabase = createClient()
-    const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      }),
     })
 
     setLoading(false)
 
-    if (authError) {
+    if (res.status === 429) {
+      setError('Muitas tentativas. Aguarde alguns minutos antes de tentar de novo.')
+      return
+    }
+
+    if (!res.ok) {
       setError('Não foi possível enviar o email. Verifique o endereço e tente novamente.')
       return
     }
@@ -38,30 +46,32 @@ export default function ForgotPasswordForm() {
       <div className="flex flex-col gap-4">
         <div
           role="status"
-          className="rounded-lg px-4 py-4"
           style={{
-            background: 'var(--color-m100)',
-            border: '1px solid var(--color-border-g)',
+            background: 'var(--accent-bg)',
+            border: '1px solid var(--accent-border)',
+            borderRadius: 'var(--r-md)',
+            padding: '14px 16px',
           }}
         >
           <p
             style={{
               fontSize: '13.5px',
-              color: 'var(--color-text)',
-              fontWeight: 500,
+              color: 'var(--text-1)',
+              fontWeight: 600,
               marginBottom: '4px',
+              letterSpacing: '-0.005em',
             }}
           >
             Email enviado
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text2)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '12.5px', color: 'var(--text-2)', lineHeight: 1.55 }}>
             Se existir uma conta com <strong>{email}</strong>, você vai receber um link para criar uma nova senha em alguns minutos. Verifique também a caixa de spam.
           </p>
         </div>
         <Link
           href="/login"
           className="text-sm text-center hover:underline"
-          style={{ color: 'var(--color-g600)', fontWeight: 500 }}
+          style={{ color: 'var(--accent-text)', fontWeight: 500 }}
         >
           Voltar para o login
         </Link>
@@ -89,13 +99,13 @@ export default function ForgotPasswordForm() {
 
       <p
         className="text-sm text-center"
-        style={{ color: 'var(--color-muted)' }}
+        style={{ color: 'var(--text-3)' }}
       >
         Lembrou da senha?{' '}
         <Link
           href="/login"
           className="hover:underline"
-          style={{ color: 'var(--color-g600)', fontWeight: 500 }}
+          style={{ color: 'var(--accent-text)', fontWeight: 500 }}
         >
           Voltar para o login
         </Link>
