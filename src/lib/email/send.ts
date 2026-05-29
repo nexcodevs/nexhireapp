@@ -9,7 +9,7 @@ type SendEmailParams = {
 
 export async function sendEmail({ to, subject, html, replyTo }: SendEmailParams) {
   if (!process.env.RESEND_API_KEY) {
-    console.log('[EMAIL MOCK]', { to, subject })
+    console.warn('[email] RESEND_API_KEY ausente; pulando envio (mock).')
     return { success: true, mocked: true }
   }
 

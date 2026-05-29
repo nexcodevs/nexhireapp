@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import Breadcrumb from '@/components/ui/Breadcrumb'
 import HRSubmissionActions from '@/components/submissions/HRSubmissionActions'
 import AIAnalyzeButton from '@/components/submissions/AIAnalyzeButton'
 import AIAnalysisCard from '@/components/ui/AIAnalysisCard'
@@ -113,26 +114,13 @@ export default async function HRSubmissaoDetailPage({
 
   return (
     <div className="max-w-5xl">
-      {/* Voltar */}
-      <Link
-        href="/hr/submissoes"
-        style={{
-          fontSize: '13px',
-          color: 'var(--color-muted)',
-          textDecoration: 'none',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '20px',
-          transition: 'color .15s',
-        }}
-        className="hover:text-text"
-      >
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Voltar para a fila
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'HR', href: '/hr' },
+          { label: 'Submissões', href: '/hr/submissoes' },
+          { label: candidate?.full_name ?? 'Candidato' },
+        ]}
+      />
 
       {/* Header — Nome + Score */}
       <div className="flex items-start justify-between gap-6 mb-8">

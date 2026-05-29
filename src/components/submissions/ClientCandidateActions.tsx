@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -49,6 +50,7 @@ export default function ClientCandidateActions({
 
     if (updateError) {
       setError('Erro ao atualizar. Tente novamente.')
+      toast.error('Não foi possível salvar sua decisão. Tente novamente.')
       setLoading(null)
       return
     }
@@ -65,6 +67,13 @@ export default function ClientCandidateActions({
         }),
       }).catch(err => console.warn('Falha email decisão:', err))
     }
+
+    const successMsg = {
+      approve: 'Candidato aprovado pra entrevista. HR foi avisado.',
+      reject: 'Candidato reprovado. HR foi avisado.',
+      schedule: 'Entrevista confirmada.',
+    }[action]
+    toast.success(successMsg)
 
     router.refresh()
     setLoading(null)

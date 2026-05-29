@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -49,6 +50,7 @@ export default function HRSubmissionActions({
 
     if (updateError) {
       setError('Erro ao atualizar status.')
+      toast.error('Não foi possível atualizar o candidato. Tente novamente.')
       setLoading(null)
       return
     }
@@ -61,6 +63,13 @@ export default function HRSubmissionActions({
         body: JSON.stringify({ submissionId }),
       }).catch(err => console.warn('Falha email cliente:', err))
     }
+
+    const successMsg = {
+      approve: 'Candidato aprovado. Próximo passo: enviar pro cliente.',
+      reject: 'Candidato reprovado.',
+      send: 'Candidato enviado ao cliente. Email disparado.',
+    }[action]
+    toast.success(successMsg)
 
     router.refresh()
     setLoading(null)

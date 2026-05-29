@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import Breadcrumb from '@/components/ui/Breadcrumb'
 import CandidateOnePager from '@/components/submissions/CandidateOnePager'
 import ClientCandidateActions from '@/components/submissions/ClientCandidateActions'
 import { formatDate } from '@/lib/utils'
@@ -70,16 +71,14 @@ export default async function EmpresaCandidatoDetailPage({
 
   return (
     <div className="max-w-5xl">
+      <Breadcrumb
+        items={[
+          { label: 'Empresa', href: '/empresa' },
+          { label: 'Candidatos', href: '/empresa/candidatos' },
+          { label: candidate?.full_name ?? 'Candidato' },
+        ]}
+      />
       <div className="mb-6">
-        <Link
-          href="/empresa/candidatos"
-          className="text-sm text-muted hover:text-text flex items-center gap-1 mb-4 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Voltar para candidatos
-        </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1 flex-wrap">

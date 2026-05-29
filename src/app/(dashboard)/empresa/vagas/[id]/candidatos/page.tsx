@@ -4,6 +4,7 @@ import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import Breadcrumb from '@/components/ui/Breadcrumb'
 import SelectableCandidatesList from './SelectableCandidatesList'
 import type { SubmissionStatus } from '@/types/database'
 
@@ -90,24 +91,14 @@ export default async function EmpresaVagaCandidatosPage({
 
   return (
     <div className="max-w-6xl">
-      <Link
-        href="/empresa/vagas"
-        style={{
-          fontSize: '13px',
-          color: 'var(--color-muted)',
-          textDecoration: 'none',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '20px',
-        }}
-        className="hover:underline"
-      >
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Voltar para vagas
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'Empresa', href: '/empresa' },
+          { label: 'Vagas', href: '/empresa/vagas' },
+          { label: job.title, href: `/empresa/vagas/${id}` },
+          { label: 'Candidatos' },
+        ]}
+      />
 
       <PageHeader
         eyebrow="Candidatos"

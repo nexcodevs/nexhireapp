@@ -26,6 +26,17 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
 
+    // Apenas HR/admin podem disparar essa notificação (significa que estão
+    // enviando o candidato pra empresa). Endpoint sensível.
+    const { data: actorData } = await admin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (actorData?.role !== 'hr_manager' && actorData?.role !== 'admin') {
+      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
+
     const { data: sub, error } = await admin
       .from('submissions')
       .select(`

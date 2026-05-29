@@ -7,7 +7,7 @@ import { notifyUsers } from '@/lib/notifications'
 interface SubmissionRelations {
   id: string
   candidates: { full_name: string | null } | null
-  jobs: { title: string | null; companies: { name: string | null } | null } | null
+  jobs: { id: string; title: string | null; company_id: string; companies: { name: string | null } | null } | null
   recruiters: { user_id: string } | null
 }
 
@@ -29,13 +29,34 @@ export async function POST(request: Request) {
       .select(`
         id,
         candidates ( full_name ),
-        jobs ( title, companies ( name ) ),
+        jobs ( id, title, company_id, companies ( name ) ),
         recruiters ( user_id )
       `)
       .eq('id', submissionId)
       .single<SubmissionRelations>()
 
     if (error || !sub) return NextResponse.json({ error: 'Submissão não encontrada' }, { status: 404 })
+
+    // Só user da empresa OU HR/admin podem disparar (significa que cliente decidiu)
+    const companyId = sub.jobs?.company_id
+    const { data: actorData } = await admin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const isPrivileged = actorData?.role === 'hr_manager' || actorData?.role === 'admin'
+    let isCompanyMember = false
+    if (!isPrivileged && companyId) {
+      const { count } = await admin
+        .from('company_users')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+      isCompanyMember = (count ?? 0) > 0
+    }
+    if (!isPrivileged && !isCompanyMember) {
+      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
 
     const { data: hrs } = await admin
       .from('users')

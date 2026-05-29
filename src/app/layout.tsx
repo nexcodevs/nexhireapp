@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
+import { Toaster } from 'sonner'
 import ThemeScript from '@/components/providers/ThemeScript'
 import './globals.css'
 
@@ -45,7 +46,22 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Toaster
+          position="bottom-right"
+          theme="system"
+          richColors
+          closeButton
+          toastOptions={{
+            style: {
+              fontFamily: 'var(--font-sans)',
+              fontSize: '13.5px',
+              letterSpacing: '-0.005em',
+            },
+          }}
+        />
+      </body>
     </html>
   )
 }

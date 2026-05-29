@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -37,6 +38,7 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
 
     if (updateError) {
       setError('Erro ao aprovar vaga.')
+      toast.error('Não foi possível aprovar a vaga.')
       setLoading(null)
       return
     }
@@ -47,6 +49,8 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jobId }),
     }).catch(err => console.warn('Falha email vaga liberada:', err))
+
+    toast.success('Vaga liberada pros hunters. Notificação enviada.')
 
     router.refresh()
     setLoading(null)
@@ -65,10 +69,12 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
 
     if (updateError) {
       setError('Erro ao reprovar vaga.')
+      toast.error('Não foi possível reprovar a vaga.')
       setLoading(null)
       return
     }
 
+    toast.success('Vaga reprovada.')
     router.push('/hr/vagas')
   }
 

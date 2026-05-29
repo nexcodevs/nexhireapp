@@ -34,6 +34,16 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
 
+    // Só HR/admin disparam aviso de vaga liberada (significa que aprovaram a vaga)
+    const { data: actorData } = await admin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (actorData?.role !== 'hr_manager' && actorData?.role !== 'admin') {
+      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
+
     const { data: job, error } = await admin
       .from('jobs')
       .select(`id, title, seniority, location, work_model, salary_min, salary_max, visibility_type, companies ( name )`)
