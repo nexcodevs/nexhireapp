@@ -26,9 +26,9 @@ export default function LoginPage() {
       }
       leftSubtitle="IA + hunters especialistas + curadoria humana."
       leftBullets={[
-        'Candidatos curados por IA e HR Manager',
-        'Pagamento apenas quando contratar',
+        'Análise IA + curadoria humana em cada candidato',
         'Rede seletiva de hunters especialistas',
+        'Match ranqueado por fit técnico, senioridade e comportamental',
       ]}
       rightEyebrow="Acessar plataforma"
       rightTitle={
