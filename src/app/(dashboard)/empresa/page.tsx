@@ -1,18 +1,32 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import Card from '@/components/ui/Card'
-import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
-import KPICard from '@/components/ui/KPICard'
-import InsightsCards from '@/components/dashboard/InsightsCards'
+import MetricCard from '@/components/ui/MetricCard'
+import AttentionList from '@/components/ui/AttentionList'
+import BarChart from '@/components/ui/BarChart'
+import Card from '@/components/ui/Card'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
-import { formatDate } from '@/lib/utils'
 import { requireCompany } from '@/lib/company'
 
 export const metadata = {
   title: 'Dashboard — Nexhire',
+}
+
+function dayKey(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function lastNDays(n: number): string[] {
+  const out: string[] = []
+  const today = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
+    out.push(dayKey(d))
+  }
+  return out
 }
 
 export default async function EmpresaDashboard() {
@@ -31,79 +45,118 @@ export default async function EmpresaDashboard() {
   }
 
   const companyId = await requireCompany(supabase, user.id)
+  const admin = createAdminClient()
+  const now = new Date()
+  const ms30d = 30 * 24 * 60 * 60 * 1000
+  const since30d = new Date(now.getTime() - ms30d).toISOString()
 
-  const { data: companyRow } = await supabase
+  const { data: companyRow } = await admin
     .from('companies')
     .select('name')
     .eq('id', companyId)
     .single()
-
   const companyName = companyRow?.name ?? null
 
-  // Stats de vagas e submissões da empresa
-  const [
-    { count: totalJobs },
-    { count: openJobs },
-    { count: jobsInCuration },
-    { count: jobsSentToClient },
-  ] = await Promise.all([
-    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', companyId),
-    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'open_for_hunters'),
-    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'in_hr_curation'),
-    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'sent_to_client'),
-  ])
-
-  // Submissões que chegaram pra empresa
-  const { data: companyJobs } = await supabase
-    .from('jobs')
-    .select('id')
-    .eq('company_id', companyId)
-
-  const jobIds = companyJobs?.map(j => j.id) || []
-
-  const [
-    { count: pendingForCompany },
-    { count: approvedByCompany },
-    { count: hiredCount },
-  ] = jobIds.length > 0
-    ? await Promise.all([
-        supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'sent_to_client'),
-        supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'client_approved'),
-        supabase.from('submissions').select('*', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'hired'),
-      ])
-    : [{ count: 0 }, { count: 0 }, { count: 0 }]
-
-  // Vagas recentes
-  const { data: recentJobs } = await supabase
+  const { data: companyJobs } = await admin
     .from('jobs')
     .select('id, title, status, created_at')
     .eq('company_id', companyId)
-    .order('created_at', { ascending: false })
-    .limit(5)
+  const jobIds = (companyJobs ?? []).map(j => j.id)
 
-  // Candidatos pendentes pra empresa avaliar
-  const { data: pendingCandidates } = jobIds.length > 0
-    ? await supabase
-        .from('submissions')
-        .select('id, ai_score, submitted_at, candidates(full_name, current_title), jobs(title)')
-        .in('job_id', jobIds)
-        .eq('status', 'sent_to_client')
-        .order('submitted_at', { ascending: false })
-        .limit(5)
-    : { data: [] }
+  const [
+    { count: openJobs },
+    { count: jobsInCuration },
+    { count: pendingHR },
+    { count: pendingForCompany },
+    { count: interviewing },
+    { count: hiredCount },
+    { count: hired30d },
+  ] = jobIds.length > 0
+    ? await Promise.all([
+        admin.from('jobs').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'open_for_hunters'),
+        admin.from('jobs').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'in_hr_curation'),
+        admin.from('jobs').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'pending_hr_review'),
+        admin.from('submissions').select('id', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'sent_to_client'),
+        admin.from('submissions').select('id', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'interview_scheduled'),
+        admin.from('submissions').select('id', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'hired'),
+        admin.from('submissions').select('id', { count: 'exact', head: true }).in('job_id', jobIds).eq('status', 'hired').gte('hired_at', since30d),
+      ])
+    : [
+        { count: 0 }, { count: 0 }, { count: 0 }, { count: 0 },
+        { count: 0 }, { count: 0 }, { count: 0 },
+      ]
 
-  const statusLabel: Record<string, { label: string; variant: 'gray' | 'yellow' | 'green' | 'blue' | 'dark' | 'red' }> = {
-    draft: { label: 'Rascunho', variant: 'gray' },
-    pending_hr_review: { label: 'Em revisão', variant: 'yellow' },
-    open_for_hunters: { label: 'Aberta', variant: 'green' },
-    submission_closed: { label: 'Envios fechados', variant: 'blue' },
-    in_hr_curation: { label: 'Em curadoria', variant: 'blue' },
-    sent_to_client: { label: 'Aguardando você', variant: 'yellow' },
-    interviewing: { label: 'Em entrevista', variant: 'blue' },
-    offer: { label: 'Em proposta', variant: 'dark' },
-    hired: { label: 'Contratado', variant: 'green' },
-    closed: { label: 'Encerrada', variant: 'gray' },
-    cancelled: { label: 'Cancelada', variant: 'red' },
+  // Funil
+  let funnel = [
+    { label: 'Recebidos', value: 0, color: 'var(--text-3)' },
+    { label: 'No cliente', value: 0, color: 'var(--accent-text)' },
+    { label: 'Aprovados', value: 0, color: 'var(--accent-text)' },
+    { label: 'Em entrevista', value: 0, color: 'var(--text-2)' },
+    { label: 'Contratados', value: 0, color: 'var(--text-1)' },
+  ]
+
+  if (jobIds.length > 0) {
+    const { data: allSubs } = await admin
+      .from('submissions')
+      .select('status, submitted_at, hired_at')
+      .in('job_id', jobIds)
+      .in('status', ['sent_to_client', 'client_approved', 'client_rejected', 'interview_scheduled', 'offer', 'hired', 'not_hired'])
+
+    const subs = allSubs ?? []
+    funnel = [
+      { label: 'Recebidos', value: subs.length, color: 'var(--text-3)' },
+      { label: 'No cliente (aguardando)', value: subs.filter(s => s.status === 'sent_to_client').length, color: 'var(--warning-text)' },
+      { label: 'Aprovados', value: subs.filter(s => ['client_approved', 'interview_scheduled', 'offer', 'hired'].includes(s.status)).length, color: 'var(--accent-text)' },
+      { label: 'Em entrevista', value: subs.filter(s => s.status === 'interview_scheduled').length, color: 'var(--text-2)' },
+      { label: 'Contratados', value: subs.filter(s => s.status === 'hired').length, color: 'var(--text-1)' },
+    ]
+  }
+
+  // Sparkline 14d de submissões recebidas
+  const since14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  let trend: number[] = []
+  if (jobIds.length > 0) {
+    const { data: recentSubs } = await admin
+      .from('submissions')
+      .select('submitted_at')
+      .in('job_id', jobIds)
+      .gte('submitted_at', since14d)
+    const dayBuckets = new Map<string, number>()
+    for (const s of recentSubs ?? []) {
+      const k = dayKey(new Date(s.submitted_at))
+      dayBuckets.set(k, (dayBuckets.get(k) ?? 0) + 1)
+    }
+    trend = lastNDays(14).map(d => dayBuckets.get(d) ?? 0)
+  }
+
+  // Atenção
+  const attention: { title: string; context?: string; count?: number; tone: 'attention' | 'positive' | 'neutral'; href: string; cta?: string }[] = []
+  if ((pendingForCompany ?? 0) > 0) {
+    attention.push({
+      title: 'Candidatos aguardando sua decisão',
+      context: 'HR já curou — agora você decide se aprova ou não.',
+      count: pendingForCompany ?? 0,
+      tone: 'attention',
+      href: '/empresa/candidatos',
+    })
+  }
+  if ((pendingHR ?? 0) > 0) {
+    attention.push({
+      title: 'Vagas em revisão pelo HR',
+      context: 'HR está revisando antes de liberar pros hunters.',
+      count: pendingHR ?? 0,
+      tone: 'neutral',
+      href: '/empresa/vagas',
+    })
+  }
+  if ((jobsInCuration ?? 0) > 0) {
+    attention.push({
+      title: 'Vagas em curadoria de candidatos',
+      context: 'Hunters enviando, HR triando.',
+      count: jobsInCuration ?? 0,
+      tone: 'neutral',
+      href: '/empresa/vagas',
+    })
   }
 
   const firstName = userData?.full_name?.split(' ')[0] || companyName || 'time'
@@ -114,7 +167,7 @@ export default async function EmpresaDashboard() {
         eyebrow="Painel da empresa"
         title="Olá,"
         titleAccent={firstName}
-        subtitle={`Acompanhe vagas, candidatos curados e o andamento dos processos da ${companyName || 'sua empresa'}.`}
+        subtitle={companyName ? `Visão da ${companyName} — pipeline e indicadores de contratação.` : 'Pipeline e indicadores de contratação.'}
         action={
           <Link href="/empresa/vagas/nova">
             <Button variant="dark" size="md">
@@ -128,165 +181,68 @@ export default async function EmpresaDashboard() {
       />
 
       <WelcomeCard role="company_user" userId={user.id} />
-      <InsightsCards role="company_user" />
 
-      {/* Funil de candidatos */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard
-          label="Pendentes de avaliação"
-          value={pendingForCompany || 0}
-          footer={(pendingForCompany || 0) > 0 ? 'Aguardando sua ação' : 'Nenhuma pendência'}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <MetricCard
+          label="Vagas ativas"
+          value={(openJobs ?? 0) + (jobsInCuration ?? 0)}
+          footer={`${openJobs ?? 0} abertas · ${jobsInCuration ?? 0} em curadoria`}
         />
-        <KPICard label="Aprovados por você" value={approvedByCompany || 0} />
-        <KPICard label="Em entrevista" value={0} />
-        <KPICard label="Contratados" value={hiredCount || 0} />
+        <MetricCard
+          label="Aguardando você"
+          value={pendingForCompany ?? 0}
+          footer="candidatos pra decidir"
+          attention={(pendingForCompany ?? 0) > 0}
+          trend={trend.length > 0 ? trend : undefined}
+        />
+        <MetricCard
+          label="Em entrevista"
+          value={interviewing ?? 0}
+          footer="processos ativos"
+        />
+        <MetricCard
+          label="Contratações 30d"
+          value={hired30d ?? 0}
+          footer={`${hiredCount ?? 0} no total`}
+        />
       </div>
 
-      {/* KPIs secundários */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KPICard label="Total de vagas" value={totalJobs || 0} numSize="sm" />
-        <KPICard label="Vagas abertas" value={openJobs || 0} numSize="sm" />
-        <KPICard label="Em curadoria" value={jobsInCuration || 0} numSize="sm" />
-        <KPICard label="Aguardando você" value={jobsSentToClient || 0} numSize="sm" />
-      </div>
+      <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-5">
+        <AttentionList
+          title="O que precisa de atenção"
+          items={attention}
+          emptyMessage="Sem pendências. Crie uma vaga nova se quiser contratar."
+        />
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Vagas recentes */}
-        <Card padding="none">
-          <div
-            className="flex items-center justify-between"
-            style={{ padding: '18px 22px 12px', borderBottom: '1px solid var(--color-border)' }}
-          >
-            <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)' }}>
-              Vagas recentes
-            </h2>
-            <Link
-              href="/empresa/vagas"
-              style={{ fontSize: '12.5px', color: 'var(--color-g600)', fontWeight: 500 }}
-            >
-              Ver todas →
-            </Link>
-          </div>
-          {!recentJobs || recentJobs.length === 0 ? (
-            <div style={{ padding: '32px 22px', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: 'var(--color-subtle)', marginBottom: '12px' }}>
-                Você ainda não tem vagas.
-              </p>
-              <Link href="/empresa/vagas/nova">
-                <Button variant="dark" size="sm">Criar primeira vaga</Button>
-              </Link>
-            </div>
+        <Card padding="md">
+          <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
+            Funil de candidatos
+          </h2>
+          {funnel[0].value === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-4)', textAlign: 'center', padding: '18px 0' }}>
+              Sem candidatos recebidos ainda.
+            </p>
           ) : (
-            recentJobs.map(job => {
-              const status = statusLabel[job.status] || { label: job.status, variant: 'gray' as const }
-              return (
-                <Link key={job.id} href={`/empresa/vagas/${job.id}/candidatos`} className="block">
-                  <div
-                    className="job-row-empresa"
-                    style={{
-                      padding: '14px 22px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderBottom: '1px solid var(--color-border)',
-                      cursor: 'pointer',
-                      transition: 'background .15s',
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--color-text)', marginBottom: '3px' }}>
-                        {job.title}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--color-subtle)' }}>
-                        {formatDate(job.created_at)}
-                      </div>
-                    </div>
-                    <Badge variant={status.variant}>{status.label}</Badge>
-                  </div>
-                </Link>
-              )
-            })
-          )}
-        </Card>
-
-        {/* Candidatos pendentes */}
-        <Card padding="none">
-          <div
-            className="flex items-center justify-between"
-            style={{ padding: '18px 22px 12px', borderBottom: '1px solid var(--color-border)' }}
-          >
-            <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)' }}>
-              Candidatos pra avaliar
-            </h2>
-            <Link
-              href="/empresa/candidatos"
-              style={{ fontSize: '12.5px', color: 'var(--color-g600)', fontWeight: 500 }}
-            >
-              Ver todos →
-            </Link>
-          </div>
-          {!pendingCandidates || pendingCandidates.length === 0 ? (
-            <div style={{ padding: '32px 22px', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>
-                Nenhum candidato aguardando sua avaliação no momento.
-              </p>
-            </div>
-          ) : (
-            pendingCandidates.map(sub => {
-              type CandidateRel = { full_name: string | null; current_title: string | null }
-              type JobRel = { title: string | null }
-              const candidatesRel = sub.candidates as CandidateRel | CandidateRel[] | null | undefined
-              const jobsRel = sub.jobs as JobRel | JobRel[] | null | undefined
-              const candidate = Array.isArray(candidatesRel) ? candidatesRel[0] ?? null : candidatesRel ?? null
-              const job = Array.isArray(jobsRel) ? jobsRel[0] ?? null : jobsRel ?? null
-              return (
-                <Link key={sub.id} href={`/empresa/candidatos/${sub.id}`} className="block">
-                  <div
-                    style={{
-                      padding: '14px 22px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderBottom: '1px solid var(--color-border)',
-                      cursor: 'pointer',
-                      transition: 'background .15s',
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--color-text)', marginBottom: '3px' }}>
-                        {candidate?.full_name}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--color-subtle)' }}>
-                        {job?.title}
-                      </div>
-                    </div>
-                    {sub.ai_score && (
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          color: 'var(--text-4)',
-                          letterSpacing: '0.02em',
-                        }}
-                        aria-label={`AI score ${sub.ai_score}`}
-                      >
-                        AI {sub.ai_score}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              )
-            })
+            <BarChart items={funnel} max={funnel[0]?.value || 1} />
           )}
         </Card>
       </div>
 
-      <style>{`
-        .job-row-empresa:hover, a.block > div:hover {
-          background: var(--accent-bg);
-        }
-      `}</style>
+      {companyJobs && companyJobs.length === 0 && (
+        <Card padding="lg" className="text-center">
+          <div className="py-8">
+            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-1)', marginBottom: '6px' }}>
+              Você ainda não criou nenhuma vaga.
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--text-4)', marginBottom: '14px' }}>
+              Comece criando sua primeira vaga — IA + hunters + curadoria pronta pra trabalhar.
+            </p>
+            <Link href="/empresa/vagas/nova">
+              <Button variant="dark" size="md">Criar primeira vaga</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

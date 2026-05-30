@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import ProfileForm from '@/components/profile/ProfileForm'
 import PasswordForm from '@/components/profile/PasswordForm'
+import PreferencesForm from '@/components/profile/PreferencesForm'
 
 export const metadata = {
   title: 'Meu perfil — Nexhire',
@@ -36,6 +37,8 @@ export default async function PerfilPage() {
           email: userData.email,
         }}
       />
+
+      <PreferencesForm />
 
       <PasswordForm />
     </div>

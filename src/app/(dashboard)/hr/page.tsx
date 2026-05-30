@@ -1,25 +1,39 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
-import Link from 'next/link'
+import MetricCard from '@/components/ui/MetricCard'
+import AttentionList from '@/components/ui/AttentionList'
+import BarChart from '@/components/ui/BarChart'
 import Card from '@/components/ui/Card'
-import KPICard from '@/components/ui/KPICard'
-import InsightsCards from '@/components/dashboard/InsightsCards'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
 
 export const metadata = {
   title: 'Dashboard HR — Nexhire',
 }
 
+function dayKey(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function lastNDays(n: number): string[] {
+  const out: string[] = []
+  const today = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
+    out.push(dayKey(d))
+  }
+  return out
+}
+
 export default async function HRDashboard() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) redirect('/login')
 
   const { data: userData } = await supabase
     .from('users')
-    .select('*')
+    .select('role')
     .eq('id', user.id)
     .single()
 
@@ -27,182 +41,237 @@ export default async function HRDashboard() {
     redirect('/login')
   }
 
+  // Admin client pra ver tudo (RLS bloqueia HR de algumas tabelas dependendo de policy)
+  const admin = createAdminClient()
+  const now = new Date()
+  const ms30d = 30 * 24 * 60 * 60 * 1000
+  const since30d = new Date(now.getTime() - ms30d).toISOString()
+  const since60d = new Date(now.getTime() - 2 * ms30d).toISOString()
+
   const [
-    { count: totalJobs },
     { count: pendingJobs },
     { count: pendingSubmissions },
     { count: pendingHunters },
+    { count: openJobs },
+    { count: sentToClient },
+    { count: subs30d },
+    { count: subsPrev30d },
+    { count: hires30d },
+    { count: hiresPrev30d },
+    { count: rejected30d },
   ] = await Promise.all([
-    supabase.from('jobs').select('*', { count: 'exact', head: true }),
-    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'pending_hr_review'),
-    supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
-    supabase.from('recruiters').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    admin.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'pending_hr_review'),
+    admin.from('submissions').select('id', { count: 'exact', head: true }).in('status', ['submitted', 'ai_analyzed']),
+    admin.from('recruiters').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    admin.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'open_for_hunters'),
+    admin.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'sent_to_client'),
+    admin.from('submissions').select('id', { count: 'exact', head: true }).gte('submitted_at', since30d),
+    admin
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .gte('submitted_at', since60d)
+      .lt('submitted_at', since30d),
+    admin
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'hired')
+      .gte('hired_at', since30d),
+    admin
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'hired')
+      .gte('hired_at', since60d)
+      .lt('hired_at', since30d),
+    admin
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'hr_rejected')
+      .gte('submitted_at', since30d),
   ])
 
-  const { data: recentJobs } = await supabase
-    .from('jobs')
-    .select('id, title, status, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  const { data: recentSubmissions } = await supabase
+  // Sparkline 14d
+  const since14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentSubs } = await admin
     .from('submissions')
-    .select('id, status, submitted_at, jobs(title), candidates(full_name)')
-    .order('submitted_at', { ascending: false })
-    .limit(5)
+    .select('submitted_at')
+    .gte('submitted_at', since14d)
+
+  const dayBuckets = new Map<string, number>()
+  for (const s of recentSubs ?? []) {
+    const k = dayKey(new Date(s.submitted_at))
+    dayBuckets.set(k, (dayBuckets.get(k) ?? 0) + 1)
+  }
+  const trend = lastNDays(14).map(d => dayBuckets.get(d) ?? 0)
+
+  // Funil
+  const { data: allSubs } = await admin
+    .from('submissions')
+    .select('status')
+    .gte('submitted_at', since30d)
+
+  const statusCount = new Map<string, number>()
+  for (const s of allSubs ?? []) {
+    statusCount.set(s.status, (statusCount.get(s.status) ?? 0) + 1)
+  }
+  const funnel = [
+    { label: 'Recebidos', value: allSubs?.length ?? 0, color: 'var(--text-3)' },
+    {
+      label: 'Aprovados pelo HR',
+      value:
+        (statusCount.get('hr_approved') ?? 0) +
+        (statusCount.get('sent_to_client') ?? 0) +
+        (statusCount.get('client_approved') ?? 0) +
+        (statusCount.get('client_rejected') ?? 0) +
+        (statusCount.get('interview_scheduled') ?? 0) +
+        (statusCount.get('offer') ?? 0) +
+        (statusCount.get('hired') ?? 0) +
+        (statusCount.get('not_hired') ?? 0),
+      color: 'var(--accent-text)',
+    },
+    {
+      label: 'Aprovados pelo cliente',
+      value:
+        (statusCount.get('client_approved') ?? 0) +
+        (statusCount.get('interview_scheduled') ?? 0) +
+        (statusCount.get('offer') ?? 0) +
+        (statusCount.get('hired') ?? 0),
+      color: 'var(--accent-text)',
+    },
+    {
+      label: 'Em entrevista',
+      value: statusCount.get('interview_scheduled') ?? 0,
+      color: 'var(--text-2)',
+    },
+    {
+      label: 'Contratados',
+      value: statusCount.get('hired') ?? 0,
+      color: 'var(--text-1)',
+    },
+  ]
+
+  // Taxas
+  function delta(curr: number, prev: number) {
+    if (prev === 0 && curr === 0) return undefined
+    if (prev === 0) return { value: 'novo', direction: 'up' as const, tone: 'positive' as const }
+    const diff = curr - prev
+    const pct = Math.round((diff / prev) * 100)
+    return {
+      value: `${Math.abs(pct)}%`,
+      direction: pct > 0 ? ('up' as const) : pct < 0 ? ('down' as const) : ('flat' as const),
+      tone: pct > 0 ? ('positive' as const) : pct < 0 ? ('negative' as const) : ('neutral' as const),
+    }
+  }
+
+  const conversionRate =
+    (subs30d ?? 0) > 0 ? Math.round((((hires30d ?? 0) / (subs30d ?? 1)) * 100)) : 0
+
+  // Atenção
+  const attention: { title: string; context?: string; count?: number; tone: 'attention' | 'positive' | 'neutral'; href: string; cta?: string }[] = []
+  if ((pendingSubmissions ?? 0) > 0) {
+    attention.push({
+      title: 'Submissões pra curar',
+      context: 'Hunters enviaram candidatos aguardando análise.',
+      count: pendingSubmissions ?? 0,
+      tone: 'attention',
+      href: '/hr/submissoes',
+    })
+  }
+  if ((pendingJobs ?? 0) > 0) {
+    attention.push({
+      title: 'Vagas pra revisar',
+      context: 'JDs criadas pelas empresas aguardando aprovação.',
+      count: pendingJobs ?? 0,
+      tone: 'attention',
+      href: '/hr/vagas',
+    })
+  }
+  if ((pendingHunters ?? 0) > 0) {
+    attention.push({
+      title: 'Hunters pra aprovar',
+      context: 'Novos hunters cadastrados aguardando.',
+      count: pendingHunters ?? 0,
+      tone: 'attention',
+      href: '/hr/hunters?status=pending',
+    })
+  }
+  if ((sentToClient ?? 0) > 0) {
+    attention.push({
+      title: 'Candidatos no cliente',
+      context: 'Aguardando decisão da empresa.',
+      count: sentToClient ?? 0,
+      tone: 'neutral',
+      href: '/hr/pipeline',
+    })
+  }
 
   return (
     <div className="max-w-6xl">
-      {/* Header */}
-     <PageHeader
+      <PageHeader
         eyebrow="HR Manager"
         title="Operações"
         titleAccent="da plataforma"
-        subtitle="Visão geral de vagas, submissões e operações em curso."
+        subtitle="Saúde da curadoria, fila atual e taxa de conversão dos últimos 30 dias."
       />
 
       <WelcomeCard role="hr_manager" userId={user.id} />
-      <InsightsCards role="hr_manager" />
 
-      {/* Alertas de ação */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Link href="/hr/vagas?status=pending_hr_review">
-          <KPICard
-            label="Vagas para revisar"
-            value={pendingJobs || 0}
-            footer={(pendingJobs || 0) > 0 ? 'Requer atenção' : 'Nenhuma pendência'}
-          />
-        </Link>
-        <Link href="/hr/submissoes?status=submitted">
-          <KPICard
-            label="Submissões para curar"
-            value={pendingSubmissions || 0}
-            footer={(pendingSubmissions || 0) > 0 ? 'Requer atenção' : 'Nenhuma pendência'}
-          />
-        </Link>
-        <Link href="/hr/hunters?status=pending">
-          <KPICard
-            label="Hunters para aprovar"
-            value={pendingHunters || 0}
-            footer={(pendingHunters || 0) > 0 ? 'Requer atenção' : 'Nenhuma pendência'}
-          />
-        </Link>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <MetricCard
+          label="Submissões 30d"
+          value={subs30d ?? 0}
+          delta={delta(subs30d ?? 0, subsPrev30d ?? 0)}
+          trend={trend}
+          footer="entrada de candidatos"
+        />
+        <MetricCard
+          label="Contratações 30d"
+          value={hires30d ?? 0}
+          delta={delta(hires30d ?? 0, hiresPrev30d ?? 0)}
+          footer="status hired"
+        />
+        <MetricCard
+          label="Taxa de conversão"
+          value={`${conversionRate}%`}
+          footer="contratados / submissões"
+        />
+        <MetricCard
+          label="Reprovados 30d"
+          value={rejected30d ?? 0}
+          footer="hr_rejected"
+        />
       </div>
 
-      {/* Stats gerais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KPICard label="Total de vagas" value={totalJobs || 0} numSize="sm" />
-        <KPICard label="Vagas abertas" value={0} numSize="sm" />
-        <KPICard label="Total submissões" value={0} numSize="sm" />
-        <KPICard label="Contratações" value={0} numSize="sm" />
-      </div>
+      <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-5">
+        <AttentionList
+          title="O que precisa de atenção"
+          items={attention}
+          emptyMessage="Fila zerada. Bom trabalho."
+        />
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Vagas recentes */}
         <Card padding="md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-text">Vagas recentes</h2>
-            <Link href="/hr/vagas" className="text-sm text-g600 hover:underline">
-              Ver todas
-            </Link>
-          </div>
-          {!recentJobs || recentJobs.length === 0 ? (
-            <p className="text-sm text-subtle text-center py-6">
-              Nenhuma vaga ainda.
-            </p>
-          ) : (
-            <div className="flex flex-col divide-y divide-(--border-1)">
-              {recentJobs.map(job => (
-                <div key={job.id} className="py-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-text">{job.title}</div>
-                    <div className="text-xs text-subtle mt-0.5">
-                      {new Date(job.created_at).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
-                  <span
-                    className="text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2"
-                    style={
-                      job.status === 'pending_hr_review' ? { background: 'var(--warning-bg)', color: 'var(--warning-text)' } :
-                      job.status === 'open_for_hunters' ? { background: 'var(--accent-bg)', color: 'var(--accent-text)' } :
-                      job.status === 'hired' ? { background: 'var(--text-1)', color: 'var(--neon)' } :
-                      { background: 'var(--bg-elev-2)', color: 'var(--text-3)' }
-                    }
-                  >
-                    {job.status === 'pending_hr_review' && 'Para revisar'}
-                    {job.status === 'open_for_hunters' && 'Aberta'}
-                    {job.status === 'hired' && 'Contratado'}
-                    {!['pending_hr_review', 'open_for_hunters', 'hired'].includes(job.status) && job.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Submissões recentes */}
-        <Card padding="md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-text">Submissões recentes</h2>
-            <Link href="/hr/submissoes" className="text-sm text-g600 hover:underline">
-              Ver todas
-            </Link>
-          </div>
-          {!recentSubmissions || recentSubmissions.length === 0 ? (
-            <p className="text-sm text-subtle text-center py-6">
-              Nenhuma submissão ainda.
-            </p>
-          ) : (
-            <div className="flex flex-col divide-y divide-(--border-1)">
-              {recentSubmissions.map(sub => {
-                type CandidateRel = { full_name: string | null }
-                type JobRel = { title: string | null }
-                const candidatesRel = sub.candidates as CandidateRel | CandidateRel[] | null | undefined
-                const jobsRel = sub.jobs as JobRel | JobRel[] | null | undefined
-                const candidate = Array.isArray(candidatesRel) ? candidatesRel[0] ?? null : candidatesRel ?? null
-                const job = Array.isArray(jobsRel) ? jobsRel[0] ?? null : jobsRel ?? null
-                return (
-                <div key={sub.id} className="py-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-text">
-                      {candidate?.full_name || 'Candidato'}
-                    </div>
-                    <div className="text-xs text-subtle mt-0.5">
-                      {job?.title || 'Vaga'}
-                    </div>
-                  </div>
-                  {(() => {
-                    const map: Record<string, { label: string; bg: string; color: string }> = {
-                      submitted: { label: 'Aguardando', bg: 'var(--bg-elev-2)', color: 'var(--text-3)' },
-                      ai_analyzed: { label: 'Analisado IA', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
-                      hr_approved: { label: 'Aprovado', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
-                      hr_rejected: { label: 'Reprovado', bg: 'var(--danger-bg)', color: 'var(--danger-text)' },
-                      sent_to_client: { label: 'No cliente', bg: 'var(--warning-bg)', color: 'var(--warning-text)' },
-                      client_approved: { label: 'Cliente aprovou', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
-                      client_rejected: { label: 'Cliente recusou', bg: 'var(--danger-bg)', color: 'var(--danger-text)' },
-                      interview_scheduled: { label: 'Em entrevista', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
-                      offer: { label: 'Em proposta', bg: 'var(--bg-elev-2)', color: 'var(--text-2)' },
-                      hired: { label: 'Contratado', bg: 'var(--bg-elev-2)', color: 'var(--text-1)' },
-                      not_hired: { label: 'Não contratado', bg: 'var(--bg-elev-2)', color: 'var(--text-3)' },
-                      duplicate: { label: 'Duplicado', bg: 'var(--bg-elev-2)', color: 'var(--text-4)' },
-                    }
-                    const info = map[sub.status] ?? { label: sub.status, bg: 'var(--bg-elev-2)', color: 'var(--text-3)' }
-                    return (
-                      <span
-                        className="text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2"
-                        style={{ background: info.bg, color: info.color }}
-                      >
-                        {info.label}
-                      </span>
-                    )
-                  })()}
-                </div>
-                )
-              })}
-            </div>
-          )}
+          <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
+            Funil dos últimos 30 dias
+          </h2>
+          <BarChart items={funnel} max={funnel[0]?.value || 1} valueSuffix="" />
         </Card>
       </div>
+
+      <Card padding="md">
+        <div className="flex items-center justify-between mb-3">
+          <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)' }}>
+            Estado atual
+          </h2>
+          <span className="mono" style={{ fontSize: '10.5px', color: 'var(--text-4)' }}>
+            tempo real
+          </span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard label="Vagas abertas" value={openJobs ?? 0} numSize="sm" />
+          <MetricCard label="Pra curar agora" value={pendingSubmissions ?? 0} numSize="sm" attention={(pendingSubmissions ?? 0) > 0} />
+          <MetricCard label="No cliente" value={sentToClient ?? 0} numSize="sm" />
+          <MetricCard label="Vagas pendentes" value={pendingJobs ?? 0} numSize="sm" attention={(pendingJobs ?? 0) > 0} />
+        </div>
+      </Card>
     </div>
   )
 }

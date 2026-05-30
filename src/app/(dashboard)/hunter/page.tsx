@@ -2,12 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
+import MetricCard from '@/components/ui/MetricCard'
+import AttentionList from '@/components/ui/AttentionList'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
-import KPICard from '@/components/ui/KPICard'
-import InsightsCards from '@/components/dashboard/InsightsCards'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
+import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
 import { formatCurrency } from '@/lib/utils'
+
+export const metadata = {
+  title: 'Dashboard — Hunter',
+}
 
 type CompanyRel = { name: string | null }
 type JobRel = { title: string | null }
@@ -17,10 +22,25 @@ function pickOne<T>(rel: T | T[] | null | undefined): T | null {
   if (!rel) return null
   return Array.isArray(rel) ? rel[0] ?? null : rel
 }
-import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
 
-export const metadata = {
-  title: 'Dashboard Hunter — Nexhire',
+const ACTIVE = new Set([
+  'submitted', 'ai_analyzed', 'hr_approved', 'sent_to_client',
+  'client_approved', 'interview_scheduled', 'offer',
+])
+
+const statusLabel: Record<string, string> = {
+  submitted: 'Aguardando',
+  ai_analyzed: 'Em análise',
+  hr_approved: 'Aprovado HR',
+  hr_rejected: 'Reprovado',
+  sent_to_client: 'No cliente',
+  client_approved: 'Cliente aprovou',
+  client_rejected: 'Cliente recusou',
+  interview_scheduled: 'Em entrevista',
+  offer: 'Em proposta',
+  hired: 'Contratado',
+  not_hired: 'Não contratado',
+  duplicate: 'Duplicado',
 }
 
 export default async function HunterDashboard() {
@@ -45,288 +65,230 @@ export default async function HunterDashboard() {
 
   const { data: allOpenJobs } = await supabase
     .from('jobs')
-    .select('id, title, location, work_model, salary_min, salary_max, visibility_type, companies(name)')
+    .select('id, title, location, salary_min, visibility_type, companies(name)')
     .eq('status', 'open_for_hunters')
     .order('created_at', { ascending: false })
+    .limit(20)
 
-  const openJobs = filterJobsByVisibility(allOpenJobs, hunterLevel).slice(0, 3)
+  const openJobs = filterJobsByVisibility(allOpenJobs, hunterLevel).slice(0, 5)
 
-  const { data: score } = await supabase
-    .from('recruiter_scores')
-    .select('*')
-    .eq('recruiter_id', recruiter?.id || '')
-    .single()
+  // Stats em tempo real
+  const subs = submissions ?? []
+  const ativos = subs.filter(s => ACTIVE.has(s.status))
+  const aprovadosHR = subs.filter(s =>
+    ['hr_approved', 'sent_to_client', 'client_approved', 'interview_scheduled', 'offer', 'hired', 'not_hired'].includes(s.status),
+  )
+  const contratacoes = subs.filter(s => s.status === 'hired')
+  const reprovadosHR = subs.filter(s => s.status === 'hr_rejected').length
 
-  const { data: networkAvg } = await supabase
-    .from('recruiter_scores')
-    .select('hr_approval_rate, client_approval_rate, hire_rate, overall_score')
-    .gt('total_submissions', 0)
+  // Taxas
+  const terminalCount = subs.filter(s =>
+    ['hr_approved', 'hr_rejected', 'sent_to_client', 'client_approved', 'client_rejected', 'interview_scheduled', 'offer', 'hired', 'not_hired', 'duplicate'].includes(s.status),
+  ).length
+  const hrRate = terminalCount > 0 ? Math.round((aprovadosHR.length / terminalCount) * 100) : 0
+  const hireRate = subs.length > 0 ? Math.round((contratacoes.length / subs.length) * 100) : 0
 
-  const avgHrRate = networkAvg && networkAvg.length > 0
-    ? networkAvg.reduce((acc, r) => acc + Number(r.hr_approval_rate || 0), 0) / networkAvg.length
-    : 0
-  const avgClientRate = networkAvg && networkAvg.length > 0
-    ? networkAvg.reduce((acc, r) => acc + Number(r.client_approval_rate || 0), 0) / networkAvg.length
-    : 0
-
-  const stats = {
-    enviados: submissions?.length || 0,
-    aprovados_hr: submissions?.filter(s => ['hr_approved', 'sent_to_client', 'client_approved', 'interview_scheduled', 'hired'].includes(s.status)).length || 0,
-    contratacoes: submissions?.filter(s => s.status === 'hired').length || 0,
-    vagas_disponiveis: openJobs?.length || 0,
-  }
-
+  // Nível e progresso
   const levelLabels: Record<string, string> = {
     beginner: 'Iniciante',
     specialist: 'Especialista',
     top_hunter: 'Top Hunter',
   }
-  const levelLabel = levelLabels[score?.level || 'beginner'] ?? 'Iniciante'
+  const levelLabel = levelLabels[recruiter?.level || 'beginner'] ?? 'Iniciante'
 
-  // Usa contagem em tempo real (submissions diretas) em vez de recruiter_scores
-  // (cache) — recruiter_scores pode estar stale entre triggers/recomputes.
-  const totalSubs = stats.enviados
-  const overall = Number(score?.overall_score || 0)
-  const totalHires = stats.contratacoes
+  // Atenção
+  const attention: { title: string; context?: string; count?: number; tone: 'attention' | 'positive' | 'neutral'; href: string; cta?: string }[] = []
 
-  let nextLevelLabel = ''
-  let progressPercent = 0
-  let progressDescription = ''
-
-  if (score?.level === 'beginner') {
-    nextLevelLabel = 'Especialista'
-    const subsProgress = Math.min(100, (totalSubs / 10) * 100)
-    const scoreProgress = Math.min(100, (overall / 60) * 100)
-    progressPercent = Math.round((subsProgress + scoreProgress) / 2)
-    const subsMissing = Math.max(0, 10 - totalSubs)
-    const scoreMissing = Math.max(0, 60 - overall)
-    if (subsMissing > 0 && scoreMissing > 0) {
-      progressDescription = `Faltam ${subsMissing} envios e melhorar score em ${scoreMissing.toFixed(0)} pts`
-    } else if (subsMissing > 0) {
-      progressDescription = `Faltam ${subsMissing} envios pra subir de nível`
-    } else if (scoreMissing > 0) {
-      progressDescription = `Score ${scoreMissing.toFixed(0)} pts abaixo da meta`
-    }
-  } else if (score?.level === 'specialist') {
-    nextLevelLabel = 'Top Hunter'
-    const subsProgress = Math.min(100, (totalSubs / 30) * 100)
-    const scoreProgress = Math.min(100, (overall / 80) * 100)
-    const hiresProgress = Math.min(100, (totalHires / 5) * 100)
-    progressPercent = Math.round((subsProgress + scoreProgress + hiresProgress) / 3)
-    const subsMissing = Math.max(0, 30 - totalSubs)
-    const hiresMissing = Math.max(0, 5 - totalHires)
-    const parts = []
-    if (subsMissing > 0) parts.push(`${subsMissing} envios`)
-    if (hiresMissing > 0) parts.push(`${hiresMissing} contratações`)
-    if (overall < 80) parts.push(`score ${(80 - overall).toFixed(0)} pts acima`)
-    progressDescription = parts.length > 0 ? `Faltam ${parts.join(', ')}` : 'Quase lá'
-  } else {
-    nextLevelLabel = ''
-    progressPercent = 100
-    progressDescription = 'Você está no nível máximo'
+  if (!recruiter || recruiter.status !== 'approved') {
+    attention.push({
+      title: 'Perfil em análise',
+      context: 'Seu cadastro está sendo avaliado. Você verá vagas mas só envia após aprovação.',
+      tone: 'attention',
+      href: '/hunter/vagas',
+      cta: 'Ver vagas →',
+    })
   }
 
-  const compareToNetwork = (mine: number, network: number) => {
-    if (network === 0) return { label: 'Sem comparativo ainda', color: 'gray' as const }
-    const diff = mine - network
-    if (diff >= 10) return { label: 'Muito acima da média', color: 'green' as const }
-    if (diff >= 0) return { label: 'Acima da média', color: 'green' as const }
-    if (diff >= -10) return { label: 'Na média', color: 'gray' as const }
-    return { label: 'Abaixo da média', color: 'yellow' as const }
+  const interviewing = subs.filter(s => s.status === 'interview_scheduled').length
+  if (interviewing > 0) {
+    attention.push({
+      title: 'Candidatos em entrevista',
+      context: 'Acompanhe o status no painel.',
+      count: interviewing,
+      tone: 'positive',
+      href: '/hunter/submissoes',
+    })
   }
 
-  // Taxas em tempo real (evita cache stale do recruiter_scores)
-  const subs = submissions ?? []
-  const terminalDecisions = subs.filter(s => [
-    'hr_approved','sent_to_client','client_approved','client_rejected',
-    'interview_scheduled','offer','hired','hr_rejected','duplicate','not_hired',
-  ].includes(s.status)).length
-  const hrApprovedCount = subs.filter(s => [
-    'hr_approved','sent_to_client','client_approved','client_rejected',
-    'interview_scheduled','offer','hired','not_hired',
-  ].includes(s.status)).length
-  const clientApprovedCount = subs.filter(s => [
-    'client_approved','interview_scheduled','offer','hired',
-  ].includes(s.status)).length
+  const newOpen = openJobs.length
+  if (newOpen > 0 && recruiter?.status === 'approved') {
+    attention.push({
+      title: `${newOpen} vaga${newOpen === 1 ? '' : 's'} disponíve${newOpen === 1 ? 'l' : 'is'}`,
+      context: 'Veja e envie candidatos antes que os slots fechem.',
+      tone: 'neutral',
+      href: '/hunter/vagas',
+    })
+  }
 
-  const hrRate = terminalDecisions > 0 ? Math.round((hrApprovedCount / terminalDecisions) * 100) : 0
-  const clientRate = hrApprovedCount > 0 ? Math.round((clientApprovedCount / hrApprovedCount) * 100) : 0
-  const hrCompare = compareToNetwork(hrRate, avgHrRate)
-  const clientCompare = compareToNetwork(clientRate, avgClientRate)
+  const firstName = userData?.full_name?.split(' ')[0] || 'hunter'
 
   return (
-    <div className="max-w-5xl">
-  <PageHeader
-        eyebrow="Hunter Dashboard"
+    <div className="max-w-6xl">
+      <PageHeader
+        eyebrow="Painel"
         title="Olá,"
-        titleAccent={userData?.full_name?.split(' ')[0] || 'hunter'}
-        subtitle="Seu painel de oportunidades, performance e submissões."
+        titleAccent={firstName}
+        subtitle={recruiter?.status === 'approved' ? `Nível ${levelLabel} · ${subs.length} envio${subs.length === 1 ? '' : 's'} no total` : 'Seu painel de oportunidades e performance.'}
       />
 
       <WelcomeCard role="recruiter" userId={user.id} />
-      <InsightsCards role="recruiter" />
 
-      {(!recruiter || recruiter.status !== 'approved') && (
-        <Card padding="md" className="mb-6" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}>
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 shrink-0" style={{ color: 'var(--warning-text)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <div className="text-sm font-medium" style={{ color: 'var(--warning-text)' }}>Perfil em análise</div>
-              <div className="text-xs" style={{ color: 'var(--warning-text)' }}>Seu cadastro está sendo avaliado pelo time Nexhire. Você será notificado quando aprovado.</div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {recruiter?.status === 'approved' && (
-        <Card padding="md" className="mb-6" style={{ borderColor: 'var(--accent-border)', background: 'linear-gradient(to bottom right, var(--accent-bg), var(--bg-elev-1))' }}>
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <div className="text-xs uppercase tracking-wide font-medium mb-1" style={{ color: 'var(--accent-text)' }}>Sua performance</div>
-              <div className="flex items-baseline gap-3">
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-1)' }}>{levelLabel}</h2>
-                <span className="text-sm" style={{ color: 'var(--text-3)' }}>score {overall.toFixed(0)}</span>
-              </div>
-            </div>
-            {nextLevelLabel && (
-              <div className="text-right">
-                <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Próximo nível</div>
-                <Badge variant="dark">{nextLevelLabel}</Badge>
-              </div>
-            )}
-          </div>
-
-          {nextLevelLabel && (
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs" style={{ color: 'var(--text-3)' }}>{progressDescription}</div>
-                <div className="text-xs font-bold" style={{ color: 'var(--accent-text)' }}>{progressPercent}%</div>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-2)' }}>
-                <div className="h-full transition-all" style={{ width: `${progressPercent}%`, background: 'var(--accent-text)' }} />
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-3 pt-4 border-t" style={{ borderColor: 'var(--accent-border)' }}>
-            <div>
-              <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Envios totais</div>
-              <div className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>{totalSubs}</div>
-            </div>
-            <div>
-              <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Aprovação HR</div>
-              <Badge variant={hrCompare.color}>{hrCompare.label}</Badge>
-            </div>
-            <div>
-              <div className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Aprovação cliente</div>
-              <Badge variant={clientCompare.color}>{clientCompare.label}</Badge>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KPICard label="Candidatos enviados" value={stats.enviados} />
-        <KPICard label="Aprovados pelo HR" value={stats.aprovados_hr} />
-        <KPICard label="Contratações" value={stats.contratacoes} />
-        <KPICard label="Vagas disponíveis" value={stats.vagas_disponiveis} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <MetricCard
+          label="Envios ativos"
+          value={ativos.length}
+          footer={`${subs.length} no total · ${reprovadosHR} reprovados`}
+        />
+        <MetricCard
+          label="Aprovação HR"
+          value={`${hrRate}%`}
+          footer={terminalCount > 0 ? `${aprovadosHR.length}/${terminalCount} terminais` : 'sem envios decididos'}
+        />
+        <MetricCard
+          label="Taxa de contratação"
+          value={`${hireRate}%`}
+          footer={`${contratacoes.length} contratado${contratacoes.length === 1 ? '' : 's'}`}
+        />
+        <MetricCard
+          label="Vagas disponíveis"
+          value={openJobs.length}
+          footer={`Nível ${levelLabel}`}
+        />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-5">
+        <AttentionList
+          title="O que precisa de atenção"
+          items={attention}
+          emptyMessage="Tudo em ordem. Confira vagas abertas pra enviar mais candidatos."
+        />
+
         <Card padding="md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold" style={{ color: 'var(--text-1)' }}>Vagas disponíveis</h2>
-            <Link href="/hunter/vagas" className="text-sm hover:underline" style={{ color: 'var(--accent-text)' }}>Ver todas</Link>
+          <div className="flex items-center justify-between mb-3">
+            <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)' }}>
+              Últimos envios
+            </h2>
+            <Link href="/hunter/submissoes" style={{ fontSize: '11.5px', color: 'var(--accent-text)' }}>
+              Ver todos
+            </Link>
           </div>
-          {!openJobs || openJobs.length === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: 'var(--text-4)' }}>Nenhuma vaga disponível no momento.</p>
+          {subs.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-4)', textAlign: 'center', padding: '14px 0' }}>
+              Você ainda não enviou candidatos.
+            </p>
           ) : (
             <div className="flex flex-col divide-y divide-(--border-1)">
-              {openJobs.map(job => {
-                const company = pickOne(job.companies as CompanyRel | CompanyRel[] | null | undefined)
+              {subs.slice(0, 5).map(sub => {
+                const candidate = pickOne(sub.candidates as CandidateRel | CandidateRel[] | null | undefined)
+                const job = pickOne(sub.jobs as (JobRel & { companies: CompanyRel | CompanyRel[] | null }) | (JobRel & { companies: CompanyRel | CompanyRel[] | null })[] | null | undefined)
                 return (
-                <Link key={job.id} href={`/hunter/vagas/${job.id}`} className="py-3 flex items-center justify-between -mx-2 px-2 rounded transition-colors hover:bg-(--bg-elev-2)">
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{job.title}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-4)' }}>
+                  <div
+                    key={sub.id}
+                    style={{
+                      padding: '10px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-1)' }}>
+                        {candidate?.full_name || 'Candidato'}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>
+                        {job?.title}
+                      </div>
+                    </div>
+                    {sub.ai_score && (
+                      <span
+                        className="mono"
+                        style={{ fontSize: '10.5px', color: 'var(--text-4)' }}
+                      >
+                        {sub.ai_score}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '10.5px', color: 'var(--text-3)' }}>
+                      {statusLabel[sub.status] ?? sub.status}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <Card padding="md">
+        <div className="flex items-center justify-between mb-3">
+          <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)' }}>
+            Vagas disponíveis pra você
+          </h2>
+          <Link href="/hunter/vagas" style={{ fontSize: '11.5px', color: 'var(--accent-text)' }}>
+            Ver todas
+          </Link>
+        </div>
+        {openJobs.length === 0 ? (
+          <p style={{ fontSize: '12px', color: 'var(--text-4)', textAlign: 'center', padding: '14px 0' }}>
+            Nenhuma vaga disponível pro seu nível agora.
+          </p>
+        ) : (
+          <div className="flex flex-col divide-y divide-(--border-1)">
+            {openJobs.map(job => {
+              const company = pickOne(job.companies as CompanyRel | CompanyRel[] | null | undefined)
+              const isExclusive = job.visibility_type && job.visibility_type !== 'open'
+              return (
+                <Link
+                  key={job.id}
+                  href={`/hunter/vagas/${job.id}`}
+                  style={{
+                    padding: '12px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-1)' }}>
+                        {job.title}
+                      </span>
+                      {isExclusive && (
+                        <Badge variant={job.visibility_type === 'top_hunters_only' ? 'dark' : 'blue'} size="sm">
+                          {job.visibility_type === 'top_hunters_only' ? 'Top Hunters' : 'Especialistas+'}
+                        </Badge>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '2px' }}>
                       {company?.name}
                       {job.location && ` · ${job.location}`}
                     </div>
                   </div>
                   {job.salary_min && (
-                    <div className="text-xs font-medium" style={{ color: 'var(--accent-text)' }}>
+                    <span
+                      className="mono"
+                      style={{ fontSize: '11.5px', fontWeight: 500, color: 'var(--accent-text)' }}
+                    >
                       {formatCurrency(job.salary_min)}+
-                    </div>
+                    </span>
                   )}
                 </Link>
-                )
-              })}
-            </div>
-          )}
-        </Card>
-
-        <Card padding="md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold" style={{ color: 'var(--text-1)' }}>Minhas submissões</h2>
-            <Link href="/hunter/submissoes" className="text-sm hover:underline" style={{ color: 'var(--accent-text)' }}>Ver todas</Link>
+              )
+            })}
           </div>
-          {!submissions || submissions.length === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: 'var(--text-4)' }}>Nenhuma submissão ainda.</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-(--border-1)">
-              {submissions.slice(0, 5).map(sub => {
-                const candidate = pickOne(sub.candidates as CandidateRel | CandidateRel[] | null | undefined)
-                const subJob = pickOne(sub.jobs as JobRel | JobRel[] | null | undefined)
-                return (
-                <div key={sub.id} className="py-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>
-                      {candidate?.full_name}
-                    </div>
-                    <div className="text-xs" style={{ color: 'var(--text-4)' }}>{subJob?.title}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {sub.ai_score && (
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          color: 'var(--text-4)',
-                          letterSpacing: '0.02em',
-                        }}
-                        aria-label={`AI score ${sub.ai_score}`}
-                      >
-                        AI {sub.ai_score}
-                      </span>
-                    )}
-                    <Badge variant={
-                      sub.status === 'submitted' ? 'gray' :
-                      sub.status === 'hr_approved' ? 'green' :
-                      sub.status === 'hr_rejected' ? 'red' :
-                      sub.status === 'hired' ? 'dark' : 'gray'
-                    }>
-                      {sub.status === 'submitted' && 'Enviado'}
-                      {sub.status === 'ai_analyzed' && 'Analisado'}
-                      {sub.status === 'hr_approved' && 'Aprovado'}
-                      {sub.status === 'hr_rejected' && 'Reprovado'}
-                      {sub.status === 'sent_to_client' && 'Com cliente'}
-                      {sub.status === 'client_approved' && 'Cliente aprovou'}
-                      {sub.status === 'client_rejected' && 'Cliente reprovou'}
-                      {sub.status === 'interview_scheduled' && 'Entrevista'}
-                      {sub.status === 'hired' && 'Contratado'}
-                      {!['submitted','ai_analyzed','hr_approved','hr_rejected','sent_to_client','client_approved','client_rejected','interview_scheduled','hired'].includes(sub.status) && sub.status}
-                    </Badge>
-                  </div>
-                </div>
-                )
-              })}
-            </div>
-          )}
-        </Card>
-      </div>
+        )}
+      </Card>
     </div>
   )
 }

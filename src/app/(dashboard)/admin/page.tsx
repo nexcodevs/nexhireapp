@@ -1,35 +1,29 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
-import KPICard from '@/components/ui/KPICard'
+import MetricCard from '@/components/ui/MetricCard'
+import AttentionList from '@/components/ui/AttentionList'
+import BarChart from '@/components/ui/BarChart'
 import Card from '@/components/ui/Card'
-import Badge from '@/components/ui/Badge'
-import Avatar from '@/components/ui/Avatar'
-import InsightsCards from '@/components/dashboard/InsightsCards'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
-import { formatDate } from '@/lib/utils'
-import type { RecruiterStatus } from '@/types/database'
 
 export const metadata = {
   title: 'Plataforma — Admin Nexhire',
 }
 
-interface CompanyRow {
-  id: string
-  name: string
-  industry: string | null
-  size: string | null
-  created_at: string
+function dayKey(date: Date): string {
+  return date.toISOString().slice(0, 10)
 }
 
-interface RecruiterListRow {
-  id: string
-  status: RecruiterStatus
-  level: string
-  created_at: string
-  users: { full_name: string | null; email: string } | { full_name: string | null; email: string }[] | null
+function lastNDays(n: number): string[] {
+  const out: string[] = []
+  const today = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
+    out.push(dayKey(d))
+  }
+  return out
 }
 
 export default async function AdminDashboardPage() {
@@ -37,50 +31,138 @@ export default async function AdminDashboardPage() {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) redirect('/login')
 
-  const supabase = createAdminClient()
+  const admin = createAdminClient()
+  const now = new Date()
+  const ms30d = 30 * 24 * 60 * 60 * 1000
+  const since30d = new Date(now.getTime() - ms30d).toISOString()
+  const since60d = new Date(now.getTime() - 2 * ms30d).toISOString()
 
-  // 4 contadores em paralelo
-  const thirtyDaysAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  // ===== Métricas atuais =====
   const [
     { count: totalCompanies },
     { count: totalHuntersApproved },
     { count: openJobs },
-    { count: recentSubmissions },
     { count: pendingHunters },
+    { count: pendingJobs },
+    { count: submissionsToCurate },
+    { count: subs30d },
+    { count: subsPrev30d },
+    { count: hires30d },
+    { count: hiresPrev30d },
   ] = await Promise.all([
-    supabase.from('companies').select('id', { count: 'exact', head: true }),
-    supabase
-      .from('recruiters')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'approved'),
-    supabase
-      .from('jobs')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'open_for_hunters'),
-    supabase
+    admin.from('companies').select('id', { count: 'exact', head: true }),
+    admin.from('recruiters').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+    admin.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'open_for_hunters'),
+    admin.from('recruiters').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    admin.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'pending_hr_review'),
+    admin.from('submissions').select('id', { count: 'exact', head: true }).in('status', ['submitted', 'ai_analyzed']),
+    admin.from('submissions').select('id', { count: 'exact', head: true }).gte('submitted_at', since30d),
+    admin
       .from('submissions')
       .select('id', { count: 'exact', head: true })
-      .gte('submitted_at', thirtyDaysAgo),
-    supabase
-      .from('recruiters')
+      .gte('submitted_at', since60d)
+      .lt('submitted_at', since30d),
+    admin
+      .from('submissions')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending'),
+      .eq('status', 'hired')
+      .gte('hired_at', since30d),
+    admin
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'hired')
+      .gte('hired_at', since60d)
+      .lt('hired_at', since30d),
   ])
 
-  const { data: recentCompaniesRaw } = await supabase
-    .from('companies')
-    .select('id, name, industry, size, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5)
+  // ===== Sparkline 14d de submissions =====
+  const since14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentSubs } = await admin
+    .from('submissions')
+    .select('submitted_at')
+    .gte('submitted_at', since14d)
 
-  const { data: recentRecruitersRaw } = await supabase
+  const dayBuckets = new Map<string, number>()
+  for (const s of recentSubs ?? []) {
+    const k = dayKey(new Date(s.submitted_at))
+    dayBuckets.set(k, (dayBuckets.get(k) ?? 0) + 1)
+  }
+  const trend = lastNDays(14).map(d => dayBuckets.get(d) ?? 0)
+
+  // ===== Deltas =====
+  function delta(curr: number, prev: number): { value: string; direction: 'up' | 'down' | 'flat'; tone: 'positive' | 'negative' | 'neutral' } | undefined {
+    if (prev === 0 && curr === 0) return undefined
+    if (prev === 0) return { value: 'novo', direction: 'up', tone: 'positive' }
+    const diff = curr - prev
+    const pct = Math.round((diff / prev) * 100)
+    if (pct === 0) return { value: '0%', direction: 'flat', tone: 'neutral' }
+    return {
+      value: `${Math.abs(pct)}%`,
+      direction: pct > 0 ? 'up' : 'down',
+      tone: pct > 0 ? 'positive' : 'negative',
+    }
+  }
+
+  // ===== Top empresas por #vagas =====
+  const { data: topJobsByCompanyRaw } = await admin
+    .from('jobs')
+    .select('company_id, companies(name)')
+    .in('status', ['open_for_hunters', 'in_hr_curation', 'submission_closed'])
+
+  const companyJobCount = new Map<string, { name: string; count: number }>()
+  for (const j of topJobsByCompanyRaw ?? []) {
+    const cid = j.company_id as string
+    const rel = j.companies as { name: string | null } | { name: string | null }[] | null
+    const cname = (Array.isArray(rel) ? rel[0]?.name : rel?.name) ?? 'Empresa'
+    const cur = companyJobCount.get(cid) ?? { name: cname, count: 0 }
+    cur.count++
+    companyJobCount.set(cid, cur)
+  }
+  const topCompanies = [...companyJobCount.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+
+  // ===== Distribuição de hunters por nível =====
+  const { data: huntersByLevel } = await admin
     .from('recruiters')
-    .select('id, status, level, created_at, users(full_name, email)')
-    .order('created_at', { ascending: false })
-    .limit(5)
+    .select('level')
+    .eq('status', 'approved')
 
-  const recentCompanies = (recentCompaniesRaw ?? []) as CompanyRow[]
-  const recentRecruiters = (recentRecruitersRaw ?? []) as RecruiterListRow[]
+  const levelBuckets = { beginner: 0, specialist: 0, top_hunter: 0 }
+  for (const r of huntersByLevel ?? []) {
+    const l = (r.level as keyof typeof levelBuckets) ?? 'beginner'
+    if (l in levelBuckets) levelBuckets[l]++
+  }
+
+  // ===== Atenção =====
+  const attention: { title: string; context?: string; count?: number; tone: 'attention' | 'positive' | 'neutral'; href: string; cta?: string }[] = []
+  if ((pendingHunters ?? 0) > 0) {
+    attention.push({
+      title: 'Hunters aguardando aprovação',
+      context: 'Revisar cadastros e liberar a rede.',
+      count: pendingHunters ?? 0,
+      tone: 'attention',
+      href: '/admin/hunters?status=pending',
+    })
+  }
+  if ((pendingJobs ?? 0) > 0) {
+    attention.push({
+      title: 'Vagas pra revisar',
+      context: 'JDs criadas pelas empresas aguardando curadoria do HR.',
+      count: pendingJobs ?? 0,
+      tone: 'attention',
+      href: '/hr/vagas',
+    })
+  }
+  if ((submissionsToCurate ?? 0) > 0) {
+    attention.push({
+      title: 'Submissões na fila do HR',
+      context: 'Hunters enviaram candidatos aguardando análise.',
+      count: submissionsToCurate ?? 0,
+      tone: 'attention',
+      href: '/hr/submissoes',
+    })
+  }
 
   return (
     <div className="max-w-6xl">
@@ -88,131 +170,78 @@ export default async function AdminDashboardPage() {
         eyebrow="Admin Nexhire"
         title="Visão da"
         titleAccent="plataforma"
-        subtitle="Indicadores globais e atalhos pra operação master."
+        subtitle="Saúde operacional, consumo e o que precisa de atenção agora."
       />
 
       <WelcomeCard role="admin" userId={user.id} />
-      <InsightsCards role="admin" />
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard label="Empresas cadastradas" value={totalCompanies ?? 0} />
-        <KPICard label="Hunters aprovados" value={totalHuntersApproved ?? 0} />
-        <KPICard label="Vagas abertas" value={openJobs ?? 0} />
-        <KPICard
+      {/* KPIs principais */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <MetricCard
           label="Submissões 30d"
-          value={recentSubmissions ?? 0}
-          footer={pendingHunters ? `${pendingHunters} hunters aguardando aprovação` : undefined}
+          value={subs30d ?? 0}
+          delta={delta(subs30d ?? 0, subsPrev30d ?? 0)}
+          trend={trend}
+          footer="vs últimos 30d"
+        />
+        <MetricCard
+          label="Contratações 30d"
+          value={hires30d ?? 0}
+          delta={delta(hires30d ?? 0, hiresPrev30d ?? 0)}
+          footer="vs últimos 30d"
+        />
+        <MetricCard
+          label="Vagas abertas"
+          value={openJobs ?? 0}
+          footer={`${totalCompanies ?? 0} empresas ativas`}
+        />
+        <MetricCard
+          label="Rede de hunters"
+          value={totalHuntersApproved ?? 0}
+          footer={pendingHunters ? `${pendingHunters} aguardando aprovação` : 'Todos aprovados'}
+          attention={Boolean(pendingHunters && pendingHunters > 0)}
         />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Empresas recentes */}
-        <Card padding="none">
-          <div
-            className="flex items-center justify-between"
-            style={{ padding: '18px 22px 12px', borderBottom: '1px solid var(--border-1)' }}
-          >
-            <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)' }}>
-              Empresas recentes
-            </h2>
-            <Link
-              href="/admin/empresas"
-              style={{ fontSize: '12.5px', color: 'var(--accent-text)', fontWeight: 500 }}
-            >
-              Ver todas →
-            </Link>
-          </div>
-          {recentCompanies.length === 0 ? (
-            <div style={{ padding: '32px 22px', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-4)' }}>
-                Nenhuma empresa cadastrada ainda.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col divide-y divide-(--border-1)">
-              {recentCompanies.map(c => (
-                <div key={c.id} style={{ padding: '14px 22px' }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-1)' }}>
-                    {c.name}
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: 'var(--text-4)', marginTop: '2px' }}>
-                    {[c.industry, c.size, formatDate(c.created_at)].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+      {/* Atenção + Top empresas */}
+      <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-5">
+        <AttentionList
+          title="O que precisa de atenção"
+          items={attention}
+          emptyMessage="Nenhum gargalo operacional no momento."
+        />
 
-        {/* Hunters recentes */}
-        <Card padding="none">
-          <div
-            className="flex items-center justify-between"
-            style={{ padding: '18px 22px 12px', borderBottom: '1px solid var(--border-1)' }}
-          >
-            <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)' }}>
-              Hunters recentes
-            </h2>
-            <Link
-              href="/admin/hunters"
-              style={{ fontSize: '12.5px', color: 'var(--accent-text)', fontWeight: 500 }}
-            >
-              Ver todos →
-            </Link>
-          </div>
-          {recentRecruiters.length === 0 ? (
-            <div style={{ padding: '32px 22px', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-4)' }}>Nenhum hunter ainda.</p>
-            </div>
+        <Card padding="md">
+          <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
+            Top empresas por vagas ativas
+          </h2>
+          {topCompanies.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-4)', textAlign: 'center', padding: '14px 0' }}>
+              Sem vagas ativas no momento.
+            </p>
           ) : (
-            <div className="flex flex-col divide-y divide-(--border-1)">
-              {recentRecruiters.map(r => {
-                const u = Array.isArray(r.users) ? r.users[0] : r.users
-                const name = u?.full_name || u?.email || 'Hunter'
-                const statusVariant: 'green' | 'yellow' | 'red' | 'gray' =
-                  r.status === 'approved'
-                    ? 'green'
-                    : r.status === 'pending'
-                      ? 'yellow'
-                      : r.status === 'rejected'
-                        ? 'red'
-                        : 'gray'
-                return (
-                  <div
-                    key={r.id}
-                    style={{
-                      padding: '14px 22px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                    }}
-                  >
-                    <Avatar name={name} size="sm" />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-1)' }}>
-                        {name}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-4)', marginTop: '2px' }}>
-                        {formatDate(r.created_at)}
-                      </div>
-                    </div>
-                    <Badge variant={statusVariant} size="sm">
-                      {r.status === 'approved'
-                        ? 'Aprovado'
-                        : r.status === 'pending'
-                          ? 'Pendente'
-                          : r.status === 'rejected'
-                            ? 'Rejeitado'
-                            : 'Suspenso'}
-                    </Badge>
-                  </div>
-                )
-              })}
-            </div>
+            <BarChart
+              items={topCompanies.map(c => ({ label: c.name, value: c.count }))}
+              valueSuffix=" vagas"
+            />
           )}
         </Card>
       </div>
+
+      {/* Distribuição de níveis */}
+      <Card padding="md">
+        <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
+          Composição da rede de hunters
+        </h2>
+        <BarChart
+          items={[
+            { label: 'Iniciante', value: levelBuckets.beginner, color: 'var(--text-3)' },
+            { label: 'Especialista', value: levelBuckets.specialist, color: 'var(--accent-text)' },
+            { label: 'Top Hunter', value: levelBuckets.top_hunter, color: 'var(--text-1)' },
+          ]}
+          valueSuffix=" hunters"
+        />
+      </Card>
     </div>
   )
 }

@@ -176,6 +176,35 @@ export default async function AdminAIUsagePage() {
     }
   })
 
+  // Top empresas por consumo de IA (via company_users)
+  interface CompanyUserLink {
+    user_id: string
+    company_id: string
+    companies: { name: string | null } | { name: string | null }[] | null
+  }
+  const usersWithCost = [...userStats.entries()].filter(([, s]) => s.cost > 0).map(([id]) => id)
+  const companyConsumptionMap = new Map<string, { name: string; cost: number; count: number }>()
+  if (usersWithCost.length > 0) {
+    const { data: companyLinks } = await supabase
+      .from('company_users')
+      .select('user_id, company_id, companies(name)')
+      .in('user_id', usersWithCost)
+      .overrideTypes<CompanyUserLink[]>()
+    for (const link of companyLinks ?? []) {
+      const stat = userStats.get(link.user_id)
+      if (!stat) continue
+      const rel = link.companies
+      const cname = (Array.isArray(rel) ? rel[0]?.name : rel?.name) ?? 'Empresa'
+      const cur = companyConsumptionMap.get(link.company_id) ?? { name: cname, cost: 0, count: 0 }
+      cur.cost += stat.cost
+      cur.count += stat.count
+      companyConsumptionMap.set(link.company_id, cur)
+    }
+  }
+  const topCompanies = [...companyConsumptionMap.values()]
+    .sort((a, b) => b.cost - a.cost)
+    .slice(0, 10)
+
   // Por dia (30d) — pra sparkline
   const dayMap = new Map<string, number>()
   for (const e of events30d) {
@@ -367,6 +396,83 @@ export default async function AdminAIUsagePage() {
           )}
         </Card>
       </div>
+
+      {/* Top empresas por consumo */}
+      <Card padding="none" className="mb-6">
+        <div
+          style={{ padding: '18px 22px 12px', borderBottom: topCompanies.length > 0 ? '1px solid var(--border-1)' : 'none' }}
+        >
+          <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)' }}>
+            Top empresas por consumo (30d)
+          </h2>
+          <p style={{ fontSize: '11.5px', color: 'var(--text-4)', marginTop: '4px' }}>
+            Agregação por empresa via membros (company_users). Base pra billing futuro.
+          </p>
+        </div>
+        {topCompanies.length === 0 ? (
+          <div style={{ padding: '24px 22px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-4)' }}>
+              Nenhuma empresa consumiu IA ainda.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-(--border-1)">
+            {topCompanies.map((c, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: '12px 22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: 'var(--text-1)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {c.name}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: '10.5px',
+                      color: 'var(--text-4)',
+                      marginTop: '2px',
+                    }}
+                  >
+                    {c.count} eventos
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)' }}
+                  >
+                    {formatUSD(c.cost)}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: '10.5px',
+                      color: 'var(--text-4)',
+                      marginTop: '2px',
+                    }}
+                  >
+                    {formatBRL(c.cost)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Eventos recentes */}
       <Card padding="none">
