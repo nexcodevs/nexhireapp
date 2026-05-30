@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Breadcrumb from '@/components/ui/Breadcrumb'
 import CandidateOnePager from '@/components/submissions/CandidateOnePager'
+import CandidateStructuredCard from '@/components/submissions/CandidateStructuredCard'
 import ClientCandidateActions from '@/components/submissions/ClientCandidateActions'
 import { formatDate } from '@/lib/utils'
 
@@ -20,7 +21,7 @@ export default async function EmpresaCandidatoDetailPage({
 
   const { data: sub } = await supabase
     .from('submissions')
-    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url), jobs(id, title, seniority, location, work_model, companies(name))')
+    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url, skills, language_proficiency, certifications, years_experience), jobs(id, title, seniority, location, work_model, required_skills, desired_skills, companies(name))')
     .eq('id', id)
     .single()
 
@@ -34,6 +35,10 @@ export default async function EmpresaCandidatoDetailPage({
     phone: string | null
     linkedin_url: string | null
     cv_url: string | null
+    skills: unknown
+    language_proficiency: unknown
+    certifications: unknown
+    years_experience: number | null
   } | null
 
   type JobRel = {
@@ -42,6 +47,8 @@ export default async function EmpresaCandidatoDetailPage({
     seniority: string | null
     location: string | null
     work_model: string | null
+    required_skills: unknown
+    desired_skills: unknown
     companies: { name: string | null } | null
   } | null
 
@@ -132,6 +139,21 @@ export default async function EmpresaCandidatoDetailPage({
           {sub.status === 'client_approved' && (
             <ClientCandidateActions submissionId={sub.id} mode="schedule" />
           )}
+
+          <CandidateStructuredCard
+            yearsExperience={candidate?.years_experience ?? null}
+            skills={Array.isArray(candidate?.skills) ? (candidate.skills as string[]).filter(s => typeof s === 'string') : []}
+            languages={
+              Array.isArray(candidate?.language_proficiency)
+                ? ((candidate.language_proficiency as { code: string; name: string; level: string }[]).filter(
+                    l => l && typeof l === 'object' && 'name' in l && 'level' in l,
+                  ))
+                : []
+            }
+            certifications={Array.isArray(candidate?.certifications) ? (candidate.certifications as string[]).filter(s => typeof s === 'string') : []}
+            jobRequiredSkills={Array.isArray(job?.required_skills) ? (job.required_skills as string[]).filter(s => typeof s === 'string') : []}
+            jobDesiredSkills={Array.isArray(job?.desired_skills) ? (job.desired_skills as string[]).filter(s => typeof s === 'string') : []}
+          />
 
           {hasHunterAssessment && (
             <Card padding="md">

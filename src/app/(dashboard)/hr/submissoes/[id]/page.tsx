@@ -7,6 +7,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb'
 import HRSubmissionActions from '@/components/submissions/HRSubmissionActions'
 import AIAnalyzeButton from '@/components/submissions/AIAnalyzeButton'
 import AIAnalysisCard from '@/components/ui/AIAnalysisCard'
+import CandidateStructuredCard from '@/components/submissions/CandidateStructuredCard'
 import { formatDate } from '@/lib/utils'
 
 export default async function HRSubmissaoDetailPage({
@@ -25,7 +26,7 @@ export default async function HRSubmissaoDetailPage({
 
   const { data: sub } = await supabase
     .from('submissions')
-    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url), jobs(id, title, seniority, location, work_model, companies(name)), recruiters(level, users(full_name, email))')
+    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url, skills, language_proficiency, certifications, years_experience), jobs(id, title, seniority, location, work_model, required_skills, desired_skills, companies(name)), recruiters(level, users(full_name, email))')
     .eq('id', id)
     .single()
 
@@ -39,6 +40,10 @@ export default async function HRSubmissaoDetailPage({
     phone: string | null
     linkedin_url: string | null
     cv_url: string | null
+    skills: unknown
+    language_proficiency: unknown
+    certifications: unknown
+    years_experience: number | null
   }
   type JobRel = {
     id: string
@@ -46,6 +51,8 @@ export default async function HRSubmissaoDetailPage({
     seniority: string | null
     location: string | null
     work_model: string | null
+    required_skills: unknown
+    desired_skills: unknown
     companies: { name: string | null } | { name: string | null }[] | null
   }
   type RecruiterRel = {
@@ -229,6 +236,22 @@ export default async function HRSubmissaoDetailPage({
               gaps={(sub.ai_gaps as string[] | null) ?? undefined}
             />
           )}
+
+          {/* Perfil estruturado do candidato (skills, idiomas, certs) */}
+          <CandidateStructuredCard
+            yearsExperience={candidate?.years_experience ?? null}
+            skills={Array.isArray(candidate?.skills) ? (candidate.skills as string[]).filter(s => typeof s === 'string') : []}
+            languages={
+              Array.isArray(candidate?.language_proficiency)
+                ? (candidate.language_proficiency as { code: string; name: string; level: string }[]).filter(
+                    l => l && typeof l === 'object' && 'name' in l && 'level' in l,
+                  )
+                : []
+            }
+            certifications={Array.isArray(candidate?.certifications) ? (candidate.certifications as string[]).filter(s => typeof s === 'string') : []}
+            jobRequiredSkills={Array.isArray(job?.required_skills) ? (job.required_skills as string[]).filter(s => typeof s === 'string') : []}
+            jobDesiredSkills={Array.isArray(job?.desired_skills) ? (job.desired_skills as string[]).filter(s => typeof s === 'string') : []}
+          />
 
           {/* Avaliação do hunter */}
           {(sub.hunter_score || sub.jd_priorities || sub.hunter_score_rationale) && (

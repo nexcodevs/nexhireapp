@@ -10,6 +10,8 @@ interface JobRow {
   seniority: string | null
   description: string | null
   status: string
+  required_skills: unknown
+  desired_skills: unknown
 }
 
 export async function POST(request: Request) {
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
     // Confere se a vaga existe e está aberta
     const { data: job, error: jobError } = await supabase
       .from('jobs')
-      .select('id, title, seniority, description, status')
+      .select('id, title, seniority, description, status, required_skills, desired_skills')
       .eq('id', jobId)
       .single<JobRow>()
 
@@ -92,12 +94,21 @@ export async function POST(request: Request) {
       )
     }
 
+    const jobRequiredSkills = Array.isArray(job.required_skills)
+      ? (job.required_skills as string[]).filter(s => typeof s === 'string')
+      : []
+    const jobDesiredSkills = Array.isArray(job.desired_skills)
+      ? (job.desired_skills as string[]).filter(s => typeof s === 'string')
+      : []
+
     const suggestion = await prefillSubmission(
       {
         jobTitle: job.title,
         jobDescription: job.description ?? '',
         seniority: job.seniority ?? '',
         cvText,
+        jobRequiredSkills,
+        jobDesiredSkills,
       },
       user.id,
     )

@@ -144,7 +144,24 @@ Regras:
   return analysis
 }
 
+export interface CandidateProfile {
+  full_name: string
+  email: string
+  phone: string
+  linkedin_url: string
+  current_title: string
+  location: string
+  skills: string[]
+  languages: { code: string; name: string; level: string }[]
+  certifications: string[]
+  years_experience: number | null
+  summary: string
+}
+
 export interface PrefillSuggestion {
+  /** Dados pessoais + estruturados extraídos do CV. */
+  profile: CandidateProfile
+  /** Análise da aderência candidato↔vaga. */
   jd_priorities: string
   hunter_score: number
   hunter_score_rationale: string
@@ -156,52 +173,85 @@ export interface PrefillSubmissionInput {
   jobDescription: string
   seniority: string
   cvText: string
+  jobRequiredSkills?: string[]
+  jobDesiredSkills?: string[]
 }
 
 /**
- * Pré-fill IA — analisa CV vs JD e sugere conteúdo pros campos
- * do form de submissão. Hunter revisa e ajusta antes de enviar.
+ * Pré-fill IA — extrai perfil do candidato + analisa fit com a vaga.
+ * Single call, double output: economiza token e mantém consistência.
  */
 export async function prefillSubmission(
   input: PrefillSubmissionInput,
   userId?: string | null,
 ): Promise<PrefillSuggestion> {
-  const prompt = `Você é um especialista em recrutamento ajudando um hunter a preparar a submissão de um candidato. O hunter ainda não entrevistou o candidato — você só tem o CV e a JD.
+  const requiredSkillsBlock = input.jobRequiredSkills && input.jobRequiredSkills.length > 0
+    ? `Skills obrigatórias da vaga: ${input.jobRequiredSkills.join(', ')}`
+    : ''
+  const desiredSkillsBlock = input.jobDesiredSkills && input.jobDesiredSkills.length > 0
+    ? `Skills desejáveis da vaga: ${input.jobDesiredSkills.join(', ')}`
+    : ''
+
+  const prompt = `Você está ajudando um hunter a preparar submissão de candidato. Você recebe o CV + a vaga e gera DOIS conjuntos de saída:
+
+(A) Profile estruturado do candidato extraído do CV (dados pessoais + skills + idiomas + certificações).
+(B) Análise de fit candidato↔vaga (prioridades, score, justificativa, roteiro de entrevista).
 
 VAGA:
 Título: ${input.jobTitle}
 Senioridade: ${input.seniority}
 Descrição: ${input.jobDescription}
+${requiredSkillsBlock}
+${desiredSkillsBlock}
 
 CV DO CANDIDATO (texto extraído do PDF):
 ${input.cvText}
 
-Gere sugestões pro hunter revisar:
+REGRAS PARA (A) PROFILE:
+- full_name: nome completo do candidato extraído do CV.
+- email, phone, linkedin_url: extraia se aparecem. Vazio se não tem.
+- current_title: cargo atual ou mais recente.
+- location: cidade/estado se aparece.
+- skills: array de strings curtas com hard skills do CV. Priorize as que batem com required/desired da vaga. 8-15 itens.
+- languages: array de { code (ISO 639-1), name (pt-BR), level ("básico"|"intermediário"|"fluente"|"nativo") }. Inclua português nativo por default; outros só se aparecem.
+- certifications: certificações listadas (vazio se não tiver).
+- years_experience: anos de experiência inferidos (calcule pelo histórico do CV). Null se impossível inferir.
+- summary: 1-2 frases neutras sobre o candidato pra usar como current_title fallback. Sem floreio.
 
-1. jd_priorities: identifique os 3 requisitos MAIS importantes da JD que o candidato COBRE com evidência do CV. Use exatamente este formato:
-"1. [Requisito do JD] — Evidência no CV: [trecho ou descrição curta do que comprova]
+REGRAS PARA (B) ANÁLISE DE FIT:
+- jd_priorities: 3 requisitos MAIS importantes da JD que o candidato COBRE com evidência:
+"1. [Requisito] — Evidência no CV: [trecho ou descrição]
 2. ...
 3. ..."
-
-2. hunter_score: nota de 1 a 10 sobre o fit candidato↔vaga baseado SÓ no CV (sem entrevista). 1 = sem match. 10 = match perfeito documentado.
-
-3. hunter_score_rationale: 1-2 frases justificando o score. Cite força clara + gap visível. Tom direto, sem floreio.
-
-4. interview_outline: 5 pontos curtos que o hunter DEVE validar na conversa pra confirmar/desafiar o CV. Formato bullet:
+- hunter_score: 1-10. 1=sem match, 10=match perfeito.
+- hunter_score_rationale: 1-2 frases. Força clara + gap visível. Sem floreio.
+- interview_outline: 5 pontos curtos pro hunter validar na conversa:
 "- ...
 - ...
 - ...
 - ...
 - ..."
 
-Regras:
-- Nunca invente experiências que não estão no CV
-- Sinalize gaps abertamente — não maquie
-- Se o CV está fraco pra vaga, dê score baixo. Não infle
-
-Retorne APENAS JSON válido sem markdown sem backticks:
+Regras duras:
+- NUNCA invente experiências ou dados que não estão no CV
+- Skills curtas, em forma de tag (não "Conhecimento em X", use "X")
+- Score honesto: se CV é fraco, score baixo
+- Retorne APENAS JSON válido sem markdown sem backticks:
 
 {
+  "profile": {
+    "full_name": "",
+    "email": "",
+    "phone": "",
+    "linkedin_url": "",
+    "current_title": "",
+    "location": "",
+    "skills": [],
+    "languages": [],
+    "certifications": [],
+    "years_experience": null,
+    "summary": ""
+  },
   "jd_priorities": "",
   "hunter_score": 0,
   "hunter_score_rationale": "",
@@ -211,7 +261,7 @@ Retorne APENAS JSON válido sem markdown sem backticks:
   const message = await callClaude(
     {
       model: MODEL_FAST,
-      max_tokens: 1024,
+      max_tokens: 2500,
       messages: [{ role: 'user', content: prompt }],
     },
     userId ? { feature: 'prefill_submission', userId } : undefined,

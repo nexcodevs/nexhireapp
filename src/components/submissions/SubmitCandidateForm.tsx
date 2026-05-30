@@ -95,6 +95,14 @@ export default function SubmitCandidateForm({
   }>({})
   const [interviewOutline, setInterviewOutline] = useState('')
 
+  // Estrutura extraída do CV (skills, idiomas, certs, anos exp) pra persistir em candidates
+  const [extractedProfile, setExtractedProfile] = useState<{
+    skills: string[]
+    languages: { code: string; name: string; level: string }[]
+    certifications: string[]
+    years_experience: number | null
+  } | null>(null)
+
   async function requestPrefill(path: string) {
     setPrefilling(true)
     setPrefillError('')
@@ -111,12 +119,44 @@ export default function SubmitCandidateForm({
       }
       const data = (await res.json()) as {
         suggestion: {
+          profile?: {
+            full_name?: string
+            email?: string
+            phone?: string
+            linkedin_url?: string
+            current_title?: string
+            location?: string
+            skills?: string[]
+            languages?: { code: string; name: string; level: string }[]
+            certifications?: string[]
+            years_experience?: number | null
+          }
           jd_priorities: string
           hunter_score: number
           hunter_score_rationale: string
           interview_outline: string
         }
       }
+
+      // Auto-preenche TODOS os campos pessoais (Daniel: "todos os campos poderiam ser preenchidos")
+      const p = data.suggestion.profile
+      if (p) {
+        setCandidate(prev => ({
+          full_name: p.full_name?.trim() || prev.full_name,
+          email: p.email?.trim() || prev.email,
+          phone: p.phone?.trim() || prev.phone,
+          linkedin_url: p.linkedin_url?.trim() || prev.linkedin_url,
+          current_title: p.current_title?.trim() || prev.current_title,
+          location: p.location?.trim() || prev.location,
+        }))
+        setExtractedProfile({
+          skills: p.skills ?? [],
+          languages: p.languages ?? [],
+          certifications: p.certifications ?? [],
+          years_experience: p.years_experience ?? null,
+        })
+      }
+
       setSubmission(prev => ({
         ...prev,
         jd_priorities: data.suggestion.jd_priorities || prev.jd_priorities,
@@ -266,10 +306,20 @@ export default function SubmitCandidateForm({
           return
         }
 
-        if (cvPath && !existing.cv_url) {
+        // Candidato já existe — atualiza CV + dados estruturados se IA extraiu
+        const updatePayload: Record<string, unknown> = {}
+        if (cvPath && !existing.cv_url) updatePayload.cv_url = cvPath
+        if (extractedProfile) {
+          if (extractedProfile.skills.length > 0) updatePayload.skills = extractedProfile.skills
+          if (extractedProfile.languages.length > 0) updatePayload.language_proficiency = extractedProfile.languages
+          if (extractedProfile.certifications.length > 0) updatePayload.certifications = extractedProfile.certifications
+          if (extractedProfile.years_experience !== null) updatePayload.years_experience = extractedProfile.years_experience
+          updatePayload.cv_extracted_at = new Date().toISOString()
+        }
+        if (Object.keys(updatePayload).length > 0) {
           await supabase
             .from('candidates')
-            .update({ cv_url: cvPath })
+            .update(updatePayload)
             .eq('id', existing.id)
         }
 
@@ -319,6 +369,11 @@ export default function SubmitCandidateForm({
         current_title: candidate.current_title || null,
         location: candidate.location || null,
         cv_url: cvPath,
+        skills: extractedProfile?.skills ?? [],
+        language_proficiency: extractedProfile?.languages ?? [],
+        certifications: extractedProfile?.certifications ?? [],
+        years_experience: extractedProfile?.years_experience ?? null,
+        cv_extracted_at: extractedProfile ? new Date().toISOString() : null,
       })
 
     if (candError) {
@@ -542,6 +597,9 @@ export default function SubmitCandidateForm({
           {prefilling && <AIHintBanner mode="loading" />}
           {prefillError && !prefilling && (
             <AIHintBanner mode="error" message={prefillError} />
+          )}
+          {extractedProfile && !prefilling && (
+            <ExtractedProfilePreview profile={extractedProfile} />
           )}
         </FieldGroup>
 
@@ -803,6 +861,107 @@ function DuplicateWarning({ matches }: { matches: DuplicateMatch[] }) {
             : 'Confirme se é a mesma pessoa antes de prosseguir.'}
         </div>
       )}
+    </div>
+  )
+}
+
+interface ExtractedProfile {
+  skills: string[]
+  languages: { code: string; name: string; level: string }[]
+  certifications: string[]
+  years_experience: number | null
+}
+
+function ExtractedProfilePreview({ profile }: { profile: ExtractedProfile }) {
+  const hasAny =
+    profile.skills.length > 0 ||
+    profile.languages.length > 0 ||
+    profile.certifications.length > 0 ||
+    profile.years_experience !== null
+
+  if (!hasAny) return null
+
+  return (
+    <div
+      role="status"
+      style={{
+        background: 'var(--accent-bg)',
+        border: '1px solid var(--accent-border)',
+        borderRadius: 'var(--r-md)',
+        padding: '12px 14px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginBottom: '10px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '10px',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: 'var(--accent-text)',
+          fontWeight: 600,
+        }}
+      >
+        <span aria-hidden>✨</span>
+        IA extraiu do CV
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
+        {profile.years_experience !== null && (
+          <div>
+            <span style={{ color: 'var(--text-4)' }}>Experiência:</span>{' '}
+            <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>
+              {profile.years_experience} ano{profile.years_experience === 1 ? '' : 's'}
+            </span>
+          </div>
+        )}
+        {profile.skills.length > 0 && (
+          <div>
+            <div style={{ color: 'var(--text-4)', marginBottom: '4px' }}>Skills:</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {profile.skills.slice(0, 12).map((s, i) => (
+                <span
+                  key={i}
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    background: 'var(--bg-elev-2)',
+                    color: 'var(--text-2)',
+                    border: '1px solid var(--border-1)',
+                    borderRadius: 'var(--r-sm)',
+                  }}
+                >
+                  {s}
+                </span>
+              ))}
+              {profile.skills.length > 12 && (
+                <span style={{ fontSize: '11px', color: 'var(--text-4)' }}>
+                  +{profile.skills.length - 12}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        {profile.languages.length > 0 && (
+          <div>
+            <span style={{ color: 'var(--text-4)' }}>Idiomas:</span>{' '}
+            <span style={{ color: 'var(--text-2)' }}>
+              {profile.languages.map(l => `${l.name} (${l.level})`).join(' · ')}
+            </span>
+          </div>
+        )}
+        {profile.certifications.length > 0 && (
+          <div>
+            <span style={{ color: 'var(--text-4)' }}>Certificações:</span>{' '}
+            <span style={{ color: 'var(--text-2)' }}>{profile.certifications.join(' · ')}</span>
+          </div>
+        )}
+      </div>
+      <p style={{ fontSize: '11px', color: 'var(--text-4)', marginTop: '10px', lineHeight: 1.4 }}>
+        Dados salvos junto com o candidato — você não precisa redigitar.
+      </p>
     </div>
   )
 }
