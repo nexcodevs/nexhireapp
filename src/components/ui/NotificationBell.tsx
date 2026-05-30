@@ -113,7 +113,7 @@ export default function NotificationBell({
   }
 
   const bellSvg = (
-    <svg className="w-5 h-5" style={{ color: 'var(--green-300)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+    <svg className="w-5 h-5" style={{ color: 'currentColor' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
     </svg>
   )
@@ -133,18 +133,18 @@ export default function NotificationBell({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             width: '100%',
-            padding: '9px 12px',
-            borderRadius: '10px',
-            background: open ? 'rgba(255,255,255,.06)' : 'transparent',
+            padding: '8px 12px',
+            borderRadius: 'var(--r-sm)',
+            background: open ? 'var(--bg-elev-1)' : 'transparent',
             border: 'none',
-            color: 'rgba(255,255,255,.75)',
-            fontSize: '13.5px',
-            fontWeight: 400,
-            letterSpacing: '-0.01em',
+            color: open ? 'var(--text-1)' : 'var(--text-3)',
+            fontSize: '13px',
+            fontWeight: 500,
+            letterSpacing: '-0.005em',
             cursor: 'pointer',
-            transition: 'background .15s, color .15s',
+            transition: 'background .15s var(--ease), color .15s var(--ease)',
           }}
           className="nx-notif-wide"
         >
@@ -308,8 +308,8 @@ export default function NotificationBell({
 
       <style>{`
         .nx-notif-wide:hover {
-          background: rgba(255,255,255,.06);
-          color: var(--text-on-dark);
+          background: var(--bg-elev-1);
+          color: var(--text-1);
         }
         .nx-notif-item:hover {
           background: var(--bg-elev-2) !important;
