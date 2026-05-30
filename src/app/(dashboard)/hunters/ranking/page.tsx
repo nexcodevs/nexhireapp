@@ -123,9 +123,7 @@ export default async function HuntersRankingPage() {
                       color: i < 3 ? 'var(--bg-1)' : 'var(--text-3)',
                       display: 'grid',
                       placeItems: 'center',
-                      fontFamily: 'var(--font-serif)',
-                      fontStyle: 'italic',
-                      fontSize: '15px',
+                                            fontSize: '15px',
                       fontWeight: 500,
                       flexShrink: 0,
                     }}
@@ -166,9 +164,7 @@ export default async function HuntersRankingPage() {
                   <div style={{ textAlign: 'right' }}>
                     <div
                       style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontStyle: 'italic',
-                        fontSize: '24px',
+                                                fontSize: '24px',
                         lineHeight: 1,
                         color: 'var(--text-1)',
                         letterSpacing: '-0.03em',

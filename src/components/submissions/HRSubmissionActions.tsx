@@ -64,6 +64,18 @@ export default function HRSubmissionActions({
       }).catch(err => console.warn('Falha email cliente:', err))
     }
 
+    // Notifica o hunter (in-app) sobre a decisão do HR
+    const decisionMap = {
+      approve: 'approved',
+      reject: 'rejected',
+      send: 'sent_to_client',
+    } as const
+    fetch('/api/notifications/hr-decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submissionId, decision: decisionMap[action] }),
+    }).catch(err => console.warn('Falha notificação hunter:', err))
+
     const successMsg = {
       approve: 'Candidato aprovado. Próximo passo: enviar pro cliente.',
       reject: 'Candidato reprovado.',

@@ -945,9 +945,7 @@ select:focus-visible {
   color: var(--text-1);
 }
 .nx-page-header__title .nx-page-header__accent {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--accent-text);
 }
 .nx-page-header__sub {

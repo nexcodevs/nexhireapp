@@ -13,9 +13,7 @@ export default function LoginPage() {
           Uma rede inteira{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-neon)',
             }}
           >
@@ -36,9 +34,7 @@ export default function LoginPage() {
           Bem-vindo de{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-g600)',
             }}
           >

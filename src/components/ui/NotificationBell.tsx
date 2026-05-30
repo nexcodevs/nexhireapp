@@ -62,19 +62,30 @@ export default function NotificationBell({
     fetchNotifications()
 
     const supabase = createClient()
+    // Canal único por usuário pra evitar conflito quando múltiplas abas/usuários
     const channel = supabase
-      .channel('notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => {
-        setNotifications(prev => [payload.new as Notification, ...prev])
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        payload => {
+          setNotifications(prev => [payload.new as Notification, ...prev])
+        },
+      )
+      .subscribe(status => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[notifications] realtime subscription:', status)
+        }
       })
-      .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [userId])
 
   async function markAllRead() {
@@ -185,9 +196,19 @@ export default function NotificationBell({
             style={{ ...dropdownPositionStyle, background: 'var(--bg-elev-1)', borderColor: 'var(--border-2)' }}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-2)' }}>
-              <span className="text-sm font-bold text-text">Notificações</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)' }}>Notificações</span>
               {unread > 0 && (
-                <button onClick={markAllRead} className="text-xs text-g600 hover:underline">
+                <button
+                  onClick={markAllRead}
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'var(--accent-text)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
                   Marcar todas como lidas
                 </button>
               )}
@@ -195,9 +216,9 @@ export default function NotificationBell({
 
             <div className="max-h-80 overflow-y-auto">
               {loading ? (
-                <div className="px-4 py-6 text-center text-sm text-subtle">Carregando...</div>
+                <div className="px-4 py-6 text-center" style={{ fontSize: '13px', color: 'var(--text-4)' }}>Carregando...</div>
               ) : notifications.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-subtle">Nenhuma notificação</div>
+                <div className="px-4 py-6 text-center" style={{ fontSize: '13px', color: 'var(--text-4)' }}>Nenhuma notificação</div>
               ) : (
                 notifications.map(n => {
                   const unread = !n.read_at
@@ -212,7 +233,7 @@ export default function NotificationBell({
                       )}
                       <div className={unread ? '' : 'pl-4'} style={{ minWidth: 0, flex: 1 }}>
                         <div className="flex items-baseline justify-between gap-2">
-                          <div className="text-sm font-medium text-text" style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)', minWidth: 0 }}>
                             {n.title}
                           </div>
                           <span
@@ -223,8 +244,10 @@ export default function NotificationBell({
                           </span>
                         </div>
                         <div
-                          className="text-xs text-muted mt-0.5"
                           style={{
+                            fontSize: '12px',
+                            color: 'var(--text-3)',
+                            marginTop: '2px',
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',

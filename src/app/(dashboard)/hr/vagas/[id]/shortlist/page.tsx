@@ -230,9 +230,7 @@ export default async function HRJobShortlistPage({
                         <div style={{ textAlign: 'center', lineHeight: 1 }}>
                           <div
                             style={{
-                              fontFamily: 'var(--font-serif)',
-                              fontStyle: 'italic',
-                              fontSize: '28px',
+                                                            fontSize: '28px',
                               color: score.text,
                               letterSpacing: '-0.03em',
                             }}

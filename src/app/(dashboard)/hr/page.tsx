@@ -171,20 +171,31 @@ export default async function HRDashboard() {
                       {job?.title || 'Vaga'}
                     </div>
                   </div>
-                  <span
-                    className="text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2"
-                    style={
-                      sub.status === 'submitted' ? { background: 'var(--bg-elev-2)', color: 'var(--text-3)' } :
-                      sub.status === 'hr_approved' ? { background: 'var(--accent-bg)', color: 'var(--accent-text)' } :
-                      sub.status === 'hr_rejected' ? { background: 'var(--danger-bg)', color: 'var(--danger-text)' } :
-                      undefined
+                  {(() => {
+                    const map: Record<string, { label: string; bg: string; color: string }> = {
+                      submitted: { label: 'Aguardando', bg: 'var(--bg-elev-2)', color: 'var(--text-3)' },
+                      ai_analyzed: { label: 'Analisado IA', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
+                      hr_approved: { label: 'Aprovado', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
+                      hr_rejected: { label: 'Reprovado', bg: 'var(--danger-bg)', color: 'var(--danger-text)' },
+                      sent_to_client: { label: 'No cliente', bg: 'var(--warning-bg)', color: 'var(--warning-text)' },
+                      client_approved: { label: 'Cliente aprovou', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
+                      client_rejected: { label: 'Cliente recusou', bg: 'var(--danger-bg)', color: 'var(--danger-text)' },
+                      interview_scheduled: { label: 'Em entrevista', bg: 'var(--accent-bg)', color: 'var(--accent-text)' },
+                      offer: { label: 'Em proposta', bg: 'var(--bg-elev-2)', color: 'var(--text-2)' },
+                      hired: { label: 'Contratado', bg: 'var(--bg-elev-2)', color: 'var(--text-1)' },
+                      not_hired: { label: 'Não contratado', bg: 'var(--bg-elev-2)', color: 'var(--text-3)' },
+                      duplicate: { label: 'Duplicado', bg: 'var(--bg-elev-2)', color: 'var(--text-4)' },
                     }
-                  >
-                    {sub.status === 'submitted' && 'Aguardando'}
-                    {sub.status === 'hr_approved' && 'Aprovado'}
-                    {sub.status === 'hr_rejected' && 'Reprovado'}
-                    {!['submitted', 'hr_approved', 'hr_rejected'].includes(sub.status) && sub.status}
-                  </span>
+                    const info = map[sub.status] ?? { label: sub.status, bg: 'var(--bg-elev-2)', color: 'var(--text-3)' }
+                    return (
+                      <span
+                        className="text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2"
+                        style={{ background: info.bg, color: info.color }}
+                      >
+                        {info.label}
+                      </span>
+                    )
+                  })()}
                 </div>
                 )
               })}

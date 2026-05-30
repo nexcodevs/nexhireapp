@@ -5,7 +5,6 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import PageHeader from '@/components/ui/PageHeader'
 import JobFilters from '@/components/jobs/JobFilters'
-import SemanticJobSearch from '@/components/jobs/SemanticJobSearch'
 import CompanyAvatar from '@/components/empresa/CompanyAvatar'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
@@ -21,8 +20,6 @@ interface PageProps {
     model?: string
     type?: string
     hideSubmitted?: string
-    q?: string
-    ids?: string
   }>
 }
 
@@ -32,8 +29,6 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   const modelFilter = sp.model?.split(',').filter(Boolean) ?? []
   const typeFilter = sp.type?.split(',').filter(Boolean) ?? []
   const hideSubmitted = sp.hideSubmitted === '1'
-  const semanticIds = sp.ids?.split(',').filter(Boolean) ?? []
-  const semanticQuery = sp.q?.trim() ?? ''
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -62,19 +57,10 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   if (typeFilter.length > 0) query = query.in('employment_type', typeFilter)
   if (blockedCompanyIds.length > 0)
     query = query.not('company_id', 'in', `(${blockedCompanyIds.join(',')})`)
-  if (semanticIds.length > 0) query = query.in('id', semanticIds)
 
   const { data: allJobs } = await query
 
   let jobs = filterJobsByVisibility(allJobs, hunterLevel)
-
-  // Quando vem da busca semântica, ordenar pela ordem retornada pelo match (similarity desc)
-  if (semanticIds.length > 0) {
-    const orderMap = new Map(semanticIds.map((id, i) => [id, i]))
-    jobs = [...jobs].sort(
-      (a, b) => (orderMap.get(a.id) ?? Infinity) - (orderMap.get(b.id) ?? Infinity),
-    )
-  }
 
   const { data: mySubmissions } = await supabase
     .from('submissions')
@@ -91,9 +77,7 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   const hasFilters =
     seniorityFilter.length + modelFilter.length + typeFilter.length + (hideSubmitted ? 1 : 0) > 0
 
-  const subtitle = semanticQuery
-    ? `${totalCount} vaga${totalCount !== 1 ? 's' : ''} pra "${semanticQuery}"`
-    : `${totalCount} vaga${totalCount !== 1 ? 's' : ''} ${hasFilters ? 'após filtros' : 'abertas para você'}`
+  const subtitle = `${totalCount} vaga${totalCount !== 1 ? 's' : ''} ${hasFilters ? 'após filtros' : 'abertas para você'}`
 
   return (
     <div className="max-w-5xl">
@@ -103,8 +87,6 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
         titleAccent="disponíveis"
         subtitle={subtitle}
       />
-
-      <SemanticJobSearch />
 
       {(!recruiter || recruiter.status !== 'approved') && (
         <Card padding="md" className="mb-6" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}>

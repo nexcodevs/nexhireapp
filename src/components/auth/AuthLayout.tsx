@@ -82,40 +82,13 @@ export default function AuthLayout({
 
         <div style={{ position: 'relative', zIndex: 1, color: 'var(--text-on-dark)' }}>
           <NexhireLogo width={128} />
-          <div
-            style={{
-              marginTop: '14px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: 'var(--neon)',
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                background: 'var(--neon)',
-                boxShadow: '0 0 6px var(--neon)',
-              }}
-            />
-            Sistema operacional · Nexhire
-          </div>
         </div>
 
         {leftVariant === 'quote' && leftQuote ? (
           <div style={{ position: 'relative', zIndex: 1, maxWidth: '520px' }}>
             <blockquote
               style={{
-                fontFamily: 'var(--font-serif)',
-                fontStyle: 'italic',
-                fontSize: '40px',
+                                fontSize: '40px',
                 lineHeight: 1.15,
                 letterSpacing: '-0.02em',
                 color: 'var(--text-on-dark)',

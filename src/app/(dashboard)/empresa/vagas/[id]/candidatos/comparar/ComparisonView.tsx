@@ -121,9 +121,7 @@ export default function ComparisonView({
           <h2
             className="it"
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontSize: '40px',
+                            fontSize: '40px',
               color: 'var(--accent-text)',
               letterSpacing: '-0.025em',
               lineHeight: 1.05,

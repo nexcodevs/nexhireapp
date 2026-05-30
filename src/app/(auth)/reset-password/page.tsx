@@ -14,9 +14,7 @@ export default function ResetPasswordPage() {
           Defina uma nova{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-neon)',
             }}
           >
@@ -32,9 +30,7 @@ export default function ResetPasswordPage() {
           Quase{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-g600)',
             }}
           >

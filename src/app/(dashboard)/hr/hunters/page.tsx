@@ -50,7 +50,7 @@ export default async function HRHuntersPage({ searchParams }: PageProps) {
   const activeStatus = (
     ['pending', 'approved', 'rejected', 'suspended'].includes(sp.status ?? '')
       ? sp.status
-      : 'pending'
+      : 'approved'
   ) as RecruiterStatus
 
   const supabase = await createClient()

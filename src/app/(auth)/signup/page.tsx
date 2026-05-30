@@ -13,9 +13,7 @@ export default function SignupPage() {
           Recrutamento{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-neon)',
             }}
           >
@@ -36,9 +34,7 @@ export default function SignupPage() {
           Comece em{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-g600)',
             }}
           >

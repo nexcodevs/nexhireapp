@@ -13,9 +13,7 @@ export default function ForgotPasswordPage() {
           Recupere o{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-neon)',
             }}
           >
@@ -31,9 +29,7 @@ export default function ForgotPasswordPage() {
           Esqueceu a{' '}
           <span
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
+                            fontWeight: 400,
               color: 'var(--color-g600)',
             }}
           >

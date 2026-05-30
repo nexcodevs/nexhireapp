@@ -141,9 +141,7 @@ export default function AIAnalysisCard({
       >
         <div
           style={{
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            fontSize: '96px',
+                        fontSize: '96px',
             lineHeight: 0.9,
             color: 'var(--accent-text)',
             letterSpacing: '-0.04em',

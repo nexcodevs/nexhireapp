@@ -152,9 +152,7 @@ export default async function EmpresaCandidatoDetailPage({
                   <div className="flex items-baseline gap-3">
                     <div
                       style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontStyle: 'italic',
-                        fontSize: '40px',
+                                                fontSize: '40px',
                         lineHeight: 0.9,
                         color: 'var(--text-1)',
                         letterSpacing: '-0.03em',
@@ -253,9 +251,7 @@ export default async function EmpresaCandidatoDetailPage({
                 <div className="flex items-baseline gap-3 mb-3">
                   <div
                     style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontStyle: 'italic',
-                      fontSize: '40px',
+                                            fontSize: '40px',
                       lineHeight: 0.9,
                       color: 'var(--text-1)',
                       letterSpacing: '-0.03em',

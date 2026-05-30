@@ -312,9 +312,7 @@ export default function CandidateOnePager({
               <div
                 className="it"
                 style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontStyle: 'italic',
-                  fontSize: '88px',
+                                    fontSize: '88px',
                   lineHeight: 0.9,
                   color: 'var(--accent-text)',
                   letterSpacing: '-0.04em',

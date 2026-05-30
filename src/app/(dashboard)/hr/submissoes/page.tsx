@@ -201,9 +201,7 @@ export default async function FilaSubmissoesPage() {
                         <div style={{ textAlign: 'center', lineHeight: 1 }}>
                           <div
                             style={{
-                              fontFamily: 'var(--font-serif)',
-                              fontStyle: 'italic',
-                              fontSize: '24px',
+                                                            fontSize: '24px',
                               color: score.text,
                               letterSpacing: '-0.03em',
                             }}

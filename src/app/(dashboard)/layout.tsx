@@ -18,18 +18,17 @@ async function getUser(): Promise<User | null> {
 }
 
 const navItems: Record<string, NavItemDef[]> = {
+  // Ordem: gestão/operação no topo, sistema (config, etc) embaixo
   company_user: [
     { href: '/empresa', label: 'Dashboard', icon: 'home' },
-    { href: '/empresa/vagas', label: 'Minhas vagas', icon: 'briefcase' },
+    { href: '/empresa/vagas', label: 'Vagas', icon: 'briefcase' },
     { href: '/empresa/candidatos', label: 'Candidatos', icon: 'users' },
-    { href: '/empresa/hunters-bloqueados', label: 'Hunters bloqueados', icon: 'building' },
     { href: '/empresa/configuracoes', label: 'Configurações', icon: 'columns' },
   ],
   recruiter: [
     { href: '/hunter', label: 'Dashboard', icon: 'home' },
     { href: '/hunter/vagas', label: 'Vagas disponíveis', icon: 'search' },
     { href: '/hunter/submissoes', label: 'Minhas submissões', icon: 'send' },
-    { href: '/hunters/ranking', label: 'Ranking', icon: 'columns' },
   ],
   hr_manager: [
     { href: '/hr', label: 'Dashboard', icon: 'home' },
@@ -37,15 +36,13 @@ const navItems: Record<string, NavItemDef[]> = {
     { href: '/hr/submissoes', label: 'Submissões', icon: 'inbox' },
     { href: '/hr/pipeline', label: 'Pipeline', icon: 'columns' },
     { href: '/hr/hunters', label: 'Hunters', icon: 'users' },
-    { href: '/hr/clientes', label: 'Clientes', icon: 'building' },
   ],
   admin: [
     { href: '/admin', label: 'Plataforma', icon: 'home' },
     { href: '/admin/empresas', label: 'Empresas', icon: 'building' },
     { href: '/admin/hunters', label: 'Hunters', icon: 'users' },
-    { href: '/admin/audit', label: 'Audit log', icon: 'inbox' },
     { href: '/admin/ai-usage', label: 'Consumo IA', icon: 'columns' },
-    { href: '/hr/vagas', label: 'Curadoria (HR)', icon: 'columns' },
+    { href: '/admin/audit', label: 'Audit log', icon: 'inbox' },
   ],
   candidate: [
     { href: '/candidato', label: 'Dashboard', icon: 'home' },

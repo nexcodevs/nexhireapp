@@ -83,9 +83,11 @@ export default async function HunterDashboard() {
   }
   const levelLabel = levelLabels[score?.level || 'beginner'] ?? 'Iniciante'
 
-  const totalSubs = score?.total_submissions || 0
+  // Usa contagem em tempo real (submissions diretas) em vez de recruiter_scores
+  // (cache) — recruiter_scores pode estar stale entre triggers/recomputes.
+  const totalSubs = stats.enviados
   const overall = Number(score?.overall_score || 0)
-  const totalHires = score?.total_hires || 0
+  const totalHires = stats.contratacoes
 
   let nextLevelLabel = ''
   let progressPercent = 0
@@ -133,8 +135,22 @@ export default async function HunterDashboard() {
     return { label: 'Abaixo da média', color: 'yellow' as const }
   }
 
-  const hrRate = Number(score?.hr_approval_rate || 0)
-  const clientRate = Number(score?.client_approval_rate || 0)
+  // Taxas em tempo real (evita cache stale do recruiter_scores)
+  const subs = submissions ?? []
+  const terminalDecisions = subs.filter(s => [
+    'hr_approved','sent_to_client','client_approved','client_rejected',
+    'interview_scheduled','offer','hired','hr_rejected','duplicate','not_hired',
+  ].includes(s.status)).length
+  const hrApprovedCount = subs.filter(s => [
+    'hr_approved','sent_to_client','client_approved','client_rejected',
+    'interview_scheduled','offer','hired','not_hired',
+  ].includes(s.status)).length
+  const clientApprovedCount = subs.filter(s => [
+    'client_approved','interview_scheduled','offer','hired',
+  ].includes(s.status)).length
+
+  const hrRate = terminalDecisions > 0 ? Math.round((hrApprovedCount / terminalDecisions) * 100) : 0
+  const clientRate = hrApprovedCount > 0 ? Math.round((clientApprovedCount / hrApprovedCount) * 100) : 0
   const hrCompare = compareToNetwork(hrRate, avgHrRate)
   const clientCompare = compareToNetwork(clientRate, avgClientRate)
 
