@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import OnboardingForm from './OnboardingForm'
@@ -12,7 +13,11 @@ export default async function OnboardingPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  // Admin client bypassa RLS — leituras críticas de signup/onboarding
+  // não podem depender de policies do client.
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users')
     .select('full_name, email, role')
     .eq('id', user.id)
@@ -23,11 +28,11 @@ export default async function OnboardingPage() {
   }
 
   // Se já tem company linkada, vai direto pro dashboard
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('company_users')
     .select('company_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (existing?.company_id) {
     redirect('/empresa')
