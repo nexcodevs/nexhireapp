@@ -5,7 +5,8 @@ import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import JobDetailView, { type JobDetailData } from '@/components/jobs/JobDetailView'
+import { formatDate } from '@/lib/utils'
 import type { SubmissionStatus } from '@/types/database'
 
 export const metadata = {
@@ -73,15 +74,11 @@ export default async function EmpresaVagaDetailPage({
   const stats = {
     recebidos: submissions.length,
     aguardando: submissions.filter(s => s.status === 'sent_to_client').length,
-    aprovados: submissions.filter(s =>
-      ['client_approved', 'interview_scheduled', 'offer', 'hired'].includes(s.status),
-    ).length,
     entrevista: submissions.filter(s => s.status === 'interview_scheduled').length,
     contratado: submissions.filter(s => s.status === 'hired').length,
   }
 
   const status = statusInfo[job.status] ?? { label: job.status, variant: 'gray' as const }
-  const company = (job.companies as { name: string | null } | null)?.name
 
   return (
     <div className="max-w-5xl">
@@ -89,7 +86,7 @@ export default async function EmpresaVagaDetailPage({
         href="/empresa/vagas"
         style={{
           fontSize: '13px',
-          color: 'var(--color-muted)',
+          color: 'var(--text-3)',
           textDecoration: 'none',
           display: 'inline-flex',
           alignItems: 'center',
@@ -98,194 +95,89 @@ export default async function EmpresaVagaDetailPage({
         }}
         className="hover:underline"
       >
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Voltar para vagas
+        ← Voltar para vagas
       </Link>
 
       <PageHeader
         eyebrow="Vaga"
         title={job.title}
         titleAccent=""
-        subtitle={[company, job.seniority, job.location, job.work_model]
-          .filter(Boolean)
-          .join(' · ')}
+        subtitle={[job.seniority, job.location, job.work_model].filter(Boolean).join(' · ')}
         action={
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <Link href={`/empresa/vagas/${id}/candidatos`}>
               <Button variant="dark" size="md">
                 Ver candidatos
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
               </Button>
             </Link>
             <Link href={`/empresa/vagas/${id}/pipeline`}>
-              <Button variant="outline" size="md">Ver pipeline</Button>
+              <Button variant="outline" size="md">Pipeline</Button>
             </Link>
           </div>
         }
       />
 
-      <div style={{ marginBottom: '20px' }}>
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
         <Badge variant={status.variant}>{status.label}</Badge>
+        <span className="mono" style={{ fontSize: '10.5px', color: 'var(--text-4)' }}>
+          Criada em {formatDate(job.created_at)}
+        </span>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <Card padding="md">
-            <h2
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                color: 'var(--color-subtle)',
-                marginBottom: '12px',
-              }}
-            >
-              Descrição
-            </h2>
-            <p
-              style={{
-                fontSize: '14px',
-                lineHeight: 1.65,
-                color: 'var(--color-text)',
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              {job.description || 'Sem descrição preenchida.'}
-            </p>
-          </Card>
-
-          {stats.recebidos > 0 && (
-            <Card padding="md">
-              <h2
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  color: 'var(--color-subtle)',
-                  marginBottom: '14px',
-                }}
-              >
-                Funil de candidatos
-              </h2>
-              <div
-                className="grid grid-cols-2 lg:grid-cols-4 gap-3"
-                role="list"
-                aria-label="Funil de candidatos"
-              >
-                {[
-                  { label: 'Recebidos', value: stats.recebidos, attention: false },
-                  { label: 'Aguardando você', value: stats.aguardando, attention: stats.aguardando > 0 },
-                  { label: 'Em entrevista', value: stats.entrevista, attention: false },
-                  { label: 'Contratado', value: stats.contratado, attention: false },
-                ].map(item => (
-                  <div
-                    key={item.label}
-                    role="listitem"
-                    style={{
-                      background: item.attention ? 'var(--color-m100)' : 'var(--color-cream)',
-                      border: '1px solid',
-                      borderColor: item.attention ? 'var(--color-border-g)' : 'var(--color-border)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '12px 14px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        letterSpacing: '0.14em',
-                        textTransform: 'uppercase',
-                        color: 'var(--color-subtle)',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                    <div
-                      className="it"
-                      style={{
-                        fontSize: '26px',
-                        color: item.value > 0 ? 'var(--color-g600)' : 'var(--color-subtle)',
-                        lineHeight: 1,
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Card padding="md">
-            <h2
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                color: 'var(--color-subtle)',
-                marginBottom: '14px',
-              }}
-            >
-              Detalhes
-            </h2>
-            <div className="flex flex-col gap-3">
-              {[
-                {
-                  label: 'Salário',
-                  value: job.salary_min
-                    ? `${formatCurrency(job.salary_min)}${job.salary_max ? ` — ${formatCurrency(job.salary_max)}` : ''}`
-                    : 'Não informado',
-                },
-                { label: 'Contrato', value: job.employment_type || 'Não informado' },
-                { label: 'Modalidade', value: job.work_model || 'Não informada' },
-                {
-                  label: 'Prazo de envios',
-                  value: job.submission_deadline ? formatDate(job.submission_deadline) : 'Não definido',
-                },
-                {
-                  label: 'Limite por hunter',
-                  value: `${job.max_submissions_per_recruiter} candidato${job.max_submissions_per_recruiter !== 1 ? 's' : ''}`,
-                },
-                { label: 'Criada em', value: formatDate(job.created_at) },
-              ].map(item => (
-                <div key={item.label} className="flex flex-col gap-0.5">
-                  <span
-                    style={{
-                      fontSize: '10.5px',
-                      fontWeight: 600,
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                      color: 'var(--color-subtle)',
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '13.5px',
-                      fontWeight: 500,
-                      color: 'var(--color-text)',
-                    }}
-                  >
-                    {item.value}
-                  </span>
+      {/* Funil compacto antes do detalhe da vaga */}
+      {stats.recebidos > 0 && (
+        <Card padding="md" className="mb-4">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: '12px',
+            }}
+            role="list"
+            aria-label="Funil de candidatos"
+          >
+            {[
+              { label: 'Recebidos', value: stats.recebidos, attention: false },
+              { label: 'Aguardando você', value: stats.aguardando, attention: stats.aguardando > 0 },
+              { label: 'Em entrevista', value: stats.entrevista, attention: false },
+              { label: 'Contratado', value: stats.contratado, attention: false },
+            ].map(item => (
+              <div key={item.label} role="listitem">
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: item.attention ? 'var(--accent-text)' : 'var(--text-4)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  {item.label}
                 </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
+                <div
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: 500,
+                    color: item.attention ? 'var(--accent-text)' : 'var(--text-1)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1,
+                  }}
+                >
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Detalhe estruturado da vaga */}
+      <JobDetailView
+        job={job as JobDetailData}
+        showInterviewQuestions={true}
+        showRecruiterRules={true}
+      />
     </div>
   )
 }

@@ -74,7 +74,6 @@ export default function SubmitCandidateForm({
 
   const [submission, setSubmission] = useState({
     interview_summary: '',
-    recruiter_notes: '',
     jd_priorities: '',
     hunter_score_rationale: '',
   })
@@ -241,7 +240,6 @@ export default function SubmitCandidateForm({
 
     const submissionPayload = {
       interview_summary: submission.interview_summary,
-      recruiter_notes: submission.recruiter_notes,
       jd_priorities: submission.jd_priorities,
       hunter_score: hunterScore,
       hunter_score_rationale: submission.hunter_score_rationale,
@@ -397,7 +395,7 @@ export default function SubmitCandidateForm({
             onClick={() => {
               setSuccess(false)
               setCandidate({ full_name: '', email: '', phone: '', linkedin_url: '', current_title: '', location: '' })
-              setSubmission({ interview_summary: '', recruiter_notes: '', jd_priorities: '', hunter_score_rationale: '' })
+              setSubmission({ interview_summary: '', jd_priorities: '', hunter_score_rationale: '' })
               setHunterScore(null)
               setCvPath(null)
             }}
@@ -649,22 +647,14 @@ export default function SubmitCandidateForm({
             }}
           />
           <Textarea
-            label="Resumo / transcrição da entrevista"
+            label="Resumo da entrevista"
             name="interview_summary"
             value={submission.interview_summary}
             onChange={handleSubmissionChange}
             placeholder={INTERVIEW_PLACEHOLDER}
             required
-            rows={12}
-            hint="Use o placeholder como guia. Pode gravar voice memo acima (até 5min) que a IA transcreve."
-          />
-          <Textarea
-            label="Notas internas (opcional)"
-            name="recruiter_notes"
-            value={submission.recruiter_notes}
-            onChange={handleSubmissionChange}
-            placeholder="Observações privadas sobre o candidato. Não aparecem pro cliente."
-            rows={2}
+            rows={10}
+            hint="Use o placeholder como guia. Grave voice memo acima (até 5min) e a IA transcreve pra você."
           />
         </FieldGroup>
 

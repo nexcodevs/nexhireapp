@@ -306,6 +306,12 @@ Onde:
   return assessment
 }
 
+export interface JobLanguageRequirement {
+  code: string
+  name: string
+  level: 'básico' | 'intermediário' | 'fluente' | 'nativo'
+}
+
 export interface JobFromBrief {
   title: string
   description: string
@@ -315,6 +321,14 @@ export interface JobFromBrief {
   location: string
   salary_min: number | null
   salary_max: number | null
+  required_skills: string[]
+  desired_skills: string[]
+  behavioral_competencies: string[]
+  culture_fit: string
+  languages: JobLanguageRequirement[]
+  certifications: string[]
+  benefits: string[]
+  interview_questions: string[]
   reasoning: string
 }
 
@@ -348,26 +362,33 @@ ${companyCtx ? `CONTEXTO DA EMPRESA:\n${companyCtx}\n\n` : ''}BRIEF DA EMPRESA:
 ${input.brief}
 """
 
-Estruture em JSON com os campos abaixo. Pra cada um:
+Sua função é ESTRUTURAR a vaga em campos separados, não jogar tudo numa descrição.
 
-- **title**: extraia do brief ou crie título profissional. Não use jargão tipo "ninja", "rockstar".
-- **description**: gere descrição completa entre 180-300 palavras com 4 seções claras (Sobre a vaga, Responsabilidades, Requisitos, Diferenciais). Tom profissional, sem floreio, sem clichê de RH. Em português BR.
-- **seniority**: classifique em Estágio | Júnior | Pleno | Sênior | Especialista | Gerente | Diretor.
-- **work_model**: Presencial | Híbrido | Remoto. Se brief não disser, default = Remoto.
-- **employment_type**: CLT | PJ | Estágio | Freelance. Se brief não disser, default = CLT (a menos que seja Estágio explícito).
-- **location**: cidade/estado. Se for remoto e brief não falar, "Brasil".
-- **salary_min** e **salary_max**: extraia números (em reais).
-  • "15-18k" → min=15000, max=18000
-  • "até R$20k" → min=null, max=20000
-  • "a partir de R$10k" → min=10000, max=null
-  • Se brief não fala salário → estime baseado em senioridade e mercado BR atual (2026). Coloque um range realista.
-- **reasoning**: 2-3 frases explicando decisões não óbvias (por que esse range salarial, por que esse nível de senioridade, etc).
+Estruture em JSON com TODOS os campos abaixo:
+
+- **title**: título profissional, sem jargão (sem "ninja", "rockstar").
+- **description**: resumo executivo de 80-120 palavras descrevendo CONTEXTO da vaga, não requisitos. Tom direto, sem floreio. Em português BR. Os requisitos vão em campos separados.
+- **seniority**: Estágio | Júnior | Pleno | Sênior | Especialista | Gerente | Diretor.
+- **work_model**: Presencial | Híbrido | Remoto. Default Remoto.
+- **employment_type**: CLT | PJ | Estágio | Freelance. Default CLT.
+- **location**: cidade/estado. Se remoto e brief não falar, "Brasil".
+- **salary_min** e **salary_max**: números em reais. Estime range realista se brief não falar (mercado BR 2026).
+- **required_skills**: array de strings com skills técnicas OBRIGATÓRIAS (5-8 itens). Ex: ["Python", "AWS", "PostgreSQL"]. Curto, sem frase.
+- **desired_skills**: array de strings com skills DESEJÁVEIS (plus, não obrigatórias) (3-6 itens).
+- **behavioral_competencies**: array de strings com competências comportamentais (3-5 itens). Ex: ["Liderança técnica", "Comunicação clara", "Autonomia"].
+- **culture_fit**: 1-2 frases descrevendo o fit cultural esperado (valores, ambiente de trabalho).
+- **languages**: array de objetos { code: string ISO 639-1, name: string em PT, level: "básico"|"intermediário"|"fluente"|"nativo" }. Inclua português nativo por default + outros se mencionado no brief. Ex: [{ "code": "pt", "name": "Português", "level": "nativo" }, { "code": "en", "name": "Inglês", "level": "fluente" }].
+- **certifications**: array de strings com certificações úteis pra vaga (0-4 itens). Vazio se não relevante.
+- **benefits**: array de strings com pacote típico de benefícios (4-8 itens). Ex: ["VR R$30/dia", "Plano de saúde", "Equipamento", "Stock options"]. Estime se brief não falar.
+- **interview_questions**: array de 5-7 perguntas pré-aprovadas pro HR aplicar na entrevista, baseadas nos requisitos. Cobertura: técnica + comportamental + cultural. Sem perguntas óbvias tipo "fale sobre você".
+- **reasoning**: 2-3 frases explicando decisões não óbvias (range salarial, requisitos importantes, etc).
 
 Regras duras:
-- Nunca invente requisitos que o brief não menciona
-- Não use markdown na description (texto puro com quebras de linha)
-- Salário em reais (número inteiro, sem decimal)
-- Description sem palavras tipo "rockstar", "ninja", "guru", "família", "fast-paced", "dinâmico" — bullshit corporativo.
+- Nunca invente requisitos que o brief não menciona ou que não sejam clichê esperado da posição.
+- Description é resumo de CONTEXTO, não lista de requisitos.
+- Skills curtas — palavras ou frases curtas, sem "Conhecimento em X" prefixado.
+- Salário sempre inteiro em reais.
+- Sem bullshit corporativo: "rockstar", "família", "fast-paced", "dinâmico".
 
 Retorne APENAS JSON válido sem markdown sem backticks:
 
@@ -380,13 +401,21 @@ Retorne APENAS JSON válido sem markdown sem backticks:
   "location": "",
   "salary_min": 0,
   "salary_max": 0,
+  "required_skills": [],
+  "desired_skills": [],
+  "behavioral_competencies": [],
+  "culture_fit": "",
+  "languages": [],
+  "certifications": [],
+  "benefits": [],
+  "interview_questions": [],
   "reasoning": ""
 }`
 
   const message = await callClaude(
     {
       model: MODEL_QUALITY,
-      max_tokens: 2048,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     },
     userId ? { feature: 'generate_job', userId } : undefined,
