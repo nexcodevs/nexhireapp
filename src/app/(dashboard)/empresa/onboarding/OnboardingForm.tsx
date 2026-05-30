@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -39,7 +39,7 @@ interface OnboardingFormProps {
   userName: string
 }
 
-export default function OnboardingForm({ userId, userName }: OnboardingFormProps) {
+export default function OnboardingForm({ userName }: OnboardingFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -76,44 +76,36 @@ export default function OnboardingForm({ userId, userName }: OnboardingFormProps
     }
 
     setLoading(true)
-    const supabase = createClient()
+    try {
+      const res = await fetch('/api/empresa/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          website: form.website,
+          industry: form.industry,
+          size: form.size,
+          tosVersion: TOS_VERSION,
+        }),
+      })
 
-    const companyId = crypto.randomUUID()
-    const { error: companyError } = await supabase.from('companies').insert({
-      id: companyId,
-      name: form.name.trim(),
-      website: form.website.trim() || null,
-      industry: form.industry,
-      size: form.size,
-    })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string; detail?: string }
+        const msg = data.error || 'Não foi possível criar a empresa.'
+        setError(data.detail ? `${msg} (${data.detail})` : msg)
+        toast.error(msg)
+        setLoading(false)
+        return
+      }
 
-    if (companyError) {
-      console.error('[onboarding:company]', companyError)
-      setError(
-        companyError.message ||
-          'Não foi possível criar a empresa. Tente novamente em instantes.',
-      )
+      toast.success('Empresa criada. Bem-vindo à Nexhire.')
+      router.push('/empresa')
+      router.refresh()
+    } catch (err) {
+      console.error('[onboarding]', err)
+      setError('Falha de rede. Tente novamente.')
       setLoading(false)
-      return
     }
-
-    const { error: linkError } = await supabase.from('company_users').insert({
-      company_id: companyId,
-      user_id: userId,
-      role: 'owner',
-      tos_accepted_at: new Date().toISOString(),
-      tos_version: TOS_VERSION,
-    })
-
-    if (linkError) {
-      console.error('[onboarding:link]', linkError)
-      setError(linkError.message || 'Não conseguimos vincular você à empresa.')
-      setLoading(false)
-      return
-    }
-
-    router.push('/empresa')
-    router.refresh()
   }
 
   return (
