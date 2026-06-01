@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { prefillSubmission } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
@@ -44,12 +45,14 @@ export async function POST(request: Request) {
       )
     }
 
+    const admin = createAdminClient()
+
     // Confere se a vaga existe e está aberta
-    const { data: job, error: jobError } = await supabase
+    const { data: job, error: jobError } = await admin
       .from('jobs')
       .select('id, title, seniority, description, status, required_skills, desired_skills')
       .eq('id', jobId)
-      .single<JobRow>()
+      .maybeSingle<JobRow>()
 
     if (jobError || !job) {
       return NextResponse.json({ error: 'Vaga não encontrada.' }, { status: 404 })
@@ -63,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     // Baixa e parseia o CV
-    const { data: blob, error: downloadError } = await supabase.storage
+    const { data: blob, error: downloadError } = await admin.storage
       .from('cvs')
       .download(cvPath)
 

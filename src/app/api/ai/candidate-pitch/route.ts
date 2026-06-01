@@ -42,13 +42,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'submissionId obrigatório.' }, { status: 400 })
     }
 
-    const { data: sub, error: subError } = await supabase
+    const admin = createAdminClient()
+
+    const { data: sub, error: subError } = await admin
       .from('submissions')
       .select(
         'id, interview_summary, hunter_score, hunter_score_rationale, ai_summary, ai_pitch, candidates(full_name, current_title, cv_url), jobs(title, seniority, description)',
       )
       .eq('id', submissionId)
-      .single<SubmissionWithRelations>()
+      .maybeSingle<SubmissionWithRelations>()
 
     if (subError || !sub || !sub.candidates || !sub.jobs) {
       return NextResponse.json({ error: 'Submissão não encontrada.' }, { status: 404 })
@@ -73,7 +75,7 @@ export async function POST(request: Request) {
     // Cache miss: gera + persiste
     let cvText = ''
     if (sub.candidates.cv_url) {
-      const { data: blob } = await supabase.storage
+      const { data: blob } = await admin.storage
         .from('cvs')
         .download(sub.candidates.cv_url)
       if (blob) {
@@ -102,8 +104,7 @@ export async function POST(request: Request) {
       user.id,
     )
 
-    // Persistir cache (admin client pra contornar RLS de UPDATE)
-    const admin = createAdminClient()
+    // Persistir cache
     const { error: updateError } = await admin
       .from('submissions')
       .update({

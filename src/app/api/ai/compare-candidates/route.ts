@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { compareCandidates } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
@@ -49,7 +50,9 @@ export async function POST(request: Request) {
 
     const ids = submissionIds.filter((s): s is string => typeof s === 'string')
 
-    const { data: subs } = await supabase
+    const admin = createAdminClient()
+
+    const { data: subs } = await admin
       .from('submissions')
       .select(
         'id, interview_summary, ai_summary, ai_score, candidates(full_name, current_title, cv_url), jobs(id, title, description, seniority)',
@@ -81,7 +84,7 @@ export async function POST(request: Request) {
         let cvText = ''
         if (sub.candidates?.cv_url) {
           try {
-            const { data: blob } = await supabase.storage
+            const { data: blob } = await admin.storage
               .from('cvs')
               .download(sub.candidates.cv_url)
             if (blob) {

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeCandidate } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
@@ -47,11 +48,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'submissionId obrigatório.' }, { status: 400 })
     }
 
-    const { data: sub, error: subError } = await supabase
+    const admin = createAdminClient()
+
+    const { data: sub, error: subError } = await admin
       .from('submissions')
       .select('id, interview_summary, jd_priorities, hunter_score, hunter_score_rationale, candidates(full_name, current_title, cv_url), jobs(title, seniority, description)')
       .eq('id', submissionId)
-      .single<SubmissionWithRelations>()
+      .maybeSingle<SubmissionWithRelations>()
 
     if (subError || !sub) {
       return NextResponse.json({ error: 'Submissão não encontrada.' }, { status: 404 })
@@ -64,7 +67,7 @@ export async function POST(request: Request) {
 
     let cvText: string | null = null
     if (candidate.cv_url) {
-      const { data: blob, error: downloadError } = await supabase.storage
+      const { data: blob, error: downloadError } = await admin.storage
         .from('cvs')
         .download(candidate.cv_url)
 
@@ -96,7 +99,7 @@ export async function POST(request: Request) {
       user.id,
     )
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from('submissions')
       .update({
         status: 'ai_analyzed',

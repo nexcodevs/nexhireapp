@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { askAboutCandidate } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
@@ -41,13 +42,15 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data: sub } = await supabase
+    const admin = createAdminClient()
+
+    const { data: sub } = await admin
       .from('submissions')
       .select(
         'id, interview_summary, ai_summary, candidates(full_name, cv_url), jobs(title, description)',
       )
       .eq('id', submissionId)
-      .single<SubmissionWithRelations>()
+      .maybeSingle<SubmissionWithRelations>()
 
     if (!sub || !sub.candidates || !sub.jobs) {
       return NextResponse.json({ error: 'Submissão não encontrada.' }, { status: 404 })
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
 
     let cvText = ''
     if (sub.candidates.cv_url) {
-      const { data: blob } = await supabase.storage
+      const { data: blob } = await admin.storage
         .from('cvs')
         .download(sub.candidates.cv_url)
       if (blob) {
