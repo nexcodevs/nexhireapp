@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
@@ -60,17 +61,19 @@ export default async function FilaSubmissoesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const admin = createAdminClient()
+
+  const { data: profile } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (profile?.role !== 'hr_manager' && profile?.role !== 'admin') {
     redirect('/login')
   }
 
-  const { data: subsRaw } = await supabase
+  const { data: subsRaw } = await admin
     .from('submissions')
     .select(
       `id, status, submitted_at, ai_score, ai_summary, ai_risks, ai_gaps, hunter_score,
@@ -86,15 +89,15 @@ export default async function FilaSubmissoesPage() {
   const subs = subsRaw ?? []
 
   const [{ count: pendentes }, { count: aprovados }, { count: enviados }] = await Promise.all([
-    supabase
+    admin
       .from('submissions')
       .select('id', { count: 'exact', head: true })
       .in('status', ['submitted', 'ai_analyzed']),
-    supabase
+    admin
       .from('submissions')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'hr_approved'),
-    supabase
+    admin
       .from('submissions')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'sent_to_client'),

@@ -23,15 +23,17 @@ export default async function HRSubmissaoDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
-    .from('users').select('role').eq('id', user.id).single()
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
+    .from('users').select('role').eq('id', user.id).maybeSingle()
   if (!['hr_manager', 'admin'].includes(userData?.role)) redirect('/login')
 
-  const { data: sub } = await supabase
+  const { data: sub } = await admin
     .from('submissions')
     .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url, skills, language_proficiency, certifications, years_experience), jobs(id, title, seniority, location, work_model, required_skills, desired_skills, interview_questions, companies(name)), recruiters(level, users(full_name, email))')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (!sub) notFound()
 
@@ -90,14 +92,13 @@ export default async function HRSubmissaoDetailPage({
 
   let cvSignedUrl: string | null = null
   if (candidate?.cv_url) {
-    const { data: signed } = await supabase.storage
+    const { data: signed } = await admin.storage
       .from('cvs')
       .createSignedUrl(candidate.cv_url, 60 * 5)
     cvSignedUrl = signed?.signedUrl ?? null
   }
 
   // Avaliação aplicada (se existir)
-  const admin = createAdminClient()
   interface AssessmentRow {
     id: string
     submission_id: string

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -31,25 +32,27 @@ export default async function HRVagaDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!['hr_manager', 'admin'].includes(userData?.role)) {
     redirect('/login')
   }
 
-  const { data: job } = await supabase
+  const { data: job } = await admin
     .from('jobs')
     .select('*, companies(name)')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (!job) notFound()
 
-  const { data: submissions } = await supabase
+  const { data: submissions } = await admin
     .from('submissions')
     .select('id, status, ai_score, submitted_at, candidates(full_name, current_title, location), recruiters(users(full_name))')
     .eq('job_id', id)

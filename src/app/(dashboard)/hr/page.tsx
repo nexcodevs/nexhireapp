@@ -31,18 +31,18 @@ export default async function HRDashboard() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!['hr_manager', 'admin'].includes(userData?.role)) {
     redirect('/login')
   }
 
-  // Admin client pra ver tudo (RLS bloqueia HR de algumas tabelas dependendo de policy)
-  const admin = createAdminClient()
   const now = new Date()
   const ms30d = 30 * 24 * 60 * 60 * 1000
   const since30d = new Date(now.getTime() - ms30d).toISOString()

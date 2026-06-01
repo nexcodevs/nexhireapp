@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -14,11 +15,13 @@ export async function revisarSubmissao(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Não autenticado')
 
-  const { data: profile } = await supabase
+  const admin = createAdminClient()
+
+  const { data: profile } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (profile?.role !== 'hr_manager' && profile?.role !== 'admin') {
     throw new Error('Sem permissão')
@@ -26,7 +29,7 @@ export async function revisarSubmissao(formData: FormData) {
 
   const novoStatus = action === 'approve' ? 'hr_approved' : 'hr_rejected'
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('submissions')
     .update({
       status: novoStatus,

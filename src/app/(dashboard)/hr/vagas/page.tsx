@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -63,7 +64,9 @@ export default async function HRVagasPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  let query = supabase
+  const admin = createAdminClient()
+
+  let query = admin
     .from('jobs')
     .select('id, title, status, seniority, location, work_model, employment_type, created_at, submission_deadline, companies(name)')
     .order('created_at', { ascending: false })
@@ -80,7 +83,7 @@ export default async function HRVagasPage({ searchParams }: PageProps) {
   // Agrega submissões por vaga
   const submissionsByJob = new Map<string, { total: number; pending: number; approved: number; hired: number }>()
   if (jobIds.length > 0) {
-    const { data: subs } = await supabase
+    const { data: subs } = await admin
       .from('submissions')
       .select('job_id, status')
       .in('job_id', jobIds)

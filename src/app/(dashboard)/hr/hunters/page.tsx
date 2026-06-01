@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
@@ -57,17 +58,19 @@ export default async function HRHuntersPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!['hr_manager', 'admin'].includes(userData?.role || '')) {
     redirect('/login')
   }
 
-  const { data: recruiters } = await supabase
+  const { data: recruiters } = await admin
     .from('recruiters')
     .select(
       'id, user_id, status, level, linkedin_url, specialties, bio, years_experience, ai_risk_assessment, score, created_at, users(full_name, email)',
@@ -80,7 +83,7 @@ export default async function HRHuntersPage({ searchParams }: PageProps) {
   // Conta por status (usado nas tabs)
   const counts = await Promise.all(
     TAB_OPTIONS.map(opt =>
-      supabase
+      admin
         .from('recruiters')
         .select('id', { count: 'exact', head: true })
         .eq('status', opt.value)

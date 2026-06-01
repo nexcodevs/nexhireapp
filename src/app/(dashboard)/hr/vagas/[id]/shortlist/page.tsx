@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -68,25 +69,27 @@ export default async function HRJobShortlistPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!['hr_manager', 'admin'].includes(userData?.role)) {
     redirect('/login')
   }
 
-  const { data: job } = await supabase
+  const { data: job } = await admin
     .from('jobs')
     .select('id, title, seniority, location, work_model, companies(name)')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (!job) notFound()
 
-  const { data: subsRaw } = await supabase
+  const { data: subsRaw } = await admin
     .from('submissions')
     .select(
       'id, status, submitted_at, ai_score, ai_summary, ai_risks, ai_gaps, hunter_score, hunter_score_rationale, candidates(full_name, current_title, location), recruiters(users(full_name))',
