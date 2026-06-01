@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
@@ -30,16 +31,18 @@ export default async function CompareCandidatesPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createAdminClient()
+
   // Confere acesso à vaga
-  const { data: job } = await supabase
+  const { data: job } = await admin
     .from('jobs')
     .select('id, title, seniority')
     .eq('id', jobId)
-    .single()
+    .maybeSingle()
 
   if (!job) notFound()
 
-  const { data: subs } = await supabase
+  const { data: subs } = await admin
     .from('submissions')
     .select('id, candidates(full_name, current_title)')
     .in('id', ids)

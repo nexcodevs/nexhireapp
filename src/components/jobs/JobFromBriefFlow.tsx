@@ -69,7 +69,7 @@ function ReasoningDetails({ reasoning }: { reasoning: string }) {
 
 interface JobFromBriefFlowProps {
   companyId: string
-  userId: string
+  userId?: string
 }
 
 interface Suggestion extends JobFormInitialValues {
@@ -78,7 +78,7 @@ interface Suggestion extends JobFormInitialValues {
 
 const EXAMPLE_BRIEF = `Ex: Procuro um Engenheiro de Machine Learning sênior, foco em recommendation systems. Remoto, R$ 15-18k CLT. Precisa de Python forte e experiência com MLOps.`
 
-export default function JobFromBriefFlow({ companyId, userId }: JobFromBriefFlowProps) {
+export default function JobFromBriefFlow({ companyId }: JobFromBriefFlowProps) {
   const [brief, setBrief] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -167,7 +167,6 @@ export default function JobFromBriefFlow({ companyId, userId }: JobFromBriefFlow
 
         <JobForm
           companyId={companyId}
-          userId={userId}
           initialValues={suggestion}
           aiGenerated={!!suggestion.title}
         />

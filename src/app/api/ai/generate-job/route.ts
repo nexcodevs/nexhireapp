@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { generateJobFromBrief } from '@/lib/ai/analyze'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
 
@@ -32,13 +33,16 @@ export async function POST(request: Request) {
       )
     }
 
+    // Admin client pra bypass RLS — user já validado via auth.getUser() acima
+    const admin = createAdminClient()
+
     // Confere acesso à empresa
-    const { data: companyUser } = await supabase
+    const { data: companyUser } = await admin
       .from('company_users')
       .select('company_id')
       .eq('user_id', user.id)
       .eq('company_id', companyId)
-      .single()
+      .maybeSingle()
 
     if (!companyUser) {
       return NextResponse.json(
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     // Busca contexto da empresa pra calibrar sugestões
-    const { data: company } = await supabase
+    const { data: company } = await admin
       .from('companies')
       .select('name, industry, size')
       .eq('id', companyId)

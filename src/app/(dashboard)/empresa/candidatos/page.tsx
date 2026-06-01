@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -24,13 +25,15 @@ export default async function EmpresaCandidatosPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: companyUser } = await supabase
+  const admin = createAdminClient()
+
+  const { data: companyUser } = await admin
     .from('company_users')
     .select('company_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  const { data: submissions } = await supabase
+  const { data: submissions } = await admin
     .from('submissions')
     .select('*, candidates(full_name, current_title, location), jobs(title)')
     .in('status', ['sent_to_client', 'client_approved', 'client_rejected', 'interview_scheduled', 'offer', 'hired'])

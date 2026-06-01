@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
@@ -43,24 +44,26 @@ export default async function EmpresaVagaCandidatosPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: companyUser } = await supabase
+  const admin = createAdminClient()
+
+  const { data: companyUser } = await admin
     .from('company_users')
     .select('company_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!companyUser?.company_id) redirect('/login')
 
-  const { data: job } = await supabase
+  const { data: job } = await admin
     .from('jobs')
     .select('id, title, status, seniority, location, work_model, companies(name)')
     .eq('id', id)
     .eq('company_id', companyUser.company_id)
-    .single<{ id: string; title: string; status: string; seniority: string | null; location: string | null; work_model: string | null; companies: { name: string | null } | null }>()
+    .maybeSingle<{ id: string; title: string; status: string; seniority: string | null; location: string | null; work_model: string | null; companies: { name: string | null } | null }>()
 
   if (!job) notFound()
 
-  const { data: rawSubs } = await supabase
+  const { data: rawSubs } = await admin
     .from('submissions')
     .select('id, status, submitted_at, sent_to_client_at, ai_score, ai_summary, candidates(full_name, current_title, location), recruiters(level, users(full_name))')
     .eq('job_id', id)

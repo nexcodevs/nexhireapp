@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
@@ -48,13 +49,15 @@ export default async function HunterDashboard() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users').select('full_name').eq('id', user.id).single()
 
-  const { data: recruiter } = await supabase
-    .from('recruiters').select('*').eq('user_id', user.id).single()
+  const { data: recruiter } = await admin
+    .from('recruiters').select('*').eq('user_id', user.id).maybeSingle()
 
-  const { data: submissions } = await supabase
+  const { data: submissions } = await admin
     .from('submissions')
     .select('id, status, submitted_at, ai_score, candidates(full_name), jobs(title, companies(name))')
     .eq('recruiter_id', recruiter?.id || '')
@@ -63,7 +66,7 @@ export default async function HunterDashboard() {
   const hunterLevel: RecruiterLevel | null =
     recruiter?.status === 'approved' ? ((recruiter?.level as RecruiterLevel) || 'beginner') : null
 
-  const { data: allOpenJobs } = await supabase
+  const { data: allOpenJobs } = await admin
     .from('jobs')
     .select('id, title, location, salary_min, visibility_type, companies(name)')
     .eq('status', 'open_for_hunters')

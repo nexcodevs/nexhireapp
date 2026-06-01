@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -37,7 +36,6 @@ export interface JobFormInitialValues {
 
 interface JobFormProps {
   companyId: string
-  userId: string
   initialValues?: JobFormInitialValues
   aiGenerated?: boolean
 }
@@ -50,7 +48,7 @@ const COMMON_LANGUAGES: { code: string; name: string }[] = [
   { code: 'de', name: 'Alemão' },
 ]
 
-export default function JobForm({ companyId, userId, initialValues, aiGenerated = false }: JobFormProps) {
+export default function JobForm({ companyId, initialValues, aiGenerated = false }: JobFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -123,14 +121,12 @@ export default function JobForm({ companyId, userId, initialValues, aiGenerated 
     }
 
     setLoading(true)
-    const supabase = createClient()
-    const deadline = new Date()
-    deadline.setDate(deadline.getDate() + parseInt(form.deadline_days))
 
-    const { error: jobError } = await supabase
-      .from('jobs')
-      .insert({
-        company_id: companyId,
+    const res = await fetch('/api/empresa/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyId,
         title: form.title.trim(),
         seniority: form.seniority,
         location: form.location.trim(),
@@ -147,14 +143,15 @@ export default function JobForm({ companyId, userId, initialValues, aiGenerated 
         certifications,
         benefits,
         interview_questions: interviewQuestions,
-        status: 'pending_hr_review',
-        submission_deadline: deadline.toISOString(),
-        created_by: userId,
-      })
+        deadline_days: parseInt(form.deadline_days),
+      }),
+    })
 
-    if (jobError) {
-      console.error('[job-form]', jobError)
-      setError(jobError.message || 'Erro ao criar vaga. Tente novamente.')
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      const msg = (data?.error as string | undefined) || 'Erro ao criar vaga. Tente novamente.'
+      console.error('[job-form]', msg)
+      setError(msg)
       toast.error('Não foi possível criar a vaga.')
       setLoading(false)
       return

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -34,19 +35,22 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: recruiter } = await supabase
+  // Admin client pra leituras (RLS bloqueando — auth já validado acima)
+  const admin = createAdminClient()
+
+  const { data: recruiter } = await admin
     .from('recruiters')
     .select('*')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   const hunterLevel: RecruiterLevel | null =
     recruiter?.status === 'approved' ? ((recruiter?.level as RecruiterLevel) || 'beginner') : null
 
   // Empresas que bloquearam esse hunter — não devem aparecer na lista
-  const blockedCompanyIds = await getBlockedCompanyIds(supabase, user.id)
+  const blockedCompanyIds = await getBlockedCompanyIds(admin, user.id)
 
-  let query = supabase
+  let query = admin
     .from('jobs')
     .select('*, companies(name, logo_url)')
     .eq('status', 'open_for_hunters')
@@ -62,7 +66,7 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
 
   let jobs = filterJobsByVisibility(allJobs, hunterLevel)
 
-  const { data: mySubmissions } = await supabase
+  const { data: mySubmissions } = await admin
     .from('submissions')
     .select('job_id')
     .eq('recruiter_id', recruiter?.id || '')

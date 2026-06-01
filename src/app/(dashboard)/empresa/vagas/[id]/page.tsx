@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
@@ -47,24 +48,26 @@ export default async function EmpresaVagaDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: companyUser } = await supabase
+  const admin = createAdminClient()
+
+  const { data: companyUser } = await admin
     .from('company_users')
     .select('company_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!companyUser?.company_id) redirect('/login')
 
-  const { data: job } = await supabase
+  const { data: job } = await admin
     .from('jobs')
     .select('*, companies(name)')
     .eq('id', id)
     .eq('company_id', companyUser.company_id)
-    .single()
+    .maybeSingle()
 
   if (!job) notFound()
 
-  const { data: subs } = await supabase
+  const { data: subs } = await admin
     .from('submissions')
     .select('status')
     .eq('job_id', id)

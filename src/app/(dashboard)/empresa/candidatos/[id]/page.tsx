@@ -21,11 +21,13 @@ export default async function EmpresaCandidatoDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: sub } = await supabase
+  const admin = createAdminClient()
+
+  const { data: sub } = await admin
     .from('submissions')
     .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url, skills, language_proficiency, certifications, years_experience), jobs(id, title, seniority, location, work_model, required_skills, desired_skills, companies(name))')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (!sub) notFound()
 
@@ -60,7 +62,7 @@ export default async function EmpresaCandidatoDetailPage({
   // Signed URL pro CV (válida 10 min — tempo de leitura cômodo)
   let cvSignedUrl: string | null = null
   if (candidate?.cv_url) {
-    const { data: signed } = await supabase.storage
+    const { data: signed } = await admin.storage
       .from('cvs')
       .createSignedUrl(candidate.cv_url, 60 * 10)
     cvSignedUrl = signed?.signedUrl ?? null
@@ -79,7 +81,6 @@ export default async function EmpresaCandidatoDetailPage({
   const hasAIAnalysis = !!aiSummary || aiScore !== null
 
   // Avaliação aplicada pelo HR (status completed) — empresa pode ver
-  const admin = createAdminClient()
   interface AssessmentRow {
     technical_score: number | null
     behavioral_score: number | null

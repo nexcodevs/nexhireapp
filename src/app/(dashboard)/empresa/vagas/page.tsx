@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
@@ -69,8 +70,9 @@ export default async function EmpresaVagasPage({ searchParams }: PageProps) {
   if (!user) redirect('/login')
 
   const companyId = await requireCompany(supabase, user.id)
+  const admin = createAdminClient()
 
-  let query = supabase
+  let query = admin
     .from('jobs')
     .select('id, title, status, seniority, location, work_model, employment_type, salary_min, salary_max, created_at, submission_deadline')
     .eq('company_id', companyId)
@@ -92,7 +94,7 @@ export default async function EmpresaVagasPage({ searchParams }: PageProps) {
     'interview_scheduled', 'offer', 'hired', 'not_hired',
   ]
   const { data: visibleSubs } = jobIds.length
-    ? await supabase
+    ? await admin
         .from('submissions')
         .select('job_id, status')
         .in('job_id', jobIds)

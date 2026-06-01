@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -42,13 +43,16 @@ export default async function HunterVagaDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: recruiter } = await supabase
+  // Admin client pra leituras (RLS bloqueando — auth já validado acima)
+  const admin = createAdminClient()
+
+  const { data: recruiter } = await admin
     .from('recruiters')
     .select('*')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  const { data: job } = await supabase
+  const { data: job } = await admin
     .from('jobs')
     .select('*, companies(name, logo_url)')
     .eq('id', id)
@@ -59,7 +63,7 @@ export default async function HunterVagaDetailPage({
 
   const company = pickOne(job.companies as CompanyRel | CompanyRel[] | null | undefined)
 
-  const { data: mySubmissions } = await supabase
+  const { data: mySubmissions } = await admin
     .from('submissions')
     .select('id, status, candidates(full_name)')
     .eq('job_id', id)
