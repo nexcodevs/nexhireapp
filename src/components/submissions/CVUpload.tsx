@@ -1,7 +1,6 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024
 const ACCEPTED_MIME = 'application/pdf'
@@ -56,34 +55,30 @@ export default function CVUpload({
 
     setUploading(true)
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const formData = new FormData()
+    formData.append('file', file)
 
-    if (!user) {
-      setError('Sessão expirada. Faça login novamente.')
+    const res = await fetch('/api/hunter/upload-cv', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      console.error('[cv-upload]', data?.error)
+      setError(data?.error || 'Não foi possível enviar o currículo. Tente novamente.')
       setUploading(false)
       return
     }
 
-    const storagePath = `${user.id}/${crypto.randomUUID()}.pdf`
-
-    const { error: uploadError } = await supabase.storage
-      .from('cvs')
-      .upload(storagePath, file, {
-        contentType: ACCEPTED_MIME,
-        upsert: false,
-      })
-
-    if (uploadError) {
-      console.error('[cv-upload]', uploadError)
-      setError('Não foi possível enviar o currículo. Tente novamente.')
-      setUploading(false)
-      return
+    const { storagePath, fileName: uploadedName } = (await res.json()) as {
+      storagePath: string
+      fileName: string
     }
 
-    setFileName(file.name)
+    setFileName(uploadedName)
     setUploading(false)
-    onUploaded(storagePath, file.name)
+    onUploaded(storagePath, uploadedName)
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
