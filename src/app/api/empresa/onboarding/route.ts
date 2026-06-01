@@ -74,6 +74,7 @@ export async function POST(request: Request) {
     }
 
     const { error: linkError } = await admin.from('company_users').insert({
+      id: crypto.randomUUID(),
       company_id: companyId,
       user_id: user.id,
       role: 'owner',
