@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Textarea from '@/components/ui/Textarea'
@@ -30,7 +29,7 @@ interface DuplicateMatch {
 
 interface SubmitCandidateFormProps {
   jobId: string
-  recruiterId: string
+  recruiterId?: string
   remainingSlots: number
 }
 
@@ -55,7 +54,6 @@ const JD_PRIORITIES_PLACEHOLDER = `1.
 
 export default function SubmitCandidateForm({
   jobId,
-  recruiterId,
   remainingSlots,
 }: SubmitCandidateFormProps) {
   const router = useRouter()
@@ -276,138 +274,41 @@ export default function SubmitCandidateForm({
     }
 
     setLoading(true)
-    const supabase = createClient()
 
-    const submissionPayload = {
-      interview_summary: submission.interview_summary,
-      jd_priorities: submission.jd_priorities,
-      hunter_score: hunterScore,
-      hunter_score_rationale: submission.hunter_score_rationale,
-    }
+    const res = await fetch('/api/hunter/submit-candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId,
+        cvPath,
+        candidate: {
+          full_name: candidate.full_name,
+          email: candidate.email || undefined,
+          phone: candidate.phone || undefined,
+          linkedin_url: candidate.linkedin_url || undefined,
+          current_title: candidate.current_title || undefined,
+          location: candidate.location || undefined,
+        },
+        submission: {
+          interview_summary: submission.interview_summary,
+          jd_priorities: submission.jd_priorities,
+          hunter_score: hunterScore,
+          hunter_score_rationale: submission.hunter_score_rationale,
+        },
+        extractedProfile,
+      }),
+    })
 
-    if (candidate.email) {
-      const { data: existing } = await supabase
-        .from('candidates')
-        .select('id, cv_url')
-        .eq('email', candidate.email)
-        .single()
-
-      if (existing) {
-        const { data: dupSubmission } = await supabase
-          .from('submissions')
-          .select('id')
-          .eq('job_id', jobId)
-          .eq('candidate_id', existing.id)
-          .single()
-
-        if (dupSubmission) {
-          setError('Este candidato já foi enviado para esta vaga.')
-          setLoading(false)
-          return
-        }
-
-        // Candidato já existe — atualiza CV + dados estruturados se IA extraiu
-        const updatePayload: Record<string, unknown> = {}
-        if (cvPath && !existing.cv_url) updatePayload.cv_url = cvPath
-        if (extractedProfile) {
-          if (extractedProfile.skills.length > 0) updatePayload.skills = extractedProfile.skills
-          if (extractedProfile.languages.length > 0) updatePayload.language_proficiency = extractedProfile.languages
-          if (extractedProfile.certifications.length > 0) updatePayload.certifications = extractedProfile.certifications
-          if (extractedProfile.years_experience !== null) updatePayload.years_experience = extractedProfile.years_experience
-          updatePayload.cv_extracted_at = new Date().toISOString()
-        }
-        if (Object.keys(updatePayload).length > 0) {
-          await supabase
-            .from('candidates')
-            .update(updatePayload)
-            .eq('id', existing.id)
-        }
-
-        const ownership = new Date()
-        ownership.setDate(ownership.getDate() + 60)
-        const newSubId = crypto.randomUUID()
-
-        const { error: subError } = await supabase
-          .from('submissions')
-          .insert({
-            ...submissionPayload,
-            id: newSubId,
-            job_id: jobId,
-            candidate_id: existing.id,
-            recruiter_id: recruiterId,
-            ownership_expires_at: ownership.toISOString(),
-          })
-
-        if (subError) {
-          const meta = { code: subError.code, message: subError.message, details: subError.details, hint: subError.hint }
-          console.error('[submit-candidate:existing]', meta)
-          setError(`Não foi possível enviar o candidato. ${subError.message ?? ''}`.trim())
-          setLoading(false)
-          return
-        }
-
-        await notifyHR(newSubId)
-
-        setSuccess(true)
-        router.refresh()
-        return
-      }
-    }
-
-    // Gera o ID do candidato no client pra evitar RETURNING (que falha por RLS:
-    // hunter só pode SELECT candidato via submissão, que ainda não existe nessa linha).
-    const newCandidateId = crypto.randomUUID()
-
-    const { error: candError } = await supabase
-      .from('candidates')
-      .insert({
-        id: newCandidateId,
-        full_name: candidate.full_name,
-        email: candidate.email || null,
-        phone: candidate.phone || null,
-        linkedin_url: candidate.linkedin_url || null,
-        current_title: candidate.current_title || null,
-        location: candidate.location || null,
-        cv_url: cvPath,
-        skills: extractedProfile?.skills ?? [],
-        language_proficiency: extractedProfile?.languages ?? [],
-        certifications: extractedProfile?.certifications ?? [],
-        years_experience: extractedProfile?.years_experience ?? null,
-        cv_extracted_at: extractedProfile ? new Date().toISOString() : null,
-      })
-
-    if (candError) {
-      const meta = { code: candError.code, message: candError.message, details: candError.details, hint: candError.hint }
-      console.error('[submit-candidate:create-candidate]', meta)
-      setError(`Não foi possível cadastrar o candidato. ${candError.message ?? ''}`.trim())
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      console.error('[submit-candidate]', data?.error)
+      setError(data?.error || 'Não foi possível enviar o candidato.')
       setLoading(false)
       return
     }
 
-    const ownership = new Date()
-    ownership.setDate(ownership.getDate() + 60)
-    const newSubId = crypto.randomUUID()
-
-    const { error: subError } = await supabase
-      .from('submissions')
-      .insert({
-        ...submissionPayload,
-        id: newSubId,
-        job_id: jobId,
-        candidate_id: newCandidateId,
-        recruiter_id: recruiterId,
-        ownership_expires_at: ownership.toISOString(),
-      })
-
-    if (subError) {
-      const meta = { code: subError.code, message: subError.message, details: subError.details, hint: subError.hint }
-      console.error('[submit-candidate:create-submission]', meta)
-      setError(`Não foi possível registrar a submissão. ${subError.message ?? ''}`.trim())
-      setLoading(false)
-      return
-    }
-
-    await notifyHR(newSubId)
+    const { submissionId } = (await res.json()) as { submissionId: string }
+    await notifyHR(submissionId)
 
     setSuccess(true)
     router.refresh()
