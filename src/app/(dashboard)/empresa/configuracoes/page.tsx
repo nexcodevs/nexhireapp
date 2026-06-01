@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { redirect, notFound } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import CompanyEditForm from '@/components/empresa/CompanyEditForm'
 import { requireCompany } from '@/lib/company'
@@ -15,13 +16,14 @@ export default async function EmpresaConfigPage() {
 
   const companyId = await requireCompany(supabase, user.id)
 
-  const { data: company } = await supabase
+  const admin = createAdminClient()
+  const { data: company } = await admin
     .from('companies')
     .select('id, name, website, industry, size, logo_url')
     .eq('id', companyId)
     .single()
 
-  if (!company) redirect('/empresa/onboarding')
+  if (!company) notFound()
 
   return (
     <div className="max-w-3xl">

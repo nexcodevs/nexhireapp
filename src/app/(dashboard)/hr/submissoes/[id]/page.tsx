@@ -8,6 +8,9 @@ import HRSubmissionActions from '@/components/submissions/HRSubmissionActions'
 import AIAnalyzeButton from '@/components/submissions/AIAnalyzeButton'
 import AIAnalysisCard from '@/components/ui/AIAnalysisCard'
 import CandidateStructuredCard from '@/components/submissions/CandidateStructuredCard'
+import AssessmentFlow from '@/components/submissions/AssessmentFlow'
+import AssessmentResultCard from '@/components/submissions/AssessmentResultCard'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { formatDate } from '@/lib/utils'
 
 export default async function HRSubmissaoDetailPage({
@@ -26,7 +29,7 @@ export default async function HRSubmissaoDetailPage({
 
   const { data: sub } = await supabase
     .from('submissions')
-    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url, skills, language_proficiency, certifications, years_experience), jobs(id, title, seniority, location, work_model, required_skills, desired_skills, companies(name)), recruiters(level, users(full_name, email))')
+    .select('*, candidates(full_name, current_title, location, email, phone, linkedin_url, cv_url, skills, language_proficiency, certifications, years_experience), jobs(id, title, seniority, location, work_model, required_skills, desired_skills, interview_questions, companies(name)), recruiters(level, users(full_name, email))')
     .eq('id', id)
     .single()
 
@@ -53,6 +56,7 @@ export default async function HRSubmissaoDetailPage({
     work_model: string | null
     required_skills: unknown
     desired_skills: unknown
+    interview_questions: unknown
     companies: { name: string | null } | { name: string | null }[] | null
   }
   type RecruiterRel = {
@@ -91,6 +95,33 @@ export default async function HRSubmissaoDetailPage({
       .createSignedUrl(candidate.cv_url, 60 * 5)
     cvSignedUrl = signed?.signedUrl ?? null
   }
+
+  // Avaliação aplicada (se existir)
+  const admin = createAdminClient()
+  interface AssessmentRow {
+    id: string
+    submission_id: string
+    answers: unknown
+    technical_score: number | null
+    behavioral_score: number | null
+    cultural_fit_score: number | null
+    overall_score: number | null
+    ai_summary: string | null
+    recommendation: string | null
+    status: string
+    completed_at: string | null
+  }
+  const { data: assessment } = await admin
+    .from('submission_assessments')
+    .select('id, submission_id, answers, technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, status, completed_at')
+    .eq('submission_id', id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<AssessmentRow>()
+
+  const interviewQuestions = Array.isArray(job?.interview_questions)
+    ? (job.interview_questions as string[]).filter(q => typeof q === 'string' && q.trim().length > 0)
+    : []
 
   const statusInfo: Record<string, { label: string; variant: 'gray' | 'yellow' | 'green' | 'blue' | 'dark' | 'red' }> = {
     submitted: { label: 'Aguardando curadoria', variant: 'yellow' },
@@ -236,6 +267,55 @@ export default async function HRSubmissaoDetailPage({
               gaps={(sub.ai_gaps as string[] | null) ?? undefined}
             />
           )}
+
+          {/* Avaliação aplicada (resultado) OU CTA pra aplicar */}
+          {assessment && assessment.status === 'completed' ? (
+            <div className="flex flex-col gap-2">
+              <AssessmentResultCard
+                assessment={{
+                  technical_score: assessment.technical_score,
+                  behavioral_score: assessment.behavioral_score,
+                  cultural_fit_score: assessment.cultural_fit_score,
+                  overall_score: assessment.overall_score,
+                  ai_summary: assessment.ai_summary,
+                  recommendation: assessment.recommendation,
+                  completed_at: assessment.completed_at,
+                }}
+              />
+              {interviewQuestions.length > 0 && (
+                <div className="flex justify-end">
+                  <AssessmentFlow
+                    submissionId={sub.id}
+                    candidateName={candidate?.full_name ?? 'Candidato'}
+                    questions={interviewQuestions}
+                    existing={{
+                      answers: Array.isArray(assessment.answers)
+                        ? (assessment.answers as { question: string; answer: string; score?: number; notes?: string }[])
+                        : [],
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ) : interviewQuestions.length > 0 ? (
+            <Card variant="mint" padding="md">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '3px' }}>
+                    Aplicar avaliação estruturada
+                  </h2>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-3)', lineHeight: 1.5 }}>
+                    {interviewQuestions.length} pergunta{interviewQuestions.length === 1 ? '' : 's'} pré-aprovada{interviewQuestions.length === 1 ? '' : 's'} pela empresa. IA gera score final.
+                  </p>
+                </div>
+                <AssessmentFlow
+                  submissionId={sub.id}
+                  candidateName={candidate?.full_name ?? 'Candidato'}
+                  questions={interviewQuestions}
+                />
+              </div>
+            </Card>
+          ) : null}
 
           {/* Perfil estruturado do candidato (skills, idiomas, certs) */}
           <CandidateStructuredCard

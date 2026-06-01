@@ -6,7 +6,9 @@ import Badge from '@/components/ui/Badge'
 import Breadcrumb from '@/components/ui/Breadcrumb'
 import CandidateOnePager from '@/components/submissions/CandidateOnePager'
 import CandidateStructuredCard from '@/components/submissions/CandidateStructuredCard'
+import AssessmentResultCard from '@/components/submissions/AssessmentResultCard'
 import ClientCandidateActions from '@/components/submissions/ClientCandidateActions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { formatDate } from '@/lib/utils'
 
 export default async function EmpresaCandidatoDetailPage({
@@ -76,6 +78,27 @@ export default async function EmpresaCandidatoDetailPage({
   const aiGaps = Array.isArray(sub.ai_gaps) ? (sub.ai_gaps as string[]) : []
   const hasAIAnalysis = !!aiSummary || aiScore !== null
 
+  // Avaliação aplicada pelo HR (status completed) — empresa pode ver
+  const admin = createAdminClient()
+  interface AssessmentRow {
+    technical_score: number | null
+    behavioral_score: number | null
+    cultural_fit_score: number | null
+    overall_score: number | null
+    ai_summary: string | null
+    recommendation: string | null
+    status: string
+    completed_at: string | null
+  }
+  const { data: assessment } = await admin
+    .from('submission_assessments')
+    .select('technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, status, completed_at')
+    .eq('submission_id', id)
+    .eq('status', 'completed')
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<AssessmentRow>()
+
   return (
     <div className="max-w-5xl">
       <Breadcrumb
@@ -138,6 +161,10 @@ export default async function EmpresaCandidatoDetailPage({
           )}
           {sub.status === 'client_approved' && (
             <ClientCandidateActions submissionId={sub.id} mode="schedule" />
+          )}
+
+          {assessment && (
+            <AssessmentResultCard assessment={assessment} />
           )}
 
           <CandidateStructuredCard

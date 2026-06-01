@@ -158,7 +158,7 @@ export default function SignupForm() {
     }
 
     const redirectMap: Record<Exclude<Role, 'recruiter'>, string> = {
-      company_user: '/empresa/onboarding',
+      company_user: '/empresa',
       candidate: '/candidato',
     }
     router.push(redirectMap[role as Exclude<Role, 'recruiter'>])

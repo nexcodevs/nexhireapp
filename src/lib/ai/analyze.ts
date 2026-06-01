@@ -737,6 +737,114 @@ Retorne APENAS JSON válido sem markdown sem backticks. Use os IDs exatos dos ca
   return result
 }
 
+export interface AssessmentAnswer {
+  question: string
+  answer: string
+  /** Nota dada pelo HR (0-10). Pode ser undefined se HR não pontuou. */
+  score?: number
+  notes?: string
+}
+
+export interface AssessmentResult {
+  technical_score: number
+  behavioral_score: number
+  cultural_fit_score: number
+  overall_score: number
+  ai_summary: string
+  recommendation: 'avancar' | 'revisar' | 'rejeitar'
+  strengths: string[]
+  concerns: string[]
+}
+
+export interface AssessCandidateInput {
+  candidateName: string
+  candidateTitle: string | null
+  jobTitle: string
+  jobDescription: string
+  seniority: string
+  requiredSkills: string[]
+  behavioralCompetencies: string[]
+  cultureFit: string | null
+  answers: AssessmentAnswer[]
+  hunterScore?: number | null
+  aiAnalysisSummary?: string | null
+}
+
+/**
+ * Gera avaliação executiva do candidato baseada nas respostas das
+ * perguntas pré-aprovadas que o HR aplicou.
+ */
+export async function assessCandidate(
+  input: AssessCandidateInput,
+  userId?: string | null,
+): Promise<AssessmentResult> {
+  const answersBlock = input.answers
+    .map(
+      (a, i) =>
+        `${i + 1}. ${a.question}
+   Resposta: ${a.answer || '(sem resposta)'}${a.score !== undefined ? `\n   Nota HR: ${a.score}/10` : ''}${a.notes ? `\n   Observações: ${a.notes}` : ''}`,
+    )
+    .join('\n\n')
+
+  const prompt = `Você é um avaliador sênior de talentos. Recebe respostas de uma entrevista estruturada e gera scores + recomendação executiva.
+
+VAGA: ${input.jobTitle} · ${input.seniority}
+Descrição: ${input.jobDescription}
+Skills obrigatórias: ${input.requiredSkills.join(', ') || '(não definidas)'}
+Competências comportamentais: ${input.behavioralCompetencies.join(', ') || '(não definidas)'}
+${input.cultureFit ? `Fit cultural: ${input.cultureFit}` : ''}
+
+CANDIDATO: ${input.candidateName}${input.candidateTitle ? ` · ${input.candidateTitle}` : ''}
+${input.hunterScore ? `Score do hunter (pré-entrevista): ${input.hunterScore}/10` : ''}
+${input.aiAnalysisSummary ? `Análise IA prévia: ${input.aiAnalysisSummary}` : ''}
+
+RESPOSTAS DA ENTREVISTA:
+${answersBlock}
+
+Gere avaliação executiva em JSON com:
+
+- **technical_score** (0-100): qualidade técnica das respostas vs requisitos.
+- **behavioral_score** (0-100): aderência às competências comportamentais.
+- **cultural_fit_score** (0-100): match com fit cultural informado.
+- **overall_score** (0-100): score geral ponderado.
+- **ai_summary**: 2-3 frases sintéticas sobre o candidato após a entrevista. Tom executivo, direto. Pra empresa decidir avançar ou não.
+- **recommendation**: "avancar" | "revisar" | "rejeitar".
+- **strengths**: até 4 strings curtas (1-4 palavras cada) com pontos fortes evidentes.
+- **concerns**: até 3 strings curtas com gaps/riscos observados.
+
+Regras:
+- Honesto. Se resposta é fraca/vaga, score baixo.
+- Não invente informações além das respostas.
+- Português BR.
+- Sem floreio.
+
+Retorne APENAS JSON válido sem markdown sem backticks:
+
+{
+  "technical_score": 0,
+  "behavioral_score": 0,
+  "cultural_fit_score": 0,
+  "overall_score": 0,
+  "ai_summary": "",
+  "recommendation": "revisar",
+  "strengths": [],
+  "concerns": []
+}`
+
+  const message = await callClaude(
+    {
+      model: MODEL_QUALITY,
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    },
+    userId ? { feature: 'assess_candidate', userId } : undefined,
+  )
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  const result: AssessmentResult = JSON.parse(text)
+  return result
+}
+
 export async function generateJobDescription(
   title: string,
   seniority: string,

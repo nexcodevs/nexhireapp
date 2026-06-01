@@ -13,6 +13,7 @@ export type AIFeature =
   | 'embeddings_backfill'
   | 'insights'
   | 'assistant_chat'
+  | 'assess_candidate'
 
 export type AIProvider = 'anthropic' | 'groq' | 'voyage'
 
@@ -141,4 +142,5 @@ export const DAILY_AI_LIMITS: Record<AIFeature, number> = {
   embeddings_backfill: 5,
   insights: 10,
   assistant_chat: 100,
+  assess_candidate: 30,
 }
