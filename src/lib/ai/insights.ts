@@ -95,6 +95,9 @@ Retorne APENAS um JSON array válido (sem markdown, sem backticks):
   }
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const insights: Insight[] = JSON.parse(text)
+  let cleaned = text.trim()
+  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  if (fenceMatch) cleaned = fenceMatch[1].trim()
+  const insights: Insight[] = JSON.parse(cleaned)
   return insights.slice(0, 4)
 }

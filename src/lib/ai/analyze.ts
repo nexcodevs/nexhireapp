@@ -38,6 +38,31 @@ async function callClaude(
 
 export type AIUsageMeta = { userId: string | null } | undefined
 
+/**
+ * Claude às vezes responde com ```json ... ``` ou texto envolto.
+ * Extrai e parseia o primeiro bloco JSON encontrado.
+ */
+function parseJsonResponse<T>(text: string): T {
+  let cleaned = text.trim()
+
+  // Remove fences ```json ... ``` ou ``` ... ```
+  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  if (fenceMatch) {
+    cleaned = fenceMatch[1].trim()
+  }
+
+  // Se ainda não parsea, tenta extrair primeiro objeto/array
+  try {
+    return JSON.parse(cleaned) as T
+  } catch {
+    const objectMatch = cleaned.match(/[\{\[][\s\S]*[\}\]]/)
+    if (objectMatch) {
+      return JSON.parse(objectMatch[0]) as T
+    }
+    throw new Error('Resposta da IA não veio em JSON válido.')
+  }
+}
+
 export interface AIAnalysis {
   score_geral: number
   resumo: string
@@ -140,7 +165,7 @@ Regras:
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const analysis: AIAnalysis = JSON.parse(text)
+  const analysis = parseJsonResponse<AIAnalysis>(text)
   return analysis
 }
 
@@ -268,7 +293,7 @@ Regras duras:
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const suggestion: PrefillSuggestion = JSON.parse(text)
+  const suggestion = parseJsonResponse<PrefillSuggestion>(text)
   return suggestion
 }
 
@@ -352,7 +377,7 @@ Onde:
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const assessment: HunterRiskAssessment = JSON.parse(text)
+  const assessment = parseJsonResponse<HunterRiskAssessment>(text)
   return assessment
 }
 
@@ -472,7 +497,7 @@ Retorne APENAS JSON válido sem markdown sem backticks:
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const result: JobFromBrief = JSON.parse(text)
+  const result = parseJsonResponse<JobFromBrief>(text)
   return result
 }
 
@@ -562,7 +587,7 @@ Retorne APENAS JSON válido sem markdown sem backticks:
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const pitch: CandidatePitch = JSON.parse(text)
+  const pitch = parseJsonResponse<CandidatePitch>(text)
   return pitch
 }
 
@@ -733,7 +758,7 @@ Retorne APENAS JSON válido sem markdown sem backticks. Use os IDs exatos dos ca
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const result: CandidatesComparison = JSON.parse(text)
+  const result = parseJsonResponse<CandidatesComparison>(text)
   return result
 }
 
@@ -841,7 +866,7 @@ Retorne APENAS JSON válido sem markdown sem backticks:
   )
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  const result: AssessmentResult = JSON.parse(text)
+  const result = parseJsonResponse<AssessmentResult>(text)
   return result
 }
 
