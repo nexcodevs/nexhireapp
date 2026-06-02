@@ -57,8 +57,21 @@ export async function requireCompany(
     tos_version: '2026-05-29',
   })
   if (linkError) {
+    // UNIQUE violation (23505) = race condition (Next.js renderiza /empresa
+    // 2x em paralelo no primeiro acesso). Outra execução já criou o link;
+    // descartamos a empresa placeholder duplicada e reutilizamos a existente.
+    if (linkError.code === '23505') {
+      await admin.from('companies').delete().eq('id', companyId)
+      const { data: existingAfterRace } = await admin
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (existingAfterRace?.company_id) {
+        return existingAfterRace.company_id
+      }
+    }
     console.error('[requireCompany:link]', linkError)
-    // Cleanup
     await admin.from('companies').delete().eq('id', companyId)
     throw new Error('Não foi possível vincular você à empresa.')
   }
