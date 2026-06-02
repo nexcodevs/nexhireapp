@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -25,19 +24,20 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
     setLoading('approve')
     setError('')
 
-    const supabase = createClient()
+    const res = await fetch('/api/hr/decide-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId,
+        action: 'approve',
+        visibility,
+        maxSubmissions: parseInt(maxSubmissions),
+      }),
+    })
 
-    const { error: updateError } = await supabase
-      .from('jobs')
-      .update({
-        status: 'open_for_hunters',
-        max_submissions_per_recruiter: parseInt(maxSubmissions),
-        visibility_type: visibility,
-      })
-      .eq('id', jobId)
-
-    if (updateError) {
-      setError('Erro ao aprovar vaga.')
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      setError(data.error || 'Erro ao aprovar vaga.')
       toast.error('Não foi possível aprovar a vaga.')
       setLoading(null)
       return
@@ -60,15 +60,15 @@ export default function HRJobActions({ jobId }: HRJobActionsProps) {
     setLoading('reject')
     setError('')
 
-    const supabase = createClient()
+    const res = await fetch('/api/hr/decide-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, action: 'reject' }),
+    })
 
-    const { error: updateError } = await supabase
-      .from('jobs')
-      .update({ status: 'cancelled' })
-      .eq('id', jobId)
-
-    if (updateError) {
-      setError('Erro ao reprovar vaga.')
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      setError(data.error || 'Erro ao reprovar vaga.')
       toast.error('Não foi possível reprovar a vaga.')
       setLoading(null)
       return
