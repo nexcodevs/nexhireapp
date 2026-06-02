@@ -30,18 +30,19 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
 
-    // Valida que o user pertence a uma empresa
-    const { data: companyUser } = await admin
+    // Busca todas as empresas em que o user é membro (modelo N:M permite múltiplas)
+    const { data: memberships } = await admin
       .from('company_users')
       .select('company_id')
       .eq('user_id', user.id)
-      .maybeSingle()
 
-    if (!companyUser) {
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
     }
 
-    // Valida que a submissão é de uma vaga da empresa do user
+    const userCompanyIds = memberships.map(m => m.company_id)
+
+    // Valida que a submissão é de uma vaga de alguma empresa do user
     const { data: sub } = await admin
       .from('submissions')
       .select('id, jobs(company_id)')
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     const jobsRel = Array.isArray(sub.jobs) ? sub.jobs[0] : sub.jobs
-    if (!jobsRel || jobsRel.company_id !== companyUser.company_id) {
+    if (!jobsRel || !userCompanyIds.includes(jobsRel.company_id)) {
       return NextResponse.json({ error: 'Sem permissão pra esta submissão.' }, { status: 403 })
     }
 
