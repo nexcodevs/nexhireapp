@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'decision inválida' }, { status: 400 })
     }
 
-    void notifyUser({
+    await notifyUser({
       userId: hunterId,
       type: decision === 'approved' ? 'submission_approved' : decision === 'rejected' ? 'submission_rejected' : 'client_decision',
       title: payload.title,

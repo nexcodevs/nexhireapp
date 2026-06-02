@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     const targetUserIds = [...hrs.map(h => h.id)]
     if (sub.recruiters?.user_id) targetUserIds.push(sub.recruiters.user_id)
 
-    void notifyUsers(targetUserIds, {
+    await notifyUsers(targetUserIds, {
       type: 'client_decision',
       title: `Cliente ${decisionLabel} candidato`,
       message: `${sub.jobs?.companies?.name || 'Cliente'} ${decisionLabel} ${sub.candidates?.full_name || 'um candidato'} para ${sub.jobs?.title || 'a vaga'}.`,

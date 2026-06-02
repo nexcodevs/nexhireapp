@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    void notifyUsers(hrs.map(h => h.id), {
+    await notifyUsers(hrs.map(h => h.id), {
       type: 'new_submission',
       title: 'Nova submissão',
       message: `${sub.recruiters?.users?.full_name || 'Hunter'} enviou ${sub.candidates?.full_name || 'um candidato'} para ${sub.jobs?.title || 'vaga'}.`,
