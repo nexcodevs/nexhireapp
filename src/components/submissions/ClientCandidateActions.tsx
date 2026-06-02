@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -25,31 +24,19 @@ export default function ClientCandidateActions({
     setLoading(action)
     setError('')
 
-    const supabase = createClient()
+    const res = await fetch('/api/empresa/decide-candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        submissionId,
+        action,
+        reason: reason && (action === 'approve' || action === 'reject') ? reason : undefined,
+      }),
+    })
 
-    const statusMap = {
-      approve: 'client_approved',
-      reject: 'client_rejected',
-      schedule: 'interview_scheduled',
-    }
-
-    const updatePayload: {
-      status: string
-      client_feedback?: string
-      client_reviewed_at?: string
-    } = { status: statusMap[action] }
-    if (reason && (action === 'approve' || action === 'reject')) {
-      updatePayload.client_feedback = reason
-      updatePayload.client_reviewed_at = new Date().toISOString()
-    }
-
-    const { error: updateError } = await supabase
-      .from('submissions')
-      .update(updatePayload)
-      .eq('id', submissionId)
-
-    if (updateError) {
-      setError('Erro ao atualizar. Tente novamente.')
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      setError(data?.error || 'Erro ao atualizar. Tente novamente.')
       toast.error('Não foi possível salvar sua decisão. Tente novamente.')
       setLoading(null)
       return
