@@ -71,10 +71,13 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
     .select('job_id')
     .eq('recruiter_id', recruiter?.id || '')
 
-  const submittedJobIds = new Set(mySubmissions?.map(s => s.job_id) || [])
+  const sentByJob = new Map<string, number>()
+  mySubmissions?.forEach(s => {
+    sentByJob.set(s.job_id, (sentByJob.get(s.job_id) ?? 0) + 1)
+  })
 
-  if (hideSubmitted && submittedJobIds.size > 0) {
-    jobs = jobs.filter(j => !submittedJobIds.has(j.id))
+  if (hideSubmitted && sentByJob.size > 0) {
+    jobs = jobs.filter(j => !sentByJob.has(j.id))
   }
 
   const totalCount = jobs?.length || 0
@@ -131,7 +134,16 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col gap-3">
           {jobs.map(job => {
-            const alreadySubmitted = submittedJobIds.has(job.id)
+            const sent = sentByJob.get(job.id) ?? 0
+            const max = job.max_submissions_per_recruiter ?? 0
+            const remaining = Math.max(0, max - sent)
+            const slotsLabel = remaining === 0
+              ? 'Limite atingido'
+              : remaining === 1
+                ? 'Último slot'
+                : `${remaining} de ${max} slots`
+            const slotsVariant: 'green' | 'yellow' | 'red' =
+              remaining === 0 ? 'red' : remaining === 1 ? 'yellow' : 'green'
             const isExclusive = job.visibility_type && job.visibility_type !== 'open'
             return (
               <Link key={job.id} href={`/hunter/vagas/${job.id}`} className="block">
@@ -146,7 +158,7 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
                       <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h2 className="text-base font-bold truncate" style={{ color: 'var(--color-text)' }}>{job.title}</h2>
-                        {alreadySubmitted && <Badge variant="green">Candidato enviado</Badge>}
+                        <Badge variant={slotsVariant}>{slotsLabel}</Badge>
                         {isExclusive && job.visibility_type === 'top_hunters_only' && (
                           <Badge variant="dark">Exclusiva Top Hunters</Badge>
                         )}
@@ -165,7 +177,9 @@ export default async function HunterVagasPage({ searchParams }: PageProps) {
                         {job.submission_deadline && (
                           <span className="text-xs" style={{ color: 'var(--color-subtle)' }}>Prazo: {formatDate(job.submission_deadline)}</span>
                         )}
-                        <span className="text-xs" style={{ color: 'var(--color-subtle)' }}>Limite: {job.max_submissions_per_recruiter} candidatos</span>
+                        {sent > 0 && (
+                          <span className="text-xs" style={{ color: 'var(--color-subtle)' }}>Você enviou {sent}</span>
+                        )}
                       </div>
                       </div>
                     </div>

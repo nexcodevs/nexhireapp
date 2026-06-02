@@ -211,10 +211,10 @@ export default function SignupForm() {
             {approved &&
               'Você já pode acessar o marketplace e começar a enviar candidatos.'}
             {rejected &&
-              'Detectamos sinais incompatíveis com nossa política. Se acha que houve engano, escreva pra daniel@nexco.cc.'}
+              'Detectamos sinais incompatíveis com nossa política. Se acha que houve engano, escreva pra daniel@nexco.cc — respondemos em 1 dia útil.'}
             {!approved &&
               !rejected &&
-              'Nosso time vai revisar seu cadastro em até 24h. Você recebe um email quando for liberado.'}
+              'Nosso time vai revisar seu cadastro em até 24h e você recebe um email quando for liberado. Enquanto isso, você já consegue ver o marketplace de vagas em modo de leitura.'}
           </p>
         </div>
 
@@ -229,9 +229,9 @@ export default function SignupForm() {
           >
             Acessar plataforma
           </Button>
-        ) : (
-          <Link
-            href="/login"
+        ) : rejected ? (
+          <a
+            href="mailto:daniel@nexco.cc?subject=Revisão%20de%20cadastro%20Nexhire"
             style={{
               fontSize: '13px',
               color: 'var(--accent-text)',
@@ -240,8 +240,32 @@ export default function SignupForm() {
               textDecoration: 'underline',
             }}
           >
-            Voltar para o login
-          </Link>
+            Escrever pra revisão
+          </a>
+        ) : (
+          <div className="flex flex-col gap-2 items-center">
+            <Button
+              type="button"
+              size="lg"
+              onClick={() => {
+                router.push('/hunter')
+                router.refresh()
+              }}
+            >
+              Ver marketplace (leitura)
+            </Button>
+            <Link
+              href="/login"
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-3)',
+                textAlign: 'center',
+                textDecoration: 'underline',
+              }}
+            >
+              Sair e voltar depois
+            </Link>
+          </div>
         )}
       </div>
     )
