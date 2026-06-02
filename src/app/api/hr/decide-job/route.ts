@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logAudit } from '@/lib/audit'
 
 type Action = 'approve' | 'reject'
 type Visibility = 'open' | 'specialist_plus' | 'top_hunters_only'
@@ -66,6 +67,20 @@ export async function POST(request: Request) {
         { status: 500 },
       )
     }
+
+    await logAudit({
+      actorId: user.id,
+      actorRole: profile.role,
+      action: `job.${body.action === 'approve' ? 'approved' : 'rejected'}`,
+      targetType: 'job',
+      targetId: body.jobId,
+      payload: body.action === 'approve'
+        ? {
+            visibility: updatePayload.visibility_type,
+            max_submissions: updatePayload.max_submissions_per_recruiter,
+          }
+        : undefined,
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

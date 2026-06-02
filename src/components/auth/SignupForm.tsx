@@ -50,6 +50,10 @@ export default function SignupForm() {
   const [yearsExperience, setYearsExperience] = useState('')
   const [bio, setBio] = useState('')
 
+  // Aceite dos termos (LGPD)
+  const [acceptedTos, setAcceptedTos] = useState(false)
+  const TOS_VERSION = '2026-06-02'
+
   function validateHunterFields(): string | null {
     if (role !== 'recruiter') return null
     if (!/^https?:\/\/(www\.)?linkedin\.com\/in\//i.test(linkedinUrl.trim()))
@@ -70,6 +74,12 @@ export default function SignupForm() {
 
     if (password.length < 8) {
       setError('A senha deve ter pelo menos 8 caracteres.')
+      setLoading(false)
+      return
+    }
+
+    if (!acceptedTos) {
+      setError('Você precisa aceitar os Termos e a Política de Privacidade pra continuar.')
       setLoading(false)
       return
     }
@@ -125,7 +135,12 @@ export default function SignupForm() {
 
     await supabase
       .from('users')
-      .update({ role, full_name: fullName })
+      .update({
+        role,
+        full_name: fullName,
+        tos_accepted_at: new Date().toISOString(),
+        tos_version: TOS_VERSION,
+      })
       .eq('id', user.id)
 
     if (role === 'recruiter') {
@@ -384,6 +399,39 @@ export default function SignupForm() {
           />
         </div>
       )}
+
+      <label
+        className="flex items-start gap-2.5 cursor-pointer"
+        style={{ fontSize: '12.5px', color: 'var(--text-2)', lineHeight: 1.5 }}
+      >
+        <input
+          type="checkbox"
+          checked={acceptedTos}
+          onChange={e => setAcceptedTos(e.target.checked)}
+          required
+          className="mt-0.5 accent-(--accent-text)"
+          style={{ flexShrink: 0 }}
+        />
+        <span>
+          Li e aceito os{' '}
+          <Link
+            href="/termos"
+            target="_blank"
+            style={{ color: 'var(--accent-text)', textDecoration: 'underline' }}
+          >
+            Termos de Uso
+          </Link>{' '}
+          e a{' '}
+          <Link
+            href="/privacidade"
+            target="_blank"
+            style={{ color: 'var(--accent-text)', textDecoration: 'underline' }}
+          >
+            Política de Privacidade
+          </Link>
+          .
+        </span>
+      </label>
 
       {error && (
         <p

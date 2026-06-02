@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logAudit } from '@/lib/audit'
 
 type Action = 'approve' | 'reject' | 'schedule'
 
@@ -80,6 +81,15 @@ export async function POST(request: Request) {
         { status: 500 },
       )
     }
+
+    await logAudit({
+      actorId: user.id,
+      actorRole: 'company_user',
+      action: `submission.client_${body.action === 'approve' ? 'approved' : body.action === 'reject' ? 'rejected' : 'scheduled'}`,
+      targetType: 'submission',
+      targetId: body.submissionId,
+      payload: { company_id: jobsRel.company_id, has_reason: Boolean(body.reason) },
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

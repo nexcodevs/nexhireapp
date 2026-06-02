@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { assessCandidate, type AssessmentAnswer } from '@/lib/ai/analyze'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
 import { enforceAiRateLimit } from '@/lib/ratelimit'
+import { logAudit } from '@/lib/audit'
 
 interface RequestBody {
   submissionId?: string
@@ -157,6 +158,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Erro ao salvar avaliação.' }, { status: 500 })
       }
     }
+
+    await logAudit({
+      actorId: user.id,
+      actorRole: actor.role,
+      action: existing?.id ? 'assessment.updated' : 'assessment.created',
+      targetType: 'submission',
+      targetId: body.submissionId,
+      payload: {
+        overall_score: result.overall_score,
+        recommendation: result.recommendation,
+      },
+    })
 
     return NextResponse.json({
       assessment: {
