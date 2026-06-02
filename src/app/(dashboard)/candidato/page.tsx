@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
@@ -14,13 +15,15 @@ export default async function CandidatoDashboard() {
 
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+
+  const { data: userData } = await admin
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  const { data: availableJobs } = await supabase
+  const { data: availableJobs } = await admin
     .from('jobs')
     .select('id, title, seniority, location, work_model, salary_min, salary_max, created_at')
     .eq('status', 'open_for_hunters')

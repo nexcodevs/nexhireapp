@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import ProfileForm from '@/components/profile/ProfileForm'
@@ -14,11 +15,12 @@ export default async function PerfilPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const admin = createAdminClient()
+  const { data: userData } = await admin
     .from('users')
     .select('id, full_name, email, role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!userData) redirect('/login')
 

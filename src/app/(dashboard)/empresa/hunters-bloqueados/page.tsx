@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
@@ -30,8 +31,9 @@ export default async function EmpresaHuntersBloqueadosPage() {
   if (!user) redirect('/login')
 
   const companyId = await requireCompany(supabase, user.id)
+  const admin = createAdminClient()
 
-  const { data: blocksRaw } = await supabase
+  const { data: blocksRaw } = await admin
     .from('company_blocked_hunters')
     .select(
       'id, recruiter_id, reason, created_at, recruiters(id, linkedin_url, users(full_name, email))',
