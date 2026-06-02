@@ -97,7 +97,7 @@ begin
   values (
     p_recruiter_id, v_total, v_hires,
     v_hr_rate, v_client_rate, v_hire_rate,
-    v_duplicates, v_level, v_overall, now()
+    v_duplicates, v_level::recruiter_level, v_overall, now()
   )
   on conflict (recruiter_id) do update
   set
