@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateJobFromBrief } from '@/lib/ai/analyze'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'generate_job', DAILY_AI_LIMITS.generate_job)
     if (!quota.allowed) {

@@ -5,6 +5,7 @@ import {
   DAILY_AI_LIMITS,
   logAIUsage,
 } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 
 const MAX_BYTES = 24 * 1024 * 1024 // 24MB — Groq limit é 25MB
 const ALLOWED_MIMES = [
@@ -26,6 +27,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'transcribe', DAILY_AI_LIMITS.transcribe)
     if (!quota.allowed) {

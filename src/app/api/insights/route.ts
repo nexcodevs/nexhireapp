@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateInsights, type InsightRole } from '@/lib/ai/insights'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 
 export const maxDuration = 60
 
@@ -152,6 +153,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'insights', DAILY_AI_LIMITS.insights)
     if (!quota.allowed) {

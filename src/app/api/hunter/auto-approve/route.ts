@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { evaluateHunterRisk } from '@/lib/ai/analyze'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
 import { logAudit } from '@/lib/audit'
-import { getClientIp } from '@/lib/ratelimit'
+import { enforceAiRateLimit, getClientIp } from '@/lib/ratelimit'
 
 interface RequestBody {
   linkedinUrl?: unknown
@@ -20,6 +20,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'evaluate_hunter', DAILY_AI_LIMITS.evaluate_hunter)
     if (!quota.allowed) {

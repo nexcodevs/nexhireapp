@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { embedText } from '@/lib/ai/embed'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 
 interface MatchRow {
   id: string
@@ -18,6 +19,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'search_jobs_embed', DAILY_AI_LIMITS.search_jobs_embed)
     if (!quota.allowed) {

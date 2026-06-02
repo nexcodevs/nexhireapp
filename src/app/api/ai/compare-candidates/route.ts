@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { compareCandidates } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 
 interface RawSub {
   id: string
@@ -23,6 +24,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'compare_candidates', DAILY_AI_LIMITS.compare_candidates)
     if (!quota.allowed) {

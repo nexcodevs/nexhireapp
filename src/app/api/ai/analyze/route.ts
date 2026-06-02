@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeCandidate } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 import { NextResponse } from 'next/server'
 
 interface SubmissionWithRelations {
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'analyze_candidate', DAILY_AI_LIMITS.analyze_candidate)
     if (!quota.allowed) {

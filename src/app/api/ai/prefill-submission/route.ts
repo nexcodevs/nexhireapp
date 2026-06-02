@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { prefillSubmission } from '@/lib/ai/analyze'
 import { parseCV } from '@/lib/ai/parseCV'
 import { checkDailyAIQuota, DAILY_AI_LIMITS } from '@/lib/ai/usage'
+import { enforceAiRateLimit } from '@/lib/ratelimit'
 import { NextResponse } from 'next/server'
 
 interface JobRow {
@@ -23,6 +24,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
+
+    const rl = await enforceAiRateLimit(user.id)
+    if (rl) return rl
 
     const quota = await checkDailyAIQuota(user.id, 'prefill_submission', DAILY_AI_LIMITS.prefill_submission)
     if (!quota.allowed) {
