@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import MetricCard from '@/components/ui/MetricCard'
 import AttentionList from '@/components/ui/AttentionList'
-import BarChart from '@/components/ui/BarChart'
+import Funnel from '@/components/ui/Funnel'
 import Card from '@/components/ui/Card'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
 import { requireCompany } from '@/lib/company'
@@ -218,13 +218,7 @@ export default async function EmpresaDashboard() {
           <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
             Funil de candidatos
           </h2>
-          {funnel[0].value === 0 ? (
-            <p style={{ fontSize: '12px', color: 'var(--text-4)', textAlign: 'center', padding: '18px 0' }}>
-              Sem candidatos recebidos ainda.
-            </p>
-          ) : (
-            <BarChart items={funnel} max={funnel[0]?.value || 1} />
-          )}
+          <Funnel stages={funnel} />
         </Card>
       </div>
 

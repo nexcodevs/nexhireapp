@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import MetricCard from '@/components/ui/MetricCard'
 import AttentionList from '@/components/ui/AttentionList'
-import BarChart from '@/components/ui/BarChart'
+import Funnel from '@/components/ui/Funnel'
 import Card from '@/components/ui/Card'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
 
@@ -252,7 +252,7 @@ export default async function HRDashboard() {
           <h2 style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '14px' }}>
             Funil dos últimos 30 dias
           </h2>
-          <BarChart items={funnel} max={funnel[0]?.value || 1} valueSuffix="" />
+          <Funnel stages={funnel} />
         </Card>
       </div>
 

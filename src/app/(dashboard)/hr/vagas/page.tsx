@@ -288,7 +288,10 @@ function JobsTable({
             <KpiCell value={job.pendingSubs} attention={job.pendingSubs > 0} />
             <KpiCell value={job.approvedSubs} />
             <KpiCell value={job.hires} positive={job.hires > 0} />
-            <KpiCell value={`${job.daysOpen}d`} />
+            <KpiCell
+              value={job.pctOfDeadline !== null ? `${job.daysOpen}d · ${job.pctOfDeadline}%` : `${job.daysOpen}d`}
+              attention={job.pctOfDeadline !== null && job.pctOfDeadline >= 80}
+            />
             <Badge variant={getJobStatusVariant(job.status)} size="sm">
               {getJobStatusLabel(job.status)}
             </Badge>

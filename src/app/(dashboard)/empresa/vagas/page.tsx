@@ -56,6 +56,7 @@ interface JobWithStats extends JobRow {
   pendingForCompany: number
   hired: number
   daysOpen: number
+  pctOfDeadline: number | null
 }
 
 export default async function EmpresaVagasPage({ searchParams }: PageProps) {
@@ -115,12 +116,21 @@ export default async function EmpresaVagasPage({ searchParams }: PageProps) {
     const agg = subsByJob.get(j.id) ?? { total: 0, pending: 0, hired: 0 }
     const created = new Date(j.created_at).getTime()
     const daysOpen = Math.max(0, Math.floor((now - created) / (1000 * 60 * 60 * 24)))
+    let pctOfDeadline: number | null = null
+    if (j.submission_deadline) {
+      const deadline = new Date(j.submission_deadline).getTime()
+      const totalSpan = deadline - created
+      if (totalSpan > 0) {
+        pctOfDeadline = Math.min(100, Math.round(((now - created) / totalSpan) * 100))
+      }
+    }
     return {
       ...j,
       totalSubs: agg.total,
       pendingForCompany: agg.pending,
       hired: agg.hired,
       daysOpen,
+      pctOfDeadline,
     }
   })
 
@@ -245,7 +255,10 @@ export default async function EmpresaVagasPage({ searchParams }: PageProps) {
                     attention={job.pendingForCompany > 0}
                   />
                   <KpiCell value={job.hired} positive={job.hired > 0} />
-                  <KpiCell value={`${job.daysOpen}d`} />
+                  <KpiCell
+                    value={job.pctOfDeadline !== null ? `${job.daysOpen}d · ${job.pctOfDeadline}%` : `${job.daysOpen}d`}
+                    attention={job.pctOfDeadline !== null && job.pctOfDeadline >= 80}
+                  />
                   <Badge variant={status.variant} size="sm">
                     {status.label}
                   </Badge>

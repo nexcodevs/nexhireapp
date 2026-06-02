@@ -5,7 +5,7 @@ import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
-import { formatDate } from '@/lib/utils'
+import { formatDate, getSubmissionStatusLabel, getSubmissionStatusVariant } from '@/lib/utils'
 
 export const metadata = {
   title: 'Minhas submissões — Nexhire',
@@ -19,21 +19,6 @@ interface SubRow {
   hunter_score: number | null
   candidates: { full_name: string | null; current_title: string | null } | null
   jobs: { id: string; title: string | null; companies: { name: string | null } | null } | null
-}
-
-const statusInfo: Record<string, { label: string; variant: 'gray' | 'yellow' | 'green' | 'red' | 'blue' | 'dark' }> = {
-  submitted: { label: 'Aguardando curadoria', variant: 'yellow' },
-  ai_analyzed: { label: 'Em análise', variant: 'blue' },
-  hr_approved: { label: 'Aprovado pelo HR', variant: 'green' },
-  hr_rejected: { label: 'Reprovado', variant: 'red' },
-  sent_to_client: { label: 'No cliente', variant: 'blue' },
-  client_approved: { label: 'Cliente aprovou', variant: 'green' },
-  client_rejected: { label: 'Cliente recusou', variant: 'red' },
-  interview_scheduled: { label: 'Entrevista', variant: 'blue' },
-  offer: { label: 'Em proposta', variant: 'dark' },
-  hired: { label: 'Contratado', variant: 'dark' },
-  not_hired: { label: 'Não contratado', variant: 'gray' },
-  duplicate: { label: 'Duplicado', variant: 'gray' },
 }
 
 const ACTIVE = new Set([
@@ -118,7 +103,10 @@ export default async function MinhasSubmissoesPage() {
               const candidate = pickOne(sub.candidates)
               const job = pickOne(sub.jobs)
               const company = job ? pickOne(job.companies) : null
-              const status = statusInfo[sub.status] ?? { label: sub.status, variant: 'gray' as const }
+              const status = {
+                label: getSubmissionStatusLabel(sub.status),
+                variant: getSubmissionStatusVariant(sub.status),
+              }
               return (
                 <div
                   key={sub.id}

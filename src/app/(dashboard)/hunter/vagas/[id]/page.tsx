@@ -7,23 +7,13 @@ import Badge from '@/components/ui/Badge'
 import JobDetailView, { type JobDetailData } from '@/components/jobs/JobDetailView'
 import SubmitTrigger from './SubmitTrigger'
 import CompanyAvatar from '@/components/empresa/CompanyAvatar'
+import { getSubmissionStatusLabel } from '@/lib/utils'
 
 const ACTIVE_STATUSES = new Set([
   'submitted', 'ai_analyzed', 'hr_approved', 'sent_to_client',
   'client_approved', 'interview_scheduled', 'offer', 'hired',
 ])
 
-const statusLabel: Record<string, string> = {
-  submitted: 'Enviado',
-  ai_analyzed: 'Em análise IA',
-  hr_approved: 'Aprovado pelo HR',
-  hr_rejected: 'Reprovado',
-  sent_to_client: 'No cliente',
-  client_approved: 'Cliente aprovou',
-  client_rejected: 'Cliente recusou',
-  interview_scheduled: 'Em entrevista',
-  hired: 'Contratado',
-}
 
 type CandidateRel = { full_name: string | null }
 type CompanyRel = { name: string | null; logo_url: string | null }
@@ -210,7 +200,7 @@ export default async function HunterVagaDetailPage({
                     }
                     size="sm"
                   >
-                    {statusLabel[sub.status] ?? sub.status}
+                    {getSubmissionStatusLabel(sub.status)}
                   </Badge>
                 </div>
               )

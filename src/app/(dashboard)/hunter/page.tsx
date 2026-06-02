@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import WelcomeCard from '@/components/dashboard/WelcomeCard'
 import { filterJobsByVisibility, type RecruiterLevel } from '@/lib/visibility'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getSubmissionStatusLabel } from '@/lib/utils'
 
 export const metadata = {
   title: 'Dashboard — Hunter',
@@ -28,21 +28,6 @@ const ACTIVE = new Set([
   'submitted', 'ai_analyzed', 'hr_approved', 'sent_to_client',
   'client_approved', 'interview_scheduled', 'offer',
 ])
-
-const statusLabel: Record<string, string> = {
-  submitted: 'Aguardando',
-  ai_analyzed: 'Em análise',
-  hr_approved: 'Aprovado HR',
-  hr_rejected: 'Reprovado',
-  sent_to_client: 'No cliente',
-  client_approved: 'Cliente aprovou',
-  client_rejected: 'Cliente recusou',
-  interview_scheduled: 'Em entrevista',
-  offer: 'Em proposta',
-  hired: 'Contratado',
-  not_hired: 'Não contratado',
-  duplicate: 'Duplicado',
-}
 
 export default async function HunterDashboard() {
   const supabase = await createClient()
@@ -221,7 +206,7 @@ export default async function HunterDashboard() {
                       </span>
                     )}
                     <span style={{ fontSize: '10.5px', color: 'var(--text-3)' }}>
-                      {statusLabel[sub.status] ?? sub.status}
+                      {getSubmissionStatusLabel(sub.status)}
                     </span>
                   </div>
                 )

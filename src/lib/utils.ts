@@ -56,3 +56,41 @@ export function getJobStatusVariant(status: string): 'green' | 'yellow' | 'red' 
   }
   return variants[status] || 'gray'
 }
+
+export function getSubmissionStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    submitted: 'Aguardando curadoria',
+    ai_analyzed: 'Em análise IA',
+    hr_approved: 'Aprovado pelo HR',
+    hr_rejected: 'Reprovado pelo HR',
+    sent_to_client: 'Com o cliente',
+    client_approved: 'Cliente aprovou',
+    client_rejected: 'Cliente recusou',
+    interview_scheduled: 'Em entrevista',
+    offer: 'Em proposta',
+    hired: 'Contratado',
+    not_hired: 'Não contratado',
+    duplicate: 'Duplicado',
+  }
+  return labels[status] || status
+}
+
+export function getSubmissionStatusVariant(
+  status: string,
+): 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'dark' {
+  const variants: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'dark'> = {
+    submitted: 'yellow',
+    ai_analyzed: 'blue',
+    hr_approved: 'green',
+    hr_rejected: 'red',
+    sent_to_client: 'blue',
+    client_approved: 'green',
+    client_rejected: 'red',
+    interview_scheduled: 'blue',
+    offer: 'dark',
+    hired: 'dark',
+    not_hired: 'gray',
+    duplicate: 'gray',
+  }
+  return variants[status] || 'gray'
+}
