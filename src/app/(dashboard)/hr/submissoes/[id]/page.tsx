@@ -276,6 +276,7 @@ export default async function HRSubmissaoDetailPage({
           {assessment && assessment.status === 'completed' ? (
             <div className="flex flex-col gap-2">
               <AssessmentResultCard
+                candidateName={candidate?.full_name ?? undefined}
                 assessment={{
                   technical_score: assessment.technical_score,
                   behavioral_score: assessment.behavioral_score,
@@ -286,6 +287,9 @@ export default async function HRSubmissaoDetailPage({
                   strengths: assessment.strengths,
                   concerns: assessment.concerns,
                   next_steps: assessment.next_steps,
+                  answers: Array.isArray(assessment.answers)
+                    ? (assessment.answers as { question: string; answer: string; score?: number; notes?: string }[])
+                    : undefined,
                   completed_at: assessment.completed_at,
                 }}
               />

@@ -91,12 +91,13 @@ export default async function EmpresaCandidatoDetailPage({
     strengths: string[] | null
     concerns: string[] | null
     next_steps: string | null
+    answers: unknown
     status: string
     completed_at: string | null
   }
   const { data: assessment } = await admin
     .from('submission_assessments')
-    .select('technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, strengths, concerns, next_steps, status, completed_at')
+    .select('technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, strengths, concerns, next_steps, answers, status, completed_at')
     .eq('submission_id', id)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
@@ -168,7 +169,15 @@ export default async function EmpresaCandidatoDetailPage({
           )}
 
           {assessment && (
-            <AssessmentResultCard assessment={assessment} />
+            <AssessmentResultCard
+              candidateName={candidate?.full_name ?? undefined}
+              assessment={{
+                ...assessment,
+                answers: Array.isArray(assessment.answers)
+                  ? (assessment.answers as { question: string; answer: string; score?: number; notes?: string }[])
+                  : undefined,
+              }}
+            />
           )}
 
           <CandidateStructuredCard

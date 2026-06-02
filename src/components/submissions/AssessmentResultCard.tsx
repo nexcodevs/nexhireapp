@@ -1,5 +1,8 @@
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import AssessmentAnswersButton, {
+  type AssessmentAnswer,
+} from './AssessmentAnswersButton'
 
 interface AssessmentData {
   technical_score: number | null
@@ -11,11 +14,13 @@ interface AssessmentData {
   strengths?: string[] | null
   concerns?: string[] | null
   next_steps?: string | null
+  answers?: AssessmentAnswer[] | null
   completed_at: string | null
 }
 
 interface AssessmentResultCardProps {
   assessment: AssessmentData
+  candidateName?: string
 }
 
 function scoreColor(score: number): string {
@@ -34,7 +39,10 @@ const recommendationLabel: Record<string, { label: string; variant: 'green' | 'y
  * Mostra o resultado de uma avaliação aplicada — scores por dimensão,
  * recomendação IA e sumário executivo.
  */
-export default function AssessmentResultCard({ assessment }: AssessmentResultCardProps) {
+export default function AssessmentResultCard({
+  assessment,
+  candidateName,
+}: AssessmentResultCardProps) {
   const rec = assessment.recommendation
     ? recommendationLabel[assessment.recommendation] ?? null
     : null
@@ -152,24 +160,34 @@ export default function AssessmentResultCard({ assessment }: AssessmentResultCar
         </div>
       )}
 
-      {assessment.completed_at && (
-        <p
-          className="mono"
-          style={{
-            fontSize: '10px',
-            color: 'var(--text-4)',
-            marginTop: '10px',
-            letterSpacing: '0.04em',
-          }}
-        >
-          Avaliado em{' '}
-          {new Date(assessment.completed_at).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-          })}
-        </p>
-      )}
+      <div
+        className="flex items-center justify-between gap-3 flex-wrap"
+        style={{ marginTop: '12px' }}
+      >
+        {assessment.completed_at ? (
+          <p
+            className="mono"
+            style={{
+              fontSize: '10px',
+              color: 'var(--text-4)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Avaliado em{' '}
+            {new Date(assessment.completed_at).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })}
+          </p>
+        ) : <span />}
+        {assessment.answers && assessment.answers.length > 0 && (
+          <AssessmentAnswersButton
+            answers={assessment.answers}
+            candidateName={candidateName}
+          />
+        )}
+      </div>
     </Card>
   )
 }
