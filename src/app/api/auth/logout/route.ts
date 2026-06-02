@@ -1,12 +1,30 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
+export async function POST(request: NextRequest) {
+  // Response criada ANTES do client — o signOut() popula os Set-Cookie nela diretamente,
+  // garantindo que os cookies de sessão são invalidados no mesmo redirect.
+  const origin = new URL(request.url).origin
+  const response = NextResponse.redirect(new URL('/login', origin), { status: 303 })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          )
+        },
+      },
+    },
+  )
+
   await supabase.auth.signOut()
 
-  // Deriva origin do request (mais robusto que env var, que pode estar desatualizada).
-  // 303 força GET no redirect (correto pra POST → GET de form submission).
-  const origin = new URL(request.url).origin
-  return NextResponse.redirect(new URL('/login', origin), { status: 303 })
+  return response
 }
