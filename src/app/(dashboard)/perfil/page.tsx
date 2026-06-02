@@ -5,6 +5,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import ProfileForm from '@/components/profile/ProfileForm'
 import PasswordForm from '@/components/profile/PasswordForm'
 import PreferencesForm from '@/components/profile/PreferencesForm'
+import LGPDActions from '@/components/profile/LGPDActions'
 
 export const metadata = {
   title: 'Meu perfil — Nexhire',
@@ -18,7 +19,7 @@ export default async function PerfilPage() {
   const admin = createAdminClient()
   const { data: userData } = await admin
     .from('users')
-    .select('id, full_name, email, role')
+    .select('id, full_name, email, role, deletion_requested_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -43,6 +44,8 @@ export default async function PerfilPage() {
       <PreferencesForm />
 
       <PasswordForm />
+
+      <LGPDActions deletionRequestedAt={userData.deletion_requested_at ?? null} />
     </div>
   )
 }
