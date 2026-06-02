@@ -22,7 +22,7 @@ const navItems: Record<string, NavItemDef[]> = {
   company_user: [
     { href: '/empresa', label: 'Dashboard', icon: 'home' },
     { href: '/empresa/vagas', label: 'Vagas', icon: 'briefcase' },
-    { href: '/empresa/candidatos', label: 'Candidatos', icon: 'users' },
+    { href: '/empresa/candidatos', label: 'Para avaliar', icon: 'users' },
     { href: '/empresa/configuracoes', label: 'Configurações', icon: 'columns' },
   ],
   recruiter: [
@@ -32,8 +32,8 @@ const navItems: Record<string, NavItemDef[]> = {
   ],
   hr_manager: [
     { href: '/hr', label: 'Dashboard', icon: 'home' },
-    { href: '/hr/vagas', label: 'Vagas', icon: 'briefcase' },
-    { href: '/hr/submissoes', label: 'Submissões', icon: 'inbox' },
+    { href: '/hr/vagas', label: 'Aprovar vagas', icon: 'briefcase' },
+    { href: '/hr/submissoes', label: 'Curar candidatos', icon: 'inbox' },
     { href: '/hr/pipeline', label: 'Pipeline', icon: 'columns' },
     { href: '/hr/hunters', label: 'Hunters', icon: 'users' },
   ],
