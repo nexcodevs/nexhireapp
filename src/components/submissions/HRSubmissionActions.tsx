@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -25,31 +24,19 @@ export default function HRSubmissionActions({
     setLoading(action)
     setError('')
 
-    const supabase = createClient()
+    const res = await fetch('/api/hr/decide-submission', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        submissionId,
+        action,
+        notes: notes && (action === 'approve' || action === 'reject') ? notes : undefined,
+      }),
+    })
 
-    const statusMap = {
-      approve: 'hr_approved',
-      reject: 'hr_rejected',
-      send: 'sent_to_client',
-    }
-
-    const updatePayload: {
-      status: string
-      hr_notes?: string
-      hr_reviewed_at?: string
-    } = { status: statusMap[action] }
-    if (notes && (action === 'approve' || action === 'reject')) {
-      updatePayload.hr_notes = notes
-      updatePayload.hr_reviewed_at = new Date().toISOString()
-    }
-
-    const { error: updateError } = await supabase
-      .from('submissions')
-      .update(updatePayload)
-      .eq('id', submissionId)
-
-    if (updateError) {
-      setError('Erro ao atualizar status.')
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      setError(data?.error || 'Erro ao atualizar status.')
       toast.error('Não foi possível atualizar o candidato. Tente novamente.')
       setLoading(null)
       return
