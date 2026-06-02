@@ -43,10 +43,12 @@ export async function POST(request: Request) {
     const updatePayload: Record<string, unknown> = {
       status: statusMap[body.action],
     }
-    if (body.notes && (body.action === 'approve' || body.action === 'reject')) {
-      updatePayload.hr_notes = body.notes
+    if (body.action === 'approve' || body.action === 'reject') {
       updatePayload.hr_reviewed_at = new Date().toISOString()
       updatePayload.hr_reviewed_by = user.id
+      if (body.notes) {
+        updatePayload.hr_notes = body.notes
+      }
     }
     if (body.action === 'send') {
       updatePayload.sent_to_client_at = new Date().toISOString()

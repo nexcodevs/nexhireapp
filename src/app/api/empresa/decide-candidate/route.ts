@@ -61,9 +61,11 @@ export async function POST(request: Request) {
     const updatePayload: Record<string, unknown> = {
       status: statusMap[body.action],
     }
-    if (body.reason && (body.action === 'approve' || body.action === 'reject')) {
-      updatePayload.client_feedback = body.reason
+    if (body.action === 'approve' || body.action === 'reject') {
       updatePayload.client_reviewed_at = new Date().toISOString()
+      if (body.reason) {
+        updatePayload.client_feedback = body.reason
+      }
     }
 
     const { error: updateError } = await admin
