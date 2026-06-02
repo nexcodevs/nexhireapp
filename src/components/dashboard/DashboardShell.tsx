@@ -305,20 +305,19 @@ export default function DashboardShell({
           className="nx-shell-collapse"
           style={{
             position: 'absolute',
-            top: '20px',
+            top: '22px',
             right: '14px',
             width: '22px',
             height: '22px',
             borderRadius: '6px',
             background: 'var(--bg-elev-1)',
-            color: 'var(--text-3)',
+            color: 'var(--text-4)',
             border: '1px solid var(--border-1)',
             cursor: 'pointer',
             display: collapsed ? 'none' : 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'all .15s var(--ease)',
-            opacity: 0,
           }}
         >
           <ChevronIcon collapsed={collapsed} />
@@ -384,9 +383,20 @@ export default function DashboardShell({
                 <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                   <IconSvg name={item.icon} />
                 </span>
-                {!collapsed && (
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-                )}
+                <span
+                  style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    opacity: collapsed ? 0 : 1,
+                    maxWidth: collapsed ? 0 : '180px',
+                    transition: hydrated
+                      ? 'opacity .12s var(--ease), max-width .22s var(--ease)'
+                      : 'none',
+                  }}
+                  aria-hidden={collapsed}
+                >
+                  {item.label}
+                </span>
               </Link>
             )
           })}
@@ -544,6 +554,9 @@ export default function DashboardShell({
       <NexhireAssistant userRole={userRole} />
 
       <style>{`
+        .nx-nav-item {
+          position: relative;
+        }
         .nx-nav-item:hover {
           background: var(--bg-elev-1);
           color: var(--text-1);
@@ -552,8 +565,15 @@ export default function DashboardShell({
           background: var(--accent-bg);
           color: var(--accent-text);
         }
-        aside:hover .nx-shell-collapse {
-          opacity: 1;
+        .nx-nav-item--active::before {
+          content: '';
+          position: absolute;
+          left: -12px;
+          top: 6px;
+          bottom: 6px;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
+          background: var(--accent-text);
         }
         .nx-shell-collapse:hover {
           background: var(--accent-bg) !important;
