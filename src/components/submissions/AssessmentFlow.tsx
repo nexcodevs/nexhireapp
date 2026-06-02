@@ -20,6 +20,7 @@ interface AssessmentFlowProps {
   /** Avaliação existente (pra reabrir e editar). */
   existing?: {
     answers: AssessmentAnswer[]
+    next_steps?: string | null
   }
 }
 
@@ -49,6 +50,7 @@ export default function AssessmentFlow({
   })
 
   const [answers, setAnswers] = useState<AssessmentAnswer[]>(initialAnswers)
+  const [nextSteps, setNextSteps] = useState(existing?.next_steps ?? '')
 
   function updateAnswer(i: number, patch: Partial<AssessmentAnswer>) {
     setAnswers(prev => prev.map((a, idx) => (idx === i ? { ...a, ...patch } : a)))
@@ -78,6 +80,7 @@ export default function AssessmentFlow({
         body: JSON.stringify({
           submissionId,
           answers: answers.filter(a => a.answer.trim().length > 0),
+          nextSteps: nextSteps.trim() || undefined,
         }),
       })
       if (!res.ok) {
@@ -229,6 +232,46 @@ export default function AssessmentFlow({
               </div>
             </div>
           ))}
+
+          <div
+            style={{
+              background: 'var(--bg-elev-1)',
+              border: '1px solid var(--border-1)',
+              borderRadius: 'var(--r-md)',
+              padding: '14px 16px',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: 'var(--text-4)',
+                marginBottom: '6px',
+              }}
+            >
+              Próximos passos (opcional)
+            </div>
+            <textarea
+              value={nextSteps}
+              onChange={e => setNextSteps(e.target.value)}
+              rows={2}
+              placeholder="Ex.: agendar entrevista com gestor na próxima semana; pedir referências; aguardar prova técnica..."
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                fontSize: '13px',
+                background: 'var(--bg-elev-2)',
+                border: '1px solid var(--border-1)',
+                borderRadius: 'var(--r-sm)',
+                color: 'var(--text-1)',
+                resize: 'vertical',
+                outline: 'none',
+              }}
+            />
+          </div>
 
           {error && (
             <p

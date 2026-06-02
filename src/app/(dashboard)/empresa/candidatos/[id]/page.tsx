@@ -88,12 +88,15 @@ export default async function EmpresaCandidatoDetailPage({
     overall_score: number | null
     ai_summary: string | null
     recommendation: string | null
+    strengths: string[] | null
+    concerns: string[] | null
+    next_steps: string | null
     status: string
     completed_at: string | null
   }
   const { data: assessment } = await admin
     .from('submission_assessments')
-    .select('technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, status, completed_at')
+    .select('technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, strengths, concerns, next_steps, status, completed_at')
     .eq('submission_id', id)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })

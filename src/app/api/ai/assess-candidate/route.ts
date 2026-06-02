@@ -9,6 +9,8 @@ interface RequestBody {
   submissionId?: string
   /** Array de { question, answer, score?, notes? } */
   answers?: AssessmentAnswer[]
+  /** Próximos passos combinados após a entrevista (opcional). */
+  nextSteps?: string
 }
 
 interface SubRow {
@@ -130,6 +132,9 @@ export async function POST(request: Request) {
       overall_score: result.overall_score,
       ai_summary: result.ai_summary,
       recommendation: result.recommendation,
+      strengths: result.strengths ?? [],
+      concerns: result.concerns ?? [],
+      next_steps: body.nextSteps?.trim() || null,
       status: 'completed',
       completed_at: new Date().toISOString(),
     }

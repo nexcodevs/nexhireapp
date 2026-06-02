@@ -109,12 +109,15 @@ export default async function HRSubmissaoDetailPage({
     overall_score: number | null
     ai_summary: string | null
     recommendation: string | null
+    strengths: string[] | null
+    concerns: string[] | null
+    next_steps: string | null
     status: string
     completed_at: string | null
   }
   const { data: assessment } = await admin
     .from('submission_assessments')
-    .select('id, submission_id, answers, technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, status, completed_at')
+    .select('id, submission_id, answers, technical_score, behavioral_score, cultural_fit_score, overall_score, ai_summary, recommendation, strengths, concerns, next_steps, status, completed_at')
     .eq('submission_id', id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -280,6 +283,9 @@ export default async function HRSubmissaoDetailPage({
                   overall_score: assessment.overall_score,
                   ai_summary: assessment.ai_summary,
                   recommendation: assessment.recommendation,
+                  strengths: assessment.strengths,
+                  concerns: assessment.concerns,
+                  next_steps: assessment.next_steps,
                   completed_at: assessment.completed_at,
                 }}
               />
@@ -293,6 +299,7 @@ export default async function HRSubmissaoDetailPage({
                       answers: Array.isArray(assessment.answers)
                         ? (assessment.answers as { question: string; answer: string; score?: number; notes?: string }[])
                         : [],
+                      next_steps: assessment.next_steps,
                     }}
                   />
                 </div>

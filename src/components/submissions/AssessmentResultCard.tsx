@@ -8,6 +8,9 @@ interface AssessmentData {
   overall_score: number | null
   ai_summary: string | null
   recommendation: string | null
+  strengths?: string[] | null
+  concerns?: string[] | null
+  next_steps?: string | null
   completed_at: string | null
 }
 
@@ -109,6 +112,46 @@ export default function AssessmentResultCard({ assessment }: AssessmentResultCar
         </p>
       )}
 
+      {(assessment.strengths?.length || assessment.concerns?.length) ? (
+        <div
+          className="grid sm:grid-cols-2 gap-4"
+          style={{ paddingTop: '12px', marginTop: '10px', borderTop: '1px solid var(--border-1)' }}
+        >
+          {assessment.strengths?.length ? (
+            <PointsList label="Pontos fortes" items={assessment.strengths} tone="positive" />
+          ) : null}
+          {assessment.concerns?.length ? (
+            <PointsList label="Pontos de atenção" items={assessment.concerns} tone="negative" />
+          ) : null}
+        </div>
+      ) : null}
+
+      {assessment.next_steps && (
+        <div
+          style={{
+            paddingTop: '12px',
+            marginTop: '10px',
+            borderTop: '1px solid var(--border-1)',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-4)',
+              marginBottom: '6px',
+            }}
+          >
+            Próximos passos
+          </div>
+          <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.55 }}>
+            {assessment.next_steps}
+          </p>
+        </div>
+      )}
+
       {assessment.completed_at && (
         <p
           className="mono"
@@ -128,6 +171,51 @@ export default function AssessmentResultCard({ assessment }: AssessmentResultCar
         </p>
       )}
     </Card>
+  )
+}
+
+function PointsList({
+  label,
+  items,
+  tone,
+}: {
+  label: string
+  items: string[]
+  tone: 'positive' | 'negative'
+}) {
+  const color = tone === 'positive' ? 'var(--accent-text)' : 'var(--danger-text)'
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: '10px',
+          fontWeight: 600,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color,
+          marginBottom: '6px',
+        }}
+      >
+        {label}
+      </div>
+      <ul style={{ display: 'flex', flexDirection: 'column', gap: '4px', listStyle: 'none', padding: 0, margin: 0 }}>
+        {items.map((item, i) => (
+          <li
+            key={i}
+            style={{
+              fontSize: '12.5px',
+              color: 'var(--text-2)',
+              lineHeight: 1.5,
+              paddingLeft: '12px',
+              position: 'relative',
+            }}
+          >
+            <span aria-hidden style={{ position: 'absolute', left: 0, top: '7px', width: '4px', height: '4px', borderRadius: '50%', background: color }} />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
