@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import CompanyAvatar from '@/components/empresa/CompanyAvatar'
+import JobFilters from '@/components/jobs/JobFilters'
+import PublicJobsSearch from '@/components/jobs/PublicJobsSearch'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -33,19 +35,51 @@ function pickCompany(rel: JobRow['companies']): { name: string | null; logo_url:
   return Array.isArray(rel) ? rel[0] ?? null : rel
 }
 
-export const revalidate = 300 // ISR: 5min — equilibra freshness e custo
+// Sanitiza pra ilike: escapa wildcards do Postgres (%, _) pra não quebrar busca
+function escapeLike(s: string): string {
+  return s.replace(/[%_]/g, c => `\\${c}`)
+}
 
-export default async function PublicVagasPage() {
+export const revalidate = 300 // ISR 5min — cada combinação de query é cacheada
+
+interface PageProps {
+  searchParams: Promise<{
+    q?: string
+    seniority?: string
+    model?: string
+    type?: string
+  }>
+}
+
+export default async function PublicVagasPage({ searchParams }: PageProps) {
+  const sp = await searchParams
+  const query = sp.q?.trim().slice(0, 100) ?? ''
+  const seniorityFilter = sp.seniority?.split(',').filter(Boolean) ?? []
+  const modelFilter = sp.model?.split(',').filter(Boolean) ?? []
+  const typeFilter = sp.type?.split(',').filter(Boolean) ?? []
+
   const admin = createAdminClient()
 
-  const { data } = await admin
+  let q = admin
     .from('jobs')
     .select('id, title, seniority, location, work_model, employment_type, salary_min, salary_max, created_at, companies(name, logo_url)')
     .eq('status', 'open_for_hunters')
     .order('created_at', { ascending: false })
     .limit(60)
 
+  if (query.length >= 2) {
+    const escaped = escapeLike(query)
+    q = q.or(`title.ilike.%${escaped}%,description.ilike.%${escaped}%`)
+  }
+  if (seniorityFilter.length > 0) q = q.in('seniority', seniorityFilter)
+  if (modelFilter.length > 0) q = q.in('work_model', modelFilter)
+  if (typeFilter.length > 0) q = q.in('employment_type', typeFilter)
+
+  const { data } = await q
   const jobs = (data ?? []) as JobRow[]
+
+  const hasFilters =
+    query.length > 0 || seniorityFilter.length + modelFilter.length + typeFilter.length > 0
 
   return (
     <>
@@ -83,10 +117,20 @@ export default async function PublicVagasPage() {
         </p>
       </section>
 
+      <div style={{ marginBottom: '20px' }}>
+        <PublicJobsSearch initialQuery={query} />
+      </div>
+
+      <JobFilters
+        resultsLabel={hasFilters ? `${jobs.length} resultado${jobs.length === 1 ? '' : 's'}` : undefined}
+      />
+
       {jobs.length === 0 ? (
         <Card padding="lg" className="text-center">
           <p style={{ fontSize: '14px', color: 'var(--text-3)' }}>
-            Nenhuma vaga aberta no momento. Volte em breve.
+            {hasFilters
+              ? 'Nenhuma vaga corresponde aos filtros. Tente remover algum ou buscar outro termo.'
+              : 'Nenhuma vaga aberta no momento. Volte em breve.'}
           </p>
         </Card>
       ) : (

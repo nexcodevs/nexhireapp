@@ -12,6 +12,8 @@ interface CVUploadProps {
   disabled?: boolean
   required?: boolean
   label?: string
+  /** Endpoint que recebe o arquivo. Default = /api/hunter/upload-cv (legado). */
+  endpoint?: string
 }
 
 export default function CVUpload({
@@ -21,6 +23,7 @@ export default function CVUpload({
   disabled,
   required,
   label = 'Currículo (PDF)',
+  endpoint = '/api/hunter/upload-cv',
 }: CVUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const id = useId()
@@ -58,7 +61,7 @@ export default function CVUpload({
     const formData = new FormData()
     formData.append('file', file)
 
-    const res = await fetch('/api/hunter/upload-cv', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       body: formData,
     })

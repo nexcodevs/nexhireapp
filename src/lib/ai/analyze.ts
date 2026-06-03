@@ -900,3 +900,62 @@ Máximo 300 palavras. Retorne apenas o texto da descrição, sem título.`
 
   return message.content[0].type === 'text' ? message.content[0].text : ''
 }
+
+export interface CandidateProfileExtraction {
+  current_title: string | null
+  location: string | null
+  linkedin_url: string | null
+  years_experience: number | null
+  skills: string[]
+  language_proficiency: { language: string; level: string }[]
+  certifications: string[]
+  summary: string
+}
+
+/**
+ * Extrai perfil estruturado de um CV em texto. Usado quando o próprio
+ * candidato sobe o CV no /candidato/perfil — IA preenche os campos e o
+ * candidato confirma/edita antes de salvar.
+ */
+export async function extractCandidateProfile(
+  cvText: string,
+  userId: string | null,
+): Promise<CandidateProfileExtraction> {
+  const prompt = `Você está extraindo dados estruturados do currículo de um candidato pra preencher o perfil dele numa plataforma de recrutamento.
+
+Currículo (texto bruto extraído do PDF):
+"""
+${cvText}
+"""
+
+Devolva APENAS JSON válido nesta estrutura exata, sem texto fora:
+
+{
+  "current_title": "cargo atual (ou último cargo); string ou null se não identificável",
+  "location": "cidade/estado/país; null se não identificável",
+  "linkedin_url": "URL completa do LinkedIn se aparecer no CV; null se não",
+  "years_experience": número inteiro de anos de experiência total (estimativa conservadora baseada nas datas), ou null,
+  "skills": ["até 15 skills técnicas em ordem de relevância — sem soft skills"],
+  "language_proficiency": [{"language": "Português", "level": "nativo|fluente|intermediário|básico"}],
+  "certifications": ["nomes de certificações relevantes, máximo 8"],
+  "summary": "resumo executivo de 2-3 frases sobre o perfil — sem hype, sem adjetivos vazios"
+}
+
+Regras:
+- Se um campo não for inferível com confiança, use null (ou array vazio).
+- Skills devem ser termos curtos e específicos (ex: "React", "Postgres", "Liderança de squad"), não frases longas.
+- Idiomas: nível baseado em pistas do CV (ex: "fluente" se aparece "fluent" / "advanced" / "C1+"; "intermediário" se "intermediate"/"B1-B2"; "básico" se "basic"/"A1-A2"; "nativo" só se explícito).
+- Não invente dados que não estão no CV.`
+
+  const message = await callClaude(
+    {
+      model: MODEL_FAST,
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
+    },
+    userId ? { feature: 'enrich_candidate_profile', userId } : undefined,
+  )
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  return parseJsonResponse<CandidateProfileExtraction>(text)
+}

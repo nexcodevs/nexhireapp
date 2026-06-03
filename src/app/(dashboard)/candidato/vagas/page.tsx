@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import CompanyAvatar from '@/components/empresa/CompanyAvatar'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { matchScore, matchScoreVariant, matchScoreLabel } from '@/lib/match'
 
 export const metadata = {
   title: 'Vagas — Candidato — Nexhire',
@@ -22,7 +23,13 @@ interface JobRow {
   salary_min: number | null
   salary_max: number | null
   created_at: string
+  required_skills: unknown
+  desired_skills: unknown
   companies: { name: string | null; logo_url: string | null } | { name: string | null; logo_url: string | null }[] | null
+}
+
+interface JobWithScore extends JobRow {
+  score: number | null
 }
 
 function pickCompany(rel: JobRow['companies']): { name: string | null; logo_url: string | null } | null {
@@ -37,14 +44,41 @@ export default async function CandidatoVagasPage() {
 
   const admin = createAdminClient()
 
+  const { data: candidate } = await admin
+    .from('candidates')
+    .select('skills')
+    .eq('user_id', user.id)
+    .maybeSingle<{ skills: unknown }>()
+
+  const candidateSkills = Array.isArray(candidate?.skills)
+    ? (candidate.skills as unknown[]).filter((s): s is string => typeof s === 'string')
+    : []
+
+  const hasProfile = candidateSkills.length > 0
+
   const { data } = await admin
     .from('jobs')
-    .select('id, title, seniority, location, work_model, employment_type, salary_min, salary_max, created_at, companies(name, logo_url)')
+    .select('id, title, seniority, location, work_model, employment_type, salary_min, salary_max, created_at, required_skills, desired_skills, companies(name, logo_url)')
     .eq('status', 'open_for_hunters')
     .order('created_at', { ascending: false })
     .limit(80)
 
-  const jobs = (data ?? []) as JobRow[]
+  const rawJobs = (data ?? []) as JobRow[]
+
+  const jobs: JobWithScore[] = rawJobs.map(j => ({
+    ...j,
+    score: hasProfile
+      ? matchScore(candidateSkills, j.required_skills, j.desired_skills)
+      : null,
+  }))
+
+  if (hasProfile) {
+    jobs.sort((a, b) => {
+      const sa = a.score ?? -1
+      const sb = b.score ?? -1
+      return sb - sa
+    })
+  }
 
   return (
     <div className="max-w-5xl">
@@ -52,8 +86,46 @@ export default async function CandidatoVagasPage() {
         eyebrow="Marketplace"
         title="Vagas"
         titleAccent="abertas"
-        subtitle={`${jobs.length} oportunidade${jobs.length === 1 ? '' : 's'} no momento.`}
+        subtitle={
+          hasProfile
+            ? `${jobs.length} vaga${jobs.length === 1 ? '' : 's'} — ordenadas por fit com seu perfil.`
+            : `${jobs.length} oportunidade${jobs.length === 1 ? '' : 's'} no momento.`
+        }
       />
+
+      {!hasProfile && (
+        <Card
+          padding="md"
+          className="mb-5"
+          style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-border)' }}
+        >
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)' }}>
+                Complete seu perfil pra ver matches
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>
+                Suba um CV e a IA preenche skills, idiomas e experiência. Vagas passam a vir ordenadas por fit.
+              </div>
+            </div>
+            <Link
+              href="/candidato/perfil"
+              style={{
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-on-dark)',
+                background: 'var(--text-1)',
+                padding: '8px 14px',
+                borderRadius: 'var(--r-md)',
+                textDecoration: 'none',
+                flexShrink: 0,
+              }}
+            >
+              Completar perfil
+            </Link>
+          </div>
+        </Card>
+      )}
 
       {jobs.length === 0 ? (
         <Card padding="lg" className="text-center">
@@ -76,17 +148,23 @@ export default async function CandidatoVagasPage() {
                         size="md"
                       />
                       <div className="flex-1 min-w-0">
-                        <h2
-                          style={{
-                            fontSize: '15px',
-                            fontWeight: 600,
-                            color: 'var(--text-1)',
-                            letterSpacing: '-0.005em',
-                            marginBottom: '4px',
-                          }}
-                        >
-                          {job.title}
-                        </h2>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h2
+                            style={{
+                              fontSize: '15px',
+                              fontWeight: 600,
+                              color: 'var(--text-1)',
+                              letterSpacing: '-0.005em',
+                            }}
+                          >
+                            {job.title}
+                          </h2>
+                          {hasProfile && job.score !== null && (
+                            <Badge variant={matchScoreVariant(job.score)} size="sm">
+                              {matchScoreLabel(job.score)}
+                            </Badge>
+                          )}
+                        </div>
                         <div
                           style={{
                             fontSize: '12.5px',

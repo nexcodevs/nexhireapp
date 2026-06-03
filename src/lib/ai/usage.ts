@@ -14,6 +14,7 @@ export type AIFeature =
   | 'insights'
   | 'assistant_chat'
   | 'assess_candidate'
+  | 'enrich_candidate_profile'
 
 export type AIProvider = 'anthropic' | 'groq' | 'voyage'
 
@@ -143,4 +144,5 @@ export const DAILY_AI_LIMITS: Record<AIFeature, number> = {
   insights: 10,
   assistant_chat: 100,
   assess_candidate: 30,
+  enrich_candidate_profile: 10,
 }
